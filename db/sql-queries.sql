@@ -1,1 +1,2 @@
-CREATE DATABASE PersonelDB;
+MS SQL: Connect
+

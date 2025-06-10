@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Live Email Sending</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.emailjs.com/sdk/2.6.4/email.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .message {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none; /* Allows clicks to pass through */
+        }
+        .message.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .message.success {
+            background-color: #d1fae5; /* Green-100 */
+            color: #065f46; /* Green-800 */
+        }
+        .message.error {
+            background-color: #fee2e2; /* Red-100 */
+            color: #991b1b; /* Red-800 */
+        }
+        /* Custom spinner for loading button */
+        .loading {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w_lg bg-white p-8 rounded-lg shadow-lg">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Contact Us</h2>
+        
+        <!-- Status Message Display -->
+        <div id="statusMessage" class="message p-3 mb-6 rounded-md text-sm text-center"></div>
+
+        <form id="contactForm" class="space-y-6">
+            <div>
+                <label for="from_name" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                <input type="text" id="from_name" name="from_name" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <div>
+                <label for="from_email" class="block text-sm font-medium text-gray-700 mb-1">Your Email</label>
+                <input type="email" id="from_email" name="from_email" required
+                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+
+            <div>
+                <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea id="message" name="message" rows="5" required
+                          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm resize-y"></textarea>
+            </div>
+
+            <div>
+                <button type="submit" id="submitBtn"
+                        class="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                    <span class="btn-text">Send Message</span>
+                    <div class="loading hidden ml-2"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+       
+        // EmailJS Configuration
+        // IMPORTANT: REPLACE THESE WITH YOUR ACTUAL EMAILJS CREDENTIALS
+        // You can find these on your EmailJS dashboard:
+        // Public Key: Account -> API Keys
+        // Service ID: Email Services -> (your chosen service)
+        // Template ID: Email Templates -> (your chosen template)
+        const EMAILJS_CONFIG = {
+            publicKey:'iXgWy-zYl1IjvHJeS',    // <-- REPLACE THIS!
+            serviceId:'service_wungssd',    // <-- REPLACE THIS!
+            templateId:'template_aa1tb3e'   // <-- REPLACE THIS!
+        };
+
+        // Initialize EmailJS
+        function initializeEmailJS() {
+            // FOR DEBUGGING: Log the public key being used and the comparison result
+            console.log("EmailJS Public Key in config:", EMAILJS_CONFIG.publicKey);
+            console.log("Is public key still placeholder?", EMAILJS_CONFIG.publicKey === 'iXgWy-zYl1IjvHJeS');
+
+            // Check if actual credentials are provided (not the placeholder)
+            if (EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.publicKey !== 'iXgWy-zYl1IjvHJeS') {
+                emailjs.init(EMAILJS_CONFIG.publicKey);
+                console.log("EmailJS initialized successfully.");
+                return true; // Initialization successful
+            }
+            console.log("EmailJS not initialized: Public key is missing or still a placeholder.");
+            return false; // Not configured
+        }
+
+        // Show message to user
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('statusMessage');
+            messageDiv.textContent = message;
+            // Remove previous type classes and add the new one
+            messageDiv.className = `message p-3 mb-6 rounded-md text-sm text-center ${type} show`;
+            
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Set button loading state
+        function setButtonLoading(loading) {
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            const loadingDiv = submitBtn.querySelector('.loading');
+            
+            if (loading) {
+                submitBtn.disabled = true;
+                btnText.style.opacity = '0'; // Hide text
+                loadingDiv.style.display = 'block'; // Show spinner
+            } else {
+                submitBtn.disabled = false;
+                btnText.style.opacity = '1'; // Show text
+                loadingDiv.style.display = 'none'; // Hide spinner
+            }
+        }
+
+        // Send email using EmailJS
+        async function sendEmail(formData) {
+            // Ensure EmailJS is initialized before sending
+            if (!initializeEmailJS()) {
+                // If not initialized (due to placeholder keys), show an error and stop
+                showMessage('EmailJS is not configured. Please update YOUR_EMAILJS_PUBLIC_KEY_GOES_HERE, YOUR_EMAILJS_SERVICE_ID_GOES_HERE, and YOUR_EMAILJS_TEMPLATE_ID_GOES_HERE in the code.', 'error');
+                throw new Error('EmailJS not configured with actual credentials.');
+            }
+
+            const templateParams = {
+                from_name: formData.get('from_name'),
+                from_email: formData.get('from_email'),
+                message: formData.get('message'),
+                to_email: 'elishaokoh897@gmail.com', // The email address to receive messages
+                reply_to: formData.get('from_email') // Set reply-to to sender's email
+            };
+
+            try {
+                // Attempt to send the email
+                await emailjs.send(
+                    EMAILJS_CONFIG.serviceId,
+                    EMAILJS_CONFIG.templateId,
+                    templateParams
+                );
+                showMessage('Message sent successfully! We will get back to you soon.', 'success');
+            } catch (error) {
+                // Log and show error if sending fails
+                console.error('Error sending email:', error);
+                showMessage('Failed to send message. Please try again later.', 'error');
+                throw error; // Re-throw to be caught by the main form handler
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            const formData = new FormData(this); // Get form data
+            setButtonLoading(true); // Show loading state on button
+
+            try {
+                await sendEmail(formData); // Attempt to send the email
+                this.reset(); // Reset form fields on success
+            } catch (error) {
+                // Error handled within sendEmail, but this catch ensures finally runs
+                // console.error already called in sendEmail
+            } finally {
+                setButtonLoading(false); // Hide loading state on button, always runs
+            }
+        });
+
+        // Initialize on page load (check config and display message)
+        document.addEventListener('DOMContentLoaded', function() {
+            if (initializeEmailJS()) {
+                showMessage('EmailJS is configured! The form is ready to send live emails.', 'success');
+            } else {
+                showMessage('Please configure EmailJS: Update the placeholder keys in the JavaScript code to enable live email sending.', 'error');
+            }
+        });
+
+         localStorage.clear();
+    </script>
+</body>
+</html>

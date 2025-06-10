@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
+</script>
+<script type="text/javascript">
+   (function(){
+      emailjs.init({
+        publicKey: "iXgWy-zYl1IjvHJeS",
+      });
+   })();
+</script>
+</head>
+<body>
+  <div>
+    <input type="text" id="fullname" placeholder="fullname" required /><br />
+    <input type="email" id="email_id"  placeholder="email_id" required /><br />
+    <textarea  id="message"  placeholder="message" required></textarea><br />
+    <button onclick="sendMail()">Send</button>
+  </div>
+</body>
+<script>
+  function sendMail() {
+    var fullname = document.getElementById("fullname").value;
+    var email_id = document.getElementById("email_id").value;
+    var message = document.getElementById("message").value;
+
+    if (fullname && email_id && message) {
+      emailjs.send("service_wungssd", "template_aa1tb3e", {
+        from_name: fullname,
+        from_email: email_id,
+        message: message
+      })
+      .then(function(response) {
+        console.log('SUCCESS!', response.status, response.text);
+        alert('Email sent successfully!');
+      }, function(error) {
+        console.log('FAILED...', error);
+        alert('Failed to send email. Please try again later.');
+      });
+    } else {
+      alert('Please fill in all fields.');
+    }
+
+    reset();
+  }
+</script>
+</html>

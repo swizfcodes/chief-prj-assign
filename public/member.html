@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HICAD</title>
+</head>
+<link rel="stylesheet" href="styles/index.css">
+
+ <link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+
+<body>
+  <!--- header design -->
+  <header class="hicad-header">
+        <a href="#" class="hicad-logo">
+        HICAD
+        </a>
+
+        <nav class="hicad-navbar" id="navbar">
+        <a href="http://127.0.0.1:5500/public/index.html" >About Us</a>
+        <a href="#" >Gallery</a>
+        <a href="#" >News & Events</a>
+        <a href="http://127.0.0.1:5500/public/contact.html" >Contact Us</a>
+        <a href="http://127.0.0.1:5500/public/member.html" class="home-active">Members</a>
+        </nav>
+
+        <div class="hamburger" id="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+        </div>
+    </header>
+
+
+<div class="form-wrapper">
+    <div class="container-form">
+        <div class="form-toggle">
+            <button class="toggle-btn active" onclick="showForm('signup')">Sign Up</button>
+            <button class="toggle-btn" onclick="showForm('login')">Login</button>
+        </div>
+
+        <div class="form-container">
+            <!-- Success Message -->
+            <div class="success-message" id="successMessage"></div>
+
+            <!-- Sign Up Form -->
+            <form class="form active" id="signupForm">
+                <h2 class="title">Create Account</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name <span class="required">*</span></label>
+                        <input type="text" id="firstName" name="firstName" required>
+                        <div class="error" id="firstNameError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="surname">Surname <span class="required">*</span></label>
+                        <input type="text" id="surname" name="surname" required>
+                        <div class="error" id="surnameError"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="otherNames">Other Names</label>
+                    <input type="text" id="otherNames" name="otherNames">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <select id="title" name="title">
+                            <option value="">Select Title</option>
+                            <option value="Mr">Mr</option>
+                            <option value="Mrs">Mrs</option>
+                            <option value="Miss">Miss</option>
+                            <option value="Ms">Ms</option>
+                            <option value="Dr">Dr</option>
+                            <option value="Prof">Prof</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="honTitle">Honorary Title</label>
+                        <input type="text" id="honTitle" name="honTitle" placeholder="e.g., JP, OON, etc.">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sex">Sex <span class="required">*</span></label>
+                        <select id="sex" name="sex" required>
+                            <option value="">Select Sex</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                        <div class="error" id="sexError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="dob">Date of Birth <span class="required">*</span></label>
+                        <input type="date" id="dob" name="dob" required>
+                        <div class="error" id="dobError"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="quarters">Quarters/Address <span class="required">*</span></label>
+                    <input type="text" id="quarters" name="quarters" required>
+                    <div class="error" id="quartersError"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ward">Ward <span class="required">*</span></label>
+                        <input type="text" id="ward" name="ward" required>
+                        <div class="error" id="wardError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="town">Town <span class="required">*</span></label>
+                        <input type="text" id="town" name="town" required>
+                        <div class="error" id="townError"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="state">State <span class="required">*</span></label>
+                    <select id="state" name="state" required>
+                        <option value="">Select State</option>
+                        <option value="Abia">Abia</option>
+                        <option value="Adamawa">Adamawa</option>
+                        <option value="Akwa Ibom">Akwa Ibom</option>
+                        <option value="Anambra">Anambra</option>
+                        <option value="Bauchi">Bauchi</option>
+                        <option value="Bayelsa">Bayelsa</option>
+                        <option value="Benue">Benue</option>
+                        <option value="Borno">Borno</option>
+                        <option value="Cross River">Cross River</option>
+                        <option value="Delta">Delta</option>
+                        <option value="Ebonyi">Ebonyi</option>
+                        <option value="Edo">Edo</option>
+                        <option value="Ekiti">Ekiti</option>
+                        <option value="Enugu">Enugu</option>
+                        <option value="FCT">FCT</option>
+                        <option value="Gombe">Gombe</option>
+                        <option value="Imo">Imo</option>
+                        <option value="Jigawa">Jigawa</option>
+                        <option value="Kaduna">Kaduna</option>
+                        <option value="Kano">Kano</option>
+                        <option value="Katsina">Katsina</option>
+                        <option value="Kebbi">Kebbi</option>
+                        <option value="Kogi">Kogi</option>
+                        <option value="Kwara">Kwara</option>
+                        <option value="Lagos">Lagos</option>
+                        <option value="Nasarawa">Nasarawa</option>
+                        <option value="Niger">Niger</option>
+                        <option value="Ogun">Ogun</option>
+                        <option value="Ondo">Ondo</option>
+                        <option value="Osun">Osun</option>
+                        <option value="Oyo">Oyo</option>
+                        <option value="Plateau">Plateau</option>
+                        <option value="Rivers">Rivers</option>
+                        <option value="Sokoto">Sokoto</option>
+                        <option value="Taraba">Taraba</option>
+                        <option value="Yobe">Yobe</option>
+                        <option value="Zamfara">Zamfara</option>
+                    </select>
+                    <div class="error" id="stateError"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="qualifications">Qualifications</label>
+                        <input type="text" id="qualifications" name="qualifications" placeholder="e.g., BSc, MSc, PhD">
+                    </div>
+                    <div class="form-group">
+                        <label for="profession">Profession</label>
+                        <input type="text" id="profession" name="profession">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phoneNumber">Phone Number <span class="required">*</span></label>
+                    <input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="e.g., 08012345678">
+                    <div class="error" id="phoneNumberError"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="exitDate">Exit Date</label>
+                    <input type="date" id="exitDate" name="exitDate">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password <span class="required">*</span></label>
+                        <input type="password" id="password" name="password" required>
+                        <div class="error" id="passwordError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="retypePassword">Retype Password <span class="required">*</span></label>
+                        <input type="password" id="retypePassword" name="retypePassword" required>
+                        <div class="error" id="retypePasswordError"></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">Create Account</button>
+            </form>
+
+            <!-- Login Form -->
+      <div class="form-divider">
+        <form class="form" id="loginForm">
+            <h2 class="title">Welcome Back</h2>
+
+            <div class="form-group">
+            <label for="loginPhone">Phone Number <span class="required">*</span></label>
+            <input type="tel" id="loginPhone" name="loginPhone" required placeholder="Enter your phone number">
+            <div class="error" id="loginPhoneError"></div>
+            </div>
+
+            <div class="form-group" style="position: relative;">
+            <label for="loginPassword">Password <span class="required">*</span></label>
+            <input type="password" id="loginPassword" name="loginPassword" required>
+            
+            <!-- Eye Toggle Button -->
+            <span id="togglePassword" style="position: absolute; top: 36px; right: 10px; cursor: pointer;">
+                <!-- Eye Open SVG -->
+                <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <!-- Eye Closed SVG -->
+                <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a21.7 21.7 0 014.6-5.94M1 1l22 22"/>
+                <path d="M9.5 9.5a3 3 0 004 4"/>
+                </svg>
+            </span>
+
+            <div class="error" id="loginPasswordError"></div>
+            </div>
+
+            <button type="submit" class="submit-btn">Login</button>
+
+            <div class="forgot-password" style="margin-top: 4%; cursor: pointer;">
+            Forgot Password?
+            </div>
+            <style>
+            .forgot-password:hover {
+                color: var(--main-color);
+            }
+            </style>
+        </form>
+        </div>
+        </div>
+    </div>
+</div>
+
+    <script>
+        // Form toggle functionality
+        function showForm(formType) {
+            const signupForm = document.getElementById('signupForm');
+            const loginForm = document.getElementById('loginForm');
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+            
+            // Reset active states
+            toggleBtns.forEach(btn => btn.classList.remove('active'));
+            signupForm.classList.remove('active');
+            loginForm.classList.remove('active');
+            
+            // Clear any success messages
+            document.getElementById('successMessage').style.display = 'none';
+            
+            if (formType === 'signup') {
+                signupForm.classList.add('active');
+                toggleBtns[0].classList.add('active');
+            } else {
+                loginForm.classList.add('active');
+                toggleBtns[1].classList.add('active');
+            }
+        }
+
+        // Validation functions
+        function showError(fieldId, message) {
+            const errorElement = document.getElementById(fieldId + 'Error');
+            const inputElement = document.getElementById(fieldId);
+            
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                inputElement.style.borderColor = '#e74c3c';
+            }
+        }
+
+        function clearError(fieldId) {
+            const errorElement = document.getElementById(fieldId + 'Error');
+            const inputElement = document.getElementById(fieldId);
+            
+            if (errorElement) {
+                errorElement.style.display = 'none';
+                inputElement.style.borderColor = '#e1e5e9';
+            }
+        }
+
+        function clearAllErrors() {
+            const errorElements = document.querySelectorAll('.error');
+            const inputElements = document.querySelectorAll('input, select');
+            
+            errorElements.forEach(error => error.style.display = 'none');
+            inputElements.forEach(input => input.style.borderColor = '#e1e5e9');
+        }
+
+        function validatePhone(phone) {
+            const phoneRegex = /^(\+234|234|0)[789][01]\d{8}$/;
+            return phoneRegex.test(phone.replace(/\s/g, ''));
+        }
+
+        function validatePassword(password) {
+            return password.length >= 6;
+        }
+
+        function showSuccessMessage(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            
+            // Scroll to top to show the message
+            document.querySelector('.container').scrollTop = 0;
+        }
+
+        // Sign Up Form Handler
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearAllErrors();
+            
+            let isValid = true;
+            const formData = new FormData(this);
+            const userData = {};
+            
+            // Get all form data
+            for (let [key, value] of formData.entries()) {
+                userData[key] = value.trim();
+            }
+            
+            // Validation
+            if (!userData.firstName) {
+                showError('firstName', 'First name is required');
+                isValid = false;
+            }
+            
+            if (!userData.surname) {
+                showError('surname', 'Surname is required');
+                isValid = false;
+            }
+            
+            if (!userData.sex) {
+                showError('sex', 'Please select your sex');
+                isValid = false;
+            }
+            
+            if (!userData.dob) {
+                showError('dob', 'Date of birth is required');
+                isValid = false;
+            } else {
+                // Check if user is at least 13 years old
+                const today = new Date();
+                const birthDate = new Date(userData.dob);
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                
+                if (age < 13) {
+                    showError('dob', 'You must be at least 13 years old');
+                    isValid = false;
+                }
+            }
+            
+            if (!userData.quarters) {
+                showError('quarters', 'Address is required');
+                isValid = false;
+            }
+            
+            if (!userData.ward) {
+                showError('ward', 'Ward is required');
+                isValid = false;
+            }
+            
+            if (!userData.town) {
+                showError('town', 'Town is required');
+                isValid = false;
+            }
+            
+            if (!userData.state) {
+                showError('state', 'Please select your state');
+                isValid = false;
+            }
+            
+            if (!userData.phoneNumber) {
+                showError('phoneNumber', 'Phone number is required');
+                isValid = false;
+            } else if (!validatePhone(userData.phoneNumber)) {
+                showError('phoneNumber', 'Please enter a valid Nigerian phone number');
+                isValid = false;
+            } else {
+                // Check if phone number already exists
+                const existingUser = users.find(u => u.phoneNumber === userData.phoneNumber);
+                if (existingUser) {
+                    showError('phoneNumber', 'This phone number is already registered');
+                    isValid = false;
+                }
+            }
+            
+            if (!userData.password) {
+                showError('password', 'Password is required');
+                isValid = false;
+            } else if (!validatePassword(userData.password)) {
+                showError('password', 'Password must be at least 6 characters long');
+                isValid = false;
+            }
+            
+            if (!userData.retypePassword) {
+                showError('retypePassword', 'Please retype your password');
+                isValid = false;
+            } else if (userData.password !== userData.retypePassword) {
+                showError('retypePassword', 'Passwords do not match');
+                isValid = false;
+            }
+            
+            if (isValid) {
+                // Check if phone number already exists (double check)
+                const existingUser = users.find(u => u.phoneNumber === userData.phoneNumber);
+                if (existingUser) {
+                    showError('phoneNumber', 'This phone number is already registered');
+                    return;
+                }
+                
+                // Remove retype password from the data to be saved
+                delete userData.retypePassword;
+                
+                // Add timestamp
+                userData.createdAt = new Date().toISOString();
+                userData.userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Save user data
+                users.push(userData);
+                
+                // Here's where you would normally send data to your database
+                console.log('User signup data:', userData);
+                console.log('Total users registered:', users.length);
+                
+                // Show success message with phone number for reference
+                showSuccessMessage(`Account created successfully for ${userData.phoneNumber}! You can now login with this phone number and your password.`);
+                
+                // Reset form
+                this.reset();
+                
+                // Switch to login form after 3 seconds
+                setTimeout(() => {
+                    showForm('login');
+                    // Pre-fill the phone number in login form
+                    document.getElementById('loginPhone').value = userData.phoneNumber;
+                }, 3000);
+            }
+        });
+
+        // Login Form Handler
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearAllErrors();
+            
+            let isValid = true;
+            const phone = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!phone) {
+                showError('loginPhone', 'Phone number is required');
+                isValid = false;
+            } else if (!validatePhone(phone)) {
+                showError('loginPhone', 'Please enter a valid phone number');
+                isValid = false;
+            }
+            
+            if (!password) {
+                showError('loginPassword', 'Password is required');
+                isValid = false;
+            }
+            
+            if (isValid) {
+                const loginData = {
+                    phoneNumber: phone,
+                    password: password,
+                    loginAt: new Date().toISOString()
+                };
+                
+                // Here's where you would normally verify credentials with your database
+                console.log('Login attempt:', loginData);
+                
+                // For demonstration
+                const authenticatedUser = authenticateUser(phone, password);
+                
+                if (authenticatedUser) {
+                    showSuccessMessage(`Welcome back, ${authenticatedUser.firstName} ${authenticatedUser.surname}! Login successful.`);
+                    this.reset();
+                    
+                    // Here you would typically redirect the user or load their dashboard
+                    setTimeout(() => {
+                        alert(`Welcome ${authenticatedUser.firstName}! You are now logged in. In a real app, you would be redirected to your dashboard.`);
+                    }, 1500);
+                } else {
+                    // Provide more helpful error message
+                    if (users.length === 0) {
+                        showError('loginPhone', 'No users registered yet. Please sign up first.');
+                    } else {
+                        const userExists = users.find(u => u.phoneNumber === phone);
+                        if (userExists) {
+                            showError('loginPassword', 'Incorrect password. Please try again.');
+                        } else {
+                            showError('loginPhone', 'Phone number not registered. Please sign up first.');
+                        }
+                    }
+                }
+            }
+        });
+
+           const passwordInput = document.getElementById("loginPassword");
+            const togglePassword = document.getElementById("togglePassword");
+            const eyeOpen = document.getElementById("eyeOpen");
+            const eyeClosed = document.getElementById("eyeClosed");
+
+            togglePassword.addEventListener("click", () => {
+                const isPassword = passwordInput.type === "password";
+                passwordInput.type = isPassword ? "text" : "password";
+                
+                // Toggle SVG display
+                eyeOpen.style.display = isPassword ? "none" : "inline";
+                eyeClosed.style.display = isPassword ? "inline" : "none";
+            });
+
+            // Optional: Forgot Password click
+            document.querySelector(".forgot-password").addEventListener("click", () => {
+                alert("Redirecting to password recovery...");
+                // window.location.href = "/forgot-password.html";
+            });
+
+
+        // In-memory storage for demonstration (replace with actual database calls)
+        let users = [];
+
+        function saveUserData(userData, type) {
+            if (type === 'signup') {
+                users.push(userData);
+                console.log('User saved:', userData);
+                console.log('All users:', users);
+                
+                // Here you would make an API call to your database
+                // Example:
+                /*
+                fetch('/api/users/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('User saved to database:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving user:', error);
+                });
+                */
+            }
+        }
+
+        // Debug function to show current users
+        function showRegisteredUsers() {
+            console.log('=== REGISTERED USERS ===');
+            if (users.length === 0) {
+                console.log('No users registered yet');
+            } else {
+                users.forEach((user, index) => {
+                    console.log(`${index + 1}. ${user.firstName} ${user.surname} - ${user.phoneNumber}`);
+                });
+            }
+            console.log('========================');
+            return users;
+        }
+
+        // Add a button to check registered users (for debugging)
+        window.showUsers = showRegisteredUsers;
+
+        function authenticateUser(phone, password) {
+            console.log('Attempting to authenticate:', phone);
+            console.log('Total registered users:', users.length);
+            console.log('All users:', users.map(u => ({ phone: u.phoneNumber, name: u.firstName + ' ' + u.surname })));
+            
+            // In a real application, this would check against your database
+            const user = users.find(u => u.phoneNumber === phone && u.password === password);
+            
+            if (user) {
+                console.log('User authenticated successfully:', {
+                    name: user.firstName + ' ' + user.surname,
+                    phone: user.phoneNumber,
+                    createdAt: user.createdAt
+                });
+                return user;
+            } else {
+                console.log('Authentication failed - user not found or wrong password');
+                return false;
+            }
+            
+            // Here you would make an API call to verify credentials
+            /*
+            fetch('/api/users/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phoneNumber: phone, password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Handle successful login
+                } else {
+                    // Handle failed login
+                }
+            });
+            */
+        }
+
+        // Real-time validation
+        document.getElementById('phoneNumber').addEventListener('input', function() {
+            const phone = this.value.trim();
+            if (phone && !validatePhone(phone)) {
+                showError('phoneNumber', 'Please enter a valid Nigerian phone number');
+            } else if (phone) {
+                clearError('phoneNumber');
+            }
+        });
+
+        document.getElementById('retypePassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const retypePassword = this.value;
+            
+            if (retypePassword && password !== retypePassword) {
+                showError('retypePassword', 'Passwords do not match');
+            } else if (retypePassword) {
+                clearError('retypePassword');
+            }
+        });
+
+        // Export function to get user data (for database integration)
+        window.getUserData = function() {
+            return users;
+        };
+
+        // Export function to clear user data
+        window.clearUserData = function() {
+            users = [];
+            console.log('User data cleared');
+        };
+    </script>
+</body>
+<script src="script/index.js"></script>
+</html>

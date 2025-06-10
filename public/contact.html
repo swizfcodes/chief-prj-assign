@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact US</title>
+</head>
+<link rel="stylesheet" href="styles/index.css">
+
+ <link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+  <script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
+</script>
+<script type="text/javascript">
+   (function(){
+      emailjs.init({
+        publicKey: "iXgWy-zYl1IjvHJeS",
+      });
+   })();
+</script>
+
+<body>
+  <!--- header design -->
+  <header class="hicad-header">
+    <a href="#" class="hicad-logo">
+      HICAD
+    </a>
+
+    <nav class="hicad-navbar" id="navbar">
+      <a href="http://127.0.0.1:5500/public/index.html">About Us</a>
+      <a href="#" >Gallery</a>
+      <a href="#" >News & Events</a>
+      <a href="http://127.0.0.1:5500/public/contact.html"  class="home-active">Contact Us</a>
+      <a href="http://127.0.0.1:5500/public/member.html">Members</a>
+    </nav>
+
+     <div class="hamburger" id="hamburger">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</header>
+
+<section class="contact-section">
+   <div class="glass-form">
+    <input type="text" id="fullname" placeholder="Full Name" required /><br />
+    <input type="email" id="email_id" placeholder="Email Address" required /><br />
+    <textarea id="message" placeholder="Your Message" required rows="4"></textarea><br />
+    <button onclick="sendMail()">Send</button>
+  </div>
+</section>
+
+</body>
+<script>
+  function sendMail() {
+    var fullname = document.getElementById("fullname").value;
+    var email_id = document.getElementById("email_id").value;
+    var message = document.getElementById("message").value;
+
+    if (fullname && email_id && message) {
+      emailjs.send("service_wungssd", "template_aa1tb3e", {
+        from_name: fullname,
+        from_email: email_id,
+        message: message
+      })
+      .then(function(response) {
+        console.log('SUCCESS!', response.status, response.text);
+        alert('Email sent successfully!');
+
+        document.getElementById("fullname").value = "";
+        document.getElementById("email_id").value = "";
+        document.getElementById("message").value = "";
+      }, function(error) {
+        console.log('FAILED...', error);
+        alert('Failed to send email. Please try again later.');
+      });
+    } else {
+      alert('Please fill in all fields.');
+    }
+
+    reset();
+  }
+</script>
+<script src="script/index.js"></script>
+</html>
