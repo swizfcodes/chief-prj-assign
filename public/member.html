@@ -321,205 +321,197 @@
             successDiv.style.display = 'block';
             
             // Scroll to top to show the message
-            document.querySelector('.container').scrollTop = 0;
+           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // Sign Up Form Handler
-        document.getElementById('signupForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            clearAllErrors();
-            
-            let isValid = true;
-            const formData = new FormData(this);
-            const userData = {};
-            
-            // Get all form data
-            for (let [key, value] of formData.entries()) {
-                userData[key] = value.trim();
-            }
-            
-            // Validation
-            if (!userData.firstName) {
-                showError('firstName', 'First name is required');
-                isValid = false;
-            }
-            
-            if (!userData.surname) {
-                showError('surname', 'Surname is required');
-                isValid = false;
-            }
-            
-            if (!userData.sex) {
-                showError('sex', 'Please select your sex');
-                isValid = false;
-            }
-            
-            if (!userData.dob) {
-                showError('dob', 'Date of birth is required');
-                isValid = false;
-            } else {
-                // Check if user is at least 13 years old
-                const today = new Date();
-                const birthDate = new Date(userData.dob);
-                let age = today.getFullYear() - birthDate.getFullYear();
-                const monthDiff = today.getMonth() - birthDate.getMonth();
-                
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                    age--;
-                }
-                
-                if (age < 13) {
-                    showError('dob', 'You must be at least 13 years old');
-                    isValid = false;
-                }
-            }
-            
-            if (!userData.quarters) {
-                showError('quarters', 'Address is required');
-                isValid = false;
-            }
-            
-            if (!userData.ward) {
-                showError('ward', 'Ward is required');
-                isValid = false;
-            }
-            
-            if (!userData.town) {
-                showError('town', 'Town is required');
-                isValid = false;
-            }
-            
-            if (!userData.state) {
-                showError('state', 'Please select your state');
-                isValid = false;
-            }
-            
-            if (!userData.phoneNumber) {
-                showError('phoneNumber', 'Phone number is required');
-                isValid = false;
-            } else if (!validatePhone(userData.phoneNumber)) {
-                showError('phoneNumber', 'Please enter a valid Nigerian phone number');
-                isValid = false;
-            } else {
-                // Check if phone number already exists
-                const existingUser = users.find(u => u.phoneNumber === userData.phoneNumber);
-                if (existingUser) {
-                    showError('phoneNumber', 'This phone number is already registered');
-                    isValid = false;
-                }
-            }
-            
-            if (!userData.password) {
-                showError('password', 'Password is required');
-                isValid = false;
-            } else if (!validatePassword(userData.password)) {
-                showError('password', 'Password must be at least 6 characters long');
-                isValid = false;
-            }
-            
-            if (!userData.retypePassword) {
-                showError('retypePassword', 'Please retype your password');
-                isValid = false;
-            } else if (userData.password !== userData.retypePassword) {
-                showError('retypePassword', 'Passwords do not match');
-                isValid = false;
-            }
-            
-            if (isValid) {
-                // Check if phone number already exists (double check)
-                const existingUser = users.find(u => u.phoneNumber === userData.phoneNumber);
-                if (existingUser) {
-                    showError('phoneNumber', 'This phone number is already registered');
-                    return;
-                }
-                
-                // Remove retype password from the data to be saved
-                delete userData.retypePassword;
-                
-                // Add timestamp
-                userData.createdAt = new Date().toISOString();
-                userData.userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                
-                // Save user data
-                users.push(userData);
-                
-                // Here's where you would normally send data to your database
-                console.log('User signup data:', userData);
-                console.log('Total users registered:', users.length);
-                
-                // Show success message with phone number for reference
-                showSuccessMessage(`Account created successfully for ${userData.phoneNumber}! You can now login with this phone number and your password.`);
-                
-                // Reset form
-                this.reset();
-                
-                // Switch to login form after 3 seconds
-                setTimeout(() => {
-                    showForm('login');
-                    // Pre-fill the phone number in login form
-                    document.getElementById('loginPhone').value = userData.phoneNumber;
-                }, 3000);
-            }
-        });
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        clearAllErrors();
 
-        // Login Form Handler
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            clearAllErrors();
-            
-            let isValid = true;
-            const phone = document.getElementById('loginPhone').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            
-            if (!phone) {
-                showError('loginPhone', 'Phone number is required');
-                isValid = false;
-            } else if (!validatePhone(phone)) {
-                showError('loginPhone', 'Please enter a valid phone number');
+        let isValid = true;
+        const formData = new FormData(this);
+        const userData = {};
+
+        for (let [key, value] of formData.entries()) {
+            userData[key] = value.trim();
+        }
+
+        // Frontend Validation (same as before)
+        if (!userData.firstName) {
+            showError('firstName', 'First name is required');
+            isValid = false;
+        }
+
+        if (!userData.surname) {
+            showError('surname', 'Surname is required');
+            isValid = false;
+        }
+
+        if (!userData.sex) {
+            showError('sex', 'Please select your sex');
+            isValid = false;
+        }
+
+        if (!userData.dob) {
+            showError('dob', 'Date of birth is required');
+            isValid = false;
+        } else {
+            const today = new Date();
+            const birthDate = new Date(userData.dob);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+            if (age < 13) {
+                showError('dob', 'You must be at least 13 years old');
                 isValid = false;
             }
-            
-            if (!password) {
-                showError('loginPassword', 'Password is required');
-                isValid = false;
-            }
-            
-            if (isValid) {
-                const loginData = {
-                    phoneNumber: phone,
-                    password: password,
-                    loginAt: new Date().toISOString()
-                };
-                
-                // Here's where you would normally verify credentials with your database
-                console.log('Login attempt:', loginData);
-                
-                // For demonstration
-                const authenticatedUser = authenticateUser(phone, password);
-                
-                if (authenticatedUser) {
-                    showSuccessMessage(`Welcome back, ${authenticatedUser.firstName} ${authenticatedUser.surname}! Login successful.`);
+        }
+
+        if (!userData.quarters) {
+            showError('quarters', 'Address is required');
+            isValid = false;
+        }
+
+        if (!userData.ward) {
+            showError('ward', 'Ward is required');
+            isValid = false;
+        }
+
+        if (!userData.town) {
+            showError('town', 'Town is required');
+            isValid = false;
+        }
+
+        if (!userData.state) {
+            showError('state', 'Please select your state');
+            isValid = false;
+        }
+
+        if (!userData.phoneNumber) {
+            showError('phoneNumber', 'Phone number is required');
+            isValid = false;
+        } else if (!validatePhone(userData.phoneNumber)) {
+            showError('phoneNumber', 'Please enter a valid Nigerian phone number');
+            isValid = false;
+        }
+
+        if (!userData.password) {
+            showError('password', 'Password is required');
+            isValid = false;
+        } else if (!validatePassword(userData.password)) {
+            showError('password', 'Password must be at least 6 characters long');
+            isValid = false;
+        }
+
+        if (!userData.retypePassword) {
+            showError('retypePassword', 'Please retype your password');
+            isValid = false;
+        } else if (userData.password !== userData.retypePassword) {
+            showError('retypePassword', 'Passwords do not match');
+            isValid = false;
+        }
+
+        if (isValid) {
+            try {
+                const res = await fetch('http://localhost:5500/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    showSuccessMessage(`Account created for ${userData.phoneNumber}!`);
                     this.reset();
-                    
-                    // Here you would typically redirect the user or load their dashboard
                     setTimeout(() => {
-                        alert(`Welcome ${authenticatedUser.firstName}! You are now logged in. In a real app, you would be redirected to your dashboard.`);
-                    }, 1500);
+                        showForm('login');
+                        document.getElementById('loginPhone').value = userData.phoneNumber;
+                    }, 3000);
                 } else {
-                    // Provide more helpful error message
-                    if (users.length === 0) {
-                        showError('loginPhone', 'No users registered yet. Please sign up first.');
+                    if (data.field && data.message) {
+                        showError(data.field, data.message);
                     } else {
-                        const userExists = users.find(u => u.phoneNumber === phone);
-                        if (userExists) {
-                            showError('loginPassword', 'Incorrect password. Please try again.');
-                        } else {
-                            showError('loginPhone', 'Phone number not registered. Please sign up first.');
-                        }
+                        alert(data.message || 'Signup failed.');
                     }
                 }
+            } catch (error) {
+                console.error('Signup error:', error);
+                alert('Something went wrong during signup.');
             }
-        });
+        }
+    });
+
+
+        // Login Form Handler
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    clearAllErrors();
+
+    let isValid = true;
+    const phone = document.getElementById('loginPhone').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!phone) {
+        showError('loginPhone', 'Phone number is required');
+        isValid = false;
+    } else if (!validatePhone(phone)) {
+        showError('loginPhone', 'Please enter a valid phone number');
+        isValid = false;
+    }
+
+    if (!password) {
+        showError('loginPassword', 'Password is required');
+        isValid = false;
+    }
+
+    console.log('phone:', phone);
+    console.log('password:', password);
+
+    if (isValid) {
+        try {
+            const res = await fetch('http://localhost:5500/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ phoneNumber: phone, password })
+            });
+
+            let data;
+            try {
+                data = await res.json();
+            } catch (err) {
+                console.error("Invalid JSON:", err);
+                alert("Server returned invalid response.");
+                return;
+            }
+
+            console.log("Login response:", data);
+
+            if (res.ok) {
+                showSuccessMessage("Welcome back! Login successful.");
+                this.reset();
+               setTimeout(() => {
+                window.location.href = "/dashboard"; // Correct path
+                }, 1500);
+            } else {
+                if (data.field === 'phone') {
+                    showError('loginPhone', data.message);
+                } else if (data.field === 'password') {
+                    showError('loginPassword', data.message);
+                } else {
+                    alert(data.message || 'Login failed. Please try again.');
+                }
+            }
+
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Something went wrong while trying to log in.');
+        }
+    }
+});
+
 
            const passwordInput = document.getElementById("loginPassword");
             const togglePassword = document.getElementById("togglePassword");

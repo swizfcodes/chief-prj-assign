@@ -1,0 +1,23 @@
+CREATE TABLE Users (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    FirstName VARCHAR(100),
+    Surname VARCHAR(100),
+    Sex VARCHAR(10),
+    DOB DATE,
+    Quarters VARCHAR(100),
+    Ward VARCHAR(100),
+    Town VARCHAR(100),
+    State VARCHAR(100),
+    PhoneNumber VARCHAR(20) UNIQUE,
+    Password VARCHAR(255),
+    CreatedAt DATETIME
+);
+
+SELECT TOP 1 * FROM Users;
+
+SELECT COLUMN_NAME, DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'Users';
+
+
+SELECT PhoneNumber, Password FROM Users WHERE PhoneNumber = '09114580151';

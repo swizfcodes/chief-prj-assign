@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Vanilla JS</title>
+    <!-- Inter font -->
+    <link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+</head>
+<link rel="stylesheet" href="styles/index.css">
+<link rel="stylesheet" href="styles/dashboard.css">
+<body>
+    <!-- This div will be the root for our dynamically rendered content -->
+    <div id="app-root" class="w-full">
+        <!-- Initial content will be loaded here by JavaScript -->
+        <div class="text-center text-gray-500 text-lg">Loading application...</div>
+    </div>
+
+    <!--<h2>User Profile</h2>
+    <div id="profile">
+    <p><strong>Age:</strong> <span id="age"></span></p>
+    <p><strong>Phone Number:</strong> <span id="phoneNo"></span></p>
+    <p><strong>Honors:</strong> <span id="honors"></span></p>
+    <p><strong>Exit Date:</strong> <span id="exitDate"></span></p>
+    <p><strong>Town:</strong> <span id="town"></span></p>
+    <p><strong>State:</strong> <span id="state"></span></p>
+    <p><strong>Ward:</strong> <span id="ward"></span></p>
+    <p><strong>Quarters:</strong> <span id="quarters"></span></p>
+    <p><strong>Qualifications:</strong> <span id="qualifications"></span></p>
+    </div>-->
+
+
+    <script>
+        // Global state for login status and data
+        let isLoggedIn = false;
+        let userProfile = null;
+        let newsEvents = [];
+        let selectedPeriod = 'monthly'; // Default period
+
+        // --- Utility Functions ---
+
+        /**
+         * Renders HTML content into the app-root element.
+         * @param {string} htmlString - The HTML string to render.
+         */
+        function render(htmlString) {
+            const appRoot = document.getElementById('app-root');
+            if (appRoot) {
+                appRoot.innerHTML = htmlString;
+            }
+        }
+
+        /**
+         * Simulates fetching user profile data from a backend.
+         * In a real application, this would be an actual fetch() call to your Node.js API.
+         * @returns {Promise<Object>} A promise that resolves with user profile data.
+         */
+        if (localStorage.getItem("isLoggedIn") !== "true") {
+    window.location.href = "login.html";
+  }
+
+  // Simulated API fetch
+  async function fetchUserProfile() {
+    console.log('Simulating fetching user profile from database...');
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({
+          age: 30,
+          phoneNo: '+234 801 234 5678',
+          honors: 'Cum Laude, Best Employee 2023',
+          exitDate: '2025-12-31',
+          town: 'Benin City',
+          state: 'Edo',
+          ward: 'Oredo Ward 1',
+          quarters: 'GRA Phase II',
+          qualifications: ['B.Sc. Computer Science', 'PMP Certification']
+        });
+      }, 500);
+    });
+  }
+
+  // Load and display profile
+  async function loadProfile() {
+    const profile = await fetchUserProfile();
+    document.getElementById('age').textContent = profile.age;
+    document.getElementById('phoneNo').textContent = profile.phoneNo;
+    document.getElementById('honors').textContent = profile.honors;
+    document.getElementById('exitDate').textContent = profile.exitDate;
+    document.getElementById('town').textContent = profile.town;
+    document.getElementById('state').textContent = profile.state;
+    document.getElementById('ward').textContent = profile.ward;
+    document.getElementById('quarters').textContent = profile.quarters;
+    document.getElementById('qualifications').textContent = profile.qualifications.join(', ');
+  }
+
+  loadProfile();
+
+        /**
+         * Simulates fetching news and events data from a backend.
+         * In a real application, this would be an actual fetch() call to your Node.js API.
+         * @returns {Promise<Array>} A promise that resolves with an array of news and events.
+         */
+        async function fetchNewsEvents() {
+            console.log('Simulating fetching news and events from database...');
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve([
+                        { id: 1, title: 'Annual Gala Dinner', date: '2025-07-15', description: 'Join us for our annual celebratory dinner.' },
+                        { id: 2, title: 'Community Outreach Program', date: '2025-08-01', description: 'Volunteer for local community support.' },
+                        { id: 3, title: 'New Product Launch', date: '2025-09-10', description: 'Exciting new product features unveiled!' },
+                    ]);
+                }, 700); // Simulate network delay
+            });
+        }
+
+        // --- Login/Logout & Session Management ---
+
+        /**
+         * Handles the login action.
+         * @param {Event} e - The form submission event.
+         */
+        function handleLogin(e) {
+            e.preventDefault();
+             if (!newProfile.phoneNo.match(/^\+234 \d{3} \d{3} \d{4}$/)) 
+             {
+                alert("Invalid phone number format.");
+                return;
+            }
+
+            // In a real app, you'd send credentials to your backend for authentication.
+            // For this demo, any input works as a successful login.
+            localStorage.setItem('isLoggedIn', 'true');
+            isLoggedIn = true;
+            console.log('User logged in (client-side simulation)');
+            renderDashboardPage(); // Immediately render the dashboard after login
+        }
+
+        /**
+         * Handles the logout action.
+         */
+        function handleLogout() {
+            localStorage.removeItem('isLoggedIn');
+            isLoggedIn = false;
+            userProfile = null; // Clear profile data on logout
+            newsEvents = [];    // Clear news data on logout
+            console.log('User logged out');
+            renderLoginPage(); // Render the login page after logout
+        }
+
+        // --- Rendering Functions for Dashboard Sections ---
+
+        /**
+         * Generates HTML for a profile detail row.
+         * @param {string} label - The label for the detail.
+         * @param {string|number} value - The value of the detail.
+         * @returns {string} HTML string for the detail.
+         */
+        function getProfileDetailHtml(label, value) {
+            return `
+                <div>
+                    <p class="detail-label">${label}</p>
+                    <p class="detail-value">${value || 'N/A'}</p>
+                </div>
+            `;
+        }
+
+        /**
+         * Generates HTML for a profile input field.
+         * @param {string} label - The label for the input.
+         * @param {string} name - The 'name' attribute for the input.
+         * @param {string} type - The 'type' attribute for the input (e.g., 'text', 'number', 'date').
+         * @param {string|number} value - The current value of the input.
+         * @returns {string} HTML string for the input field.
+         */
+        function getProfileInputHtml(label, name, type, value) {
+            const inputType = type === 'date' ? 'date' : 'text'; // Handle date type specifically
+            return `
+                <div>
+                    <label for="${name}-input" class="label-text">${label}</label>
+                    <input type="${inputType}" id="${name}-input" name="${name}" value="${value || ''}"
+                        class="input-field" />
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the Profile Section of the dashboard.
+         * Handles toggling between view and edit mode.
+         * @param {Object} profileData - The user profile data.
+         * @param {boolean} isEditing - Whether the profile is currently in edit mode.
+         */
+        function renderProfileSection(profileData, isEditing) {
+            if (!profileData) {
+                return `
+                    <div class="profile-card section-card animate-pulse-effect loading-placeholder">
+                        Loading profile data...
+                    </div>
+                `;
+            }
+
+            const profileDetailsHtml = isEditing ? `
+                ${getProfileInputHtml("Age", "age", "number", profileData.age)}
+                ${getProfileInputHtml("Phone No", "phoneNo", "text", profileData.phoneNo)}
+                ${getProfileInputHtml("Honors", "honors", "text", profileData.honors)}
+                ${getProfileInputHtml("Exit Date", "exitDate", "date", profileData.exitDate)}
+                ${getProfileInputHtml("Town", "town", "text", profileData.town)}
+                ${getProfileInputHtml("State", "state", "text", profileData.state)}
+                ${getProfileInputHtml("Ward", "ward", "text", profileData.ward)}
+                ${getProfileInputHtml("Quarters", "quarters", "text", profileData.quarters)}
+                <div class="profile-grid-span-2">
+                    <label for="qualifications-input" class="label-text">Qualifications (comma separated)</label>
+                    <input type="text" id="qualifications-input" name="qualifications"
+                        value="${profileData.qualifications ? profileData.qualifications.join(', ') : ''}"
+                        class="input-field" />
+                </div>
+                <div class="profile-grid-span-2 profile-action-buttons">
+                    <button id="saveProfileBtn"
+                        class="btn btn-green btn-small">
+                        Save Changes
+                    </button>
+                </div>
+            ` : `
+                ${getProfileDetailHtml("Age", profileData.age)}
+                ${getProfileDetailHtml("Phone No", profileData.phoneNo)}
+                ${getProfileDetailHtml("Honors", profileData.honors)}
+                ${getProfileDetailHtml("Exit Date", profileData.exitDate)}
+                ${getProfileDetailHtml("Town", profileData.town)}
+                ${getProfileDetailHtml("State", profileData.state)}
+                ${getProfileDetailHtml("Ward", profileData.ward)}
+                ${getProfileDetailHtml("Quarters", profileData.quarters)}
+                ${getProfileDetailHtml("Qualifications", profileData.qualifications ? profileData.qualifications.join(', ') : 'N/A')}
+            `;
+
+            return `
+                <div class="profile-card section-card">
+                    <h2 class="subheader-text" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        User Profile
+                        <button id="editProfileBtn"
+                            class="btn btn-blue btn-small" style="margin-left: 1rem;">
+                            ${isEditing ? 'Cancel Edit' : 'Edit Profile'}
+                        </button>
+                    </h2>
+                    <div class="profile-grid">
+                        ${profileDetailsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the News & Events Section.
+         * @param {Array} events - An array of news and events.
+         * @returns {string} HTML string for the news and events section.
+         */
+        function renderNewsEventsSection(events) {
+            if (!events.length) {
+                return `
+                    <div class="news-events-card section-card animate-pulse-effect loading-placeholder">
+                        Loading news and events...
+                    </div>
+                `;
+            }
+
+            const eventListHtml = events.map(event => `
+                <div class="news-event-item">
+                    <h3>${event.title}</h3>
+                    <p class="date">${event.date}</p>
+                    <p class="description">${event.description}</p>
+                </div>
+            `).join('');
+
+            return `
+                <div class="news-events-card section-card">
+                    <h2 class="subheader-text" style="margin-bottom: 1.5rem;">News & Events</h2>
+                    <div class="news-events-list">
+                        ${eventListHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Renders the Period Selector section.
+         * @param {string} currentPeriod - The currently selected period.
+         * @returns {string} HTML string for the period selector.
+         */
+        function renderPeriodSelector(currentPeriod) {
+            const periods = [
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'quarterly', label: 'Quarterly' },
+                { value: 'yearly', label: 'Yearly' },
+            ];
+
+            const buttonsHtml = periods.map(period => `
+                <button id="period-${period.value}"
+                    class="btn ${currentPeriod === period.value ? 'btn-green' : 'btn-gray'} btn-small">
+                    ${period.label}
+                </button>
+            `).join('');
+
+            return `
+                <div class="period-selector-card section-card">
+                    <h2 class="subheader-text" style="margin-bottom: 1.5rem;">Select Period</h2>
+                    <div class="period-buttons-container" id="period-buttons">
+                        ${buttonsHtml}
+                    </div>
+                    <p class="period-info-text">
+                        Currently selected period for data analysis (frontend simulation): <span>${currentPeriod}</span>
+                    </p>
+                </div>
+            `;
+        }
+
+        // --- Page Rendering Functions ---
+
+        /**
+         * Renders the login page UI.
+         */
+        function renderLoginPage() {
+            const loginHtml = `
+                <div class="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                    <div class="container-wrapper">
+                        <h2 class="header-text">Login</h2>
+                        <form id="loginForm" class="form-spacing">
+                            <div>
+                                <label for="username" class="label-text">Username</label>
+                                <input type="text" id="username" placeholder="user@example.com"
+                                    class="input-field" required />
+                            </div>
+                            <div>
+                                <label for="password" class="label-text">Password</label>
+                                <input type="password" id="password" placeholder="password"
+                                    class="input-field" required />
+                            </div>
+                            <button type="submit" class="btn btn-blue">
+                                Login
+                            </button>
+                        </form>
+                        <p class="info-text">
+                            (This is a simulated login. Any input works.)
+                        </p>
+                    </div>
+                </div>
+            `;
+            render(loginHtml);
+
+            // Add event listener after rendering
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        }
+
+        /**
+         * Renders the dashboard page UI.
+         */
+        async function renderDashboardPage() {
+            // Render loading states while data is fetched
+            render(`
+                <div class="dashboard-layout">
+                    <header class="dashboard-header">
+                        <h1 class="header-text" style="text-align: left; margin-bottom: 0;">Admin Dashboard</h1>
+                        <button id="logoutBtn"
+                            class="btn btn-red btn-small">
+                            Logout
+                        </button>
+                    </header>
+                    <div class="grid-container">
+                        ${renderProfileSection(null, false)} <!-- Render loading profile -->
+                        ${renderNewsEventsSection([])} <!-- Render loading news -->
+                    </div>
+                    ${renderPeriodSelector(selectedPeriod)}
+                </div>
+            `);
+
+            // Attach logout listener immediately
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+
+            // Fetch data
+            userProfile = await fetchUserProfile();
+            newsEvents = await fetchNewsEvents();
+
+            // Re-render sections with fetched data
+            updateDashboardSections();
+        }
+
+        /**
+         * Updates only the dynamic sections of the dashboard.
+         * Used after data fetch or profile save.
+         */
+        function updateDashboardSections() {
+            // Update Profile Section
+            // Select the element by its assigned class, making it more robust
+            const currentProfileSection = document.querySelector('.profile-card.section-card');
+            if (currentProfileSection) {
+                const isCurrentlyEditing = currentProfileSection.querySelector('#saveProfileBtn') !== null;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = renderProfileSection(userProfile, isCurrentlyEditing);
+                const newProfileSection = tempDiv.firstElementChild;
+                currentProfileSection.replaceWith(newProfileSection);
+            }
+
+            // Update News & Events Section
+            const currentNewsEventsSection = document.querySelector('.news-events-card.section-card');
+            if (currentNewsEventsSection) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = renderNewsEventsSection(newsEvents);
+                const newNewsEventsSection = tempDiv.firstElementChild;
+                currentNewsEventsSection.replaceWith(newNewsEventsSection);
+            }
+            
+            // Re-attach listeners for dynamically rendered content (Profile & Period)
+            attachDashboardEventListeners();
+        }
+
+        /**
+         * Attaches event listeners for dashboard interactions.
+         * Must be called AFTER DOM elements are rendered/re-rendered.
+         */
+        function attachDashboardEventListeners() {
+            // Profile Section
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            if (editProfileBtn) {
+                editProfileBtn.onclick = () => {
+                    const isCurrentlyEditing = editProfileBtn.textContent.includes('Cancel Edit');
+                    // Get the new HTML for the profile section
+                    const newProfileHtml = renderProfileSection(userProfile, !isCurrentlyEditing);
+                    // Create a temporary div to parse the HTML string
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newProfileHtml;
+                    const newProfileElement = tempDiv.firstElementChild; // Get the actual element
+
+                    // Replace the old profile section with the new one
+                    const currentProfileSection = document.querySelector('.profile-card.section-card');
+                    if (currentProfileSection) {
+                        currentProfileSection.replaceWith(newProfileElement);
+                    }
+                    attachDashboardEventListeners(); // Re-attach listeners after re-render
+                };
+            }
+
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+            if (saveProfileBtn) {
+                saveProfileBtn.onclick = async () => {
+                    // Collect data from input fields
+                    const newProfile = { ...userProfile };
+                    newProfile.age = parseInt(document.getElementById('age-input').value, 10);
+                    newProfile.phoneNo = document.getElementById('phoneNo-input').value;
+                    newProfile.honors = document.getElementById('honors-input').value;
+                    newProfile.exitDate = document.getElementById('exitDate-input').value;
+                    newProfile.town = document.getElementById('town-input').value;
+                    newProfile.state = document.getElementById('state-input').value;
+                    newProfile.ward = document.getElementById('ward-input').value;
+                    newProfile.quarters = document.getElementById('quarters-input').value;
+                    newProfile.qualifications = document.getElementById('qualifications-input').value.split(',').map(s => s.trim());
+
+                    console.log('Simulating saving profile:', newProfile);
+                    // Simulate API call to save
+                    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate network delay
+
+                    userProfile = newProfile; // Update global state
+                    // Re-render profile section in view mode after saving
+                    const newProfileHtml = renderProfileSection(userProfile, false);
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newProfileHtml;
+                    const newProfileElement = tempDiv.firstElementChild;
+
+                    const currentProfileSection = document.querySelector('.profile-card.section-card');
+                    if (currentProfileSection) {
+                        currentProfileSection.replaceWith(newProfileElement);
+                    }
+
+                    // Before rendering the dashboard:
+                    const savedProfile = localStorage.getItem('userProfile');
+                    userProfile = savedProfile ? JSON.parse(savedProfile) : await fetchUserProfile();
+                    localStorage.setItem('userProfile', JSON.stringify(userProfile)); // After saving profile
+
+                    attachDashboardEventListeners(); // Re-attach listeners after re-render
+                };
+            }
+
+            // Period Selector
+            const periodButtonsContainer = document.getElementById('period-buttons');
+            if (periodButtonsContainer) {
+                periodButtonsContainer.querySelectorAll('button').forEach(button => {
+                    button.onclick = (e) => {
+                        const newPeriod = e.target.id.replace('period-', '');
+                        selectedPeriod = newPeriod; // Update global state
+                        // Re-render period selector to update active button styling
+                        const newPeriodSelectorHtml = renderPeriodSelector(selectedPeriod);
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = newPeriodSelectorHtml;
+                        const newPeriodSelectorElement = tempDiv.firstElementChild;
+
+                        const currentPeriodSelector = document.querySelector('.period-selector-card.section-card');
+                        if (currentPeriodSelector) {
+                            currentPeriodSelector.replaceWith(newPeriodSelectorElement);
+                        }
+                        attachDashboardEventListeners(); // Re-attach listeners
+                        console.log('Period selected:', selectedPeriod);
+                    };
+                });
+            }
+        }
+
+
+         // --- Application Bootstrap ---
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Check localStorage for existing session
+            isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+
+            if (isLoggedIn) {
+                renderDashboardPage();
+            } else {
+                renderLoginPage();
+            }
+        });
+    </script>
+</body>
+</html>
