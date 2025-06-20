@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HICAD</title>
+</head>
+<link rel="stylesheet" href="styles/index.css">
+
+ <link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+
+<body>
+  <!--- header design -->
+  <header class="hicad-header">
+    <a href="http://localhost:5500" class="hicad-logo">
+      HICAD
+    </a>
+
+    <nav class="hicad-navbar" id="navbar">
+      <a href="http://localhost:5500/aboutus.html">About Us</a>
+      <a href="#" >News & Events</a>
+      <a href="http://localhost:5500/contact.html" >Contact Us</a>
+      <a href="http://localhost:5500/member.html" >Members</a>
+      <a href="http://localhost:5500/adminlog.html" class="home-active">Admin</a>
+    </nav>
+
+     <div class="hamburger" id="hamburger">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</header>
+
+    <div class="bg-white p-8 rounded-lg      shadow-lg max-w-md w-full">
+        <h2 class="text-2xl font-semibold mb-6 text-center text-blue-600">OCDA Admin Login</h2>
+        <form id="adminLoginForm" class="space-y-4">
+        <input type="email" name="email" placeholder="Email" required class="w-full p-3 border rounded" />
+        <input type="password" name="password" placeholder="Password" required class="w-full p-3 border rounded" />
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Login</button>
+        </form>
+        <p class="text-sm text-center text-gray-500 mt-4">Only authorized admins are allowed.</p>
+    </div>
+
+</body>
+<script src="script/index.js"></script>
+<script src="script/member.js"></script>
+</html>

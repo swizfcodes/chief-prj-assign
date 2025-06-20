@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .active-tab { background-color: #1f2937; color: white; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="flex flex-col lg:flex-row">
+    <!-- Sidebar -->
+    <aside class="bg-white w-full lg:w-64 shadow-md">
+      <div class="p-6 text-xl font-bold text-gray-800 border-b">OCDA Admin</div>
+      <nav class="p-4 space-y-3">
+        <button class="w-full px-4 py-2 text-left rounded tab-button active-tab" data-tab="ledger">Member Ledger</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="expenses">OCDA Expenses</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="std">Standard Expenses</button>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 space-y-10">
+      <!-- Create Admin Section -->
+      <section>
+        <h2 class="text-xl font-semibold mb-4">Create New Admin</h2>
+        <form id="createAdminForm" class="bg-white p-6 rounded shadow-md space-y-4 max-w-md">
+          <input type="text" name="fullname" placeholder="Full Name" required class="w-full p-3 border rounded" />
+          <input type="email" name="email" placeholder="Email" required class="w-full p-3 border rounded" />
+          <input type="password" name="password" placeholder="Password" required class="w-full p-3 border rounded" />
+          <select name="role" class="w-full p-3 border rounded">
+            <option value="admin">Admin</option>
+            <option value="superadmin">Super Admin</option>
+          </select>
+          <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Create Admin</button>
+        </form>
+      </section>
+
+      <!-- Admin List -->
+      <section>
+        <h2 class="text-xl font-semibold mb-4">Admin List</h2>
+        <div id="adminTable" class="bg-white p-4 rounded shadow text-sm">Loading...</div>
+      </section>
+
+      <!-- Member Ledger -->
+      <section id="ledger" class="tab-content">
+        <h2 class="text-2xl font-semibold mb-4">Member Ledger</h2>
+        <div class="overflow-auto rounded shadow bg-white">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-3">Phone No</th>
+                <th class="p-3">Date</th>
+                <th class="p-3">Amount</th>
+                <th class="p-3">Remark</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerData"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Monthly Summary -->
+      <section id="summary" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Monthly Summary</h2>
+        <div class="overflow-auto rounded shadow bg-white">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-3">Period</th>
+                <th class="p-3">Open</th>
+                <th class="p-3">Debit</th>
+                <th class="p-3">Credit</th>
+                <th class="p-3">Net</th>
+              </tr>
+            </thead>
+            <tbody id="summaryData"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- OCDA Expenses -->
+      <section id="expenses" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">OCDA Expenses</h2>
+        <div class="overflow-auto rounded shadow bg-white">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-3">Date</th>
+                <th class="p-3">Project</th>
+                <th class="p-3">Remarks</th>
+                <th class="p-3">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="expensesData"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Standard Expenses -->
+      <section id="std" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Standard Expenses</h2>
+        <div class="overflow-auto rounded shadow bg-white">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-3">Code</th>
+                <th class="p-3">Description</th>
+              </tr>
+            </thead>
+            <tbody id="stdData"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <button onclick="adminLogout()" class="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+    </main>
+  </div>
+
+  <script>
+    // Create Admin
+    document.getElementById('createAdminForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        fullname: form.fullname.value,
+        email: form.email.value,
+        password: form.password.value,
+        role: form.role.value
+      };
+
+      try {
+        const res = await fetch('http://localhost:5500/admin/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': localStorage.getItem('adminToken') || ''
+          },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        alert(res.ok ? 'Admin created!' : (result.message || 'Error creating admin'));
+        if (res.ok) form.reset();
+      } catch (err) {
+        console.error('Create Admin Error:', err);
+        alert('Server error');
+      }
+    });
+
+    // Load Admin List
+    async function loadAdmins() {
+      const token = localStorage.getItem('adminToken');
+      if (!token) return document.getElementById('adminTable').innerText = 'Unauthorized – No token found.';
+
+      try {
+        const res = await fetch('http://localhost:5500/admin/list', {
+          headers: { 'Authorization': token }
+        });
+
+        const admins = await res.json();
+        if (!res.ok || !Array.isArray(admins)) {
+          return document.getElementById('adminTable').innerText = 'Failed to load admins.';
+        }
+
+        if (admins.length === 0) {
+          return document.getElementById('adminTable').innerText = 'No admins found.';
+        }
+
+        const table = `
+          <table class="w-full text-left border border-collapse">
+            <thead>
+              <tr class="bg-gray-200">
+                <th class="p-2 border">#</th>
+                <th class="p-2 border">Username</th>
+                <th class="p-2 border">Email</th>
+                <th class="p-2 border">Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${admins.map((admin, index) => `
+                <tr>
+                  <td class="p-2 border">${index + 1}</td>
+                  <td class="p-2 border">${admin.fullname}</td>
+                  <td class="p-2 border">${admin.email}</td>
+                  <td class="p-2 border">${admin.role}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`;
+        document.getElementById('adminTable').innerHTML = table;
+      } catch (err) {
+        console.error('Admin Load Error:', err);
+        document.getElementById('adminTable').innerText = 'Error loading admins.';
+      }
+    }
+
+      // Format amount with ₦ and commas
+    const formatAmount = amount => `₦${parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+
+    // Format date to DD/MM/YYYY
+    const formatDate = dateStr => {
+      const date = new Date(dateStr);
+      if (isNaN(date)) return dateStr;
+      return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
+    };
+
+    // Tab navigation
+    const tabs = document.querySelectorAll('.tab-button');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active-tab'));
+        tab.classList.add('active-tab');
+        contents.forEach(c => c.classList.add('hidden'));
+        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // Fetch Data Sections
+  function fetchTable(endpoint, targetId, renderFn) {
+    fetch(endpoint)
+      .then(res => res.json())
+      .then(data => {
+        const tableBody = document.getElementById(targetId);
+        if (!Array.isArray(data)) {
+          console.error(`Expected array but got:`, data);
+          return;
+        }
+        tableBody.innerHTML = data.map(renderFn).join('');
+      })
+      .catch(err => console.error(`Error loading ${endpoint}:`, err));
+  }
+
+  // Fetch and render Member Ledger
+  fetchTable('/admin/memberledger', 'ledgerData', row => `
+    <tr class="border-t">
+      <td class="p-2">${row.phoneno}</td>
+      <td class="p-2">${formatDate(row.transdate)}</td>
+      <td class="p-2">${formatAmount(row.amount)}</td>
+      <td class="p-2">${row.remark}</td>
+    </tr>
+  `);
+
+  // Fetch and render Monthly Summary
+  fetchTable('/admin/monthlysummary', 'summaryData', row => `
+    <tr class="border-t">
+      <td class="p-2">${row.period}</td>
+      <td class="p-2">${formatAmount(row.openbalance)}</td>
+      <td class="p-2">${formatAmount(row.Debitbalance)}</td>
+      <td class="p-2">${formatAmount(row.Creditbalance)}</td>
+      <td class="p-2">${formatAmount(row.Netbalance)}</td>
+    </tr>
+  `);
+
+  // Fetch and render OCDA Expenses
+  fetchTable('/admin/ocdaexpenses', 'expensesData', row => `
+    <tr class="border-t">
+      <td class="p-2">${formatDate(row.docdate)}</td>
+      <td class="p-2">${row.project}</td>
+      <td class="p-2">${row.remarks}</td>
+      <td class="p-2">${formatAmount(row.amount)}</td>
+    </tr>
+  `);
+
+  // Fetch and render Standard Expenses
+  fetchTable('/admin/stdxpenses', 'stdData', row => `
+    <tr class="border-t">
+      <td class="p-2">${row.expscode}</td>
+      <td class="p-2">${row.expsdesc}</td>
+    </tr>
+  `);
+
+    // Logout
+    function adminLogout() {
+      localStorage.removeItem('adminToken');
+      window.location.href = '/admin-login.html';
+    }
+
+    // Init
+    window.addEventListener('DOMContentLoaded', loadAdmins);
+  </script>
+</body>
+</html>

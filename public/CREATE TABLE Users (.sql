@@ -1,23 +1,49 @@
-CREATE TABLE Users (
+USE ocdadatabase;
+
+IF OBJECT_ID('dbo.Members', 'U') IS NOT NULL
+    DROP TABLE dbo.Members;
+
+CREATE TABLE dbo.Members (
     Id INT IDENTITY(1,1) PRIMARY KEY,
-    FirstName VARCHAR(100),
-    Surname VARCHAR(100),
+    PhoneNumber VARCHAR(20) UNIQUE NOT NULL,
+    phoneno2 VARCHAR(20) UNIQUE,
+    Surname VARCHAR(100) NOT NULL,
+    othernames VARCHAR(100),
+    Title VARCHAR(50),
+    HonTitle VARCHAR(50),
     Sex VARCHAR(10),
-    DOB DATE,
     Quarters VARCHAR(100),
     Ward VARCHAR(100),
-    Town VARCHAR(100),
     State VARCHAR(100),
-    PhoneNumber VARCHAR(20) UNIQUE,
-    Password VARCHAR(255),
-    CreatedAt DATETIME
+    Town VARCHAR(100),
+    DOB DATE,
+    Qualifications VARCHAR(255),
+    Profession VARCHAR(100),
+    exitdate DATE,
+    Password VARCHAR(255) NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE()
 );
 
-SELECT TOP 1 * FROM Users;
-
-SELECT COLUMN_NAME, DATA_TYPE
+SELECT COLUMN_NAME
 FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME = 'Users';
+WHERE TABLE_NAME = 'dbo.Members';
 
 
-SELECT PhoneNumber, Password FROM Users WHERE PhoneNumber = '09114580151';
+USE ocdadatabase;
+
+IF OBJECT_ID('Admins', 'U') IS NOT NULL
+    DROP TABLE Admins;
+    
+CREATE TABLE Admins (
+  Id INT IDENTITY(1,1) PRIMARY KEY,
+  fullname VARCHAR(50) UNIQUE,
+  Email VARCHAR(100) UNIQUE,
+  Password VARCHAR(255),
+  role VARCHAR(50),
+  CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+
+
+USE ocdadatabase;
+DELETE FROM membermonthlysummary;

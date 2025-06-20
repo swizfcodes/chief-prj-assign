@@ -14,9 +14,11 @@ const config = {
 
 const pool = new sql.ConnectionPool(config);
 const poolConnect = pool.connect();
+const poolPromise = pool.connect();
 
 module.exports = {
   sql,
   pool,
-  poolConnect
+  poolConnect,
+  poolPromise
 };

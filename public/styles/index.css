@@ -421,9 +421,6 @@ ul li:hover {
             background: var(--main-color);
         }
 
-        .form-container {
-            padding: 40px;
-        }
 
         .form {
             display: none;
@@ -530,6 +527,29 @@ ul li:hover {
             color: #e74c3c;
         }
 
+        .btn-secondary{
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, white 0%, rgb(235, 126, 126) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 7, 7, 0.3);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
         @media (max-width: 600px) {
             .form-row {
                 flex-direction: column;
@@ -540,9 +560,6 @@ ul li:hover {
                 margin: 10px;
             }
             
-            .form-container {
-                padding: 30px 20px;
-            }
         }
 
 

@@ -1,114 +1,472 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>User Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      background: #f0f2f5;
-      color: #333;
+      padding: 0;
+      background-color: #f9f9f9;
+      display: flex;
     }
-    .dashboard-container {
-      max-width: 600px;
-      margin: 50px auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    .sidebar {
+      width: 220px;
+      background: #333;
+      color: white;
+      height: 100vh;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
-    h2 {
-      text-align: center;
-      color: #0055aa;
-    }
-    .user-info p {
-      margin: 12px 0;
-    }
-    .label {
-      font-weight: bold;
-    }
-    .logout-btn {
-      margin-top: 30px;
-      padding: 10px 15px;
-      background: #d9534f;
+    .sidebar button {
+      padding: 0.8rem;
+      background: #444;
       color: white;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
     }
-    .logout-btn:hover {
-      background: #c9302c;
+    .sidebar button:hover {
+      background: #555;
+    }
+    .main {
+      flex: 1;
+      padding: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+    }
+    th {
+      background-color: #444;
+      color: #fff;
+    }
+    .hidden { display: none; }
+    select, input, textarea, button {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-
-<div class="dashboard-container">
-  <h2>Welcome, <span id="username">Loading...</span></h2>
-
-  <div class="user-info">
-    <p><span class="label">Phone Number:</span> <span id="phone"></span></p>
-    <p><span class="label">Town:</span> <span id="town"></span></p>
-    <p><span class="label">State:</span> <span id="state"></span></p>
-    <p><span class="label">Ward:</span> <span id="ward"></span></p>
-    <p><span class="label">Quarters:</span> <span id="quarters"></span></p>
-    <p><span class="label">Age:</span> <span id="age"></span></p>
-    <p><span class="label">Honors:</span> <span id="honors"></span></p>
-    <p><span class="label">Exit Date:</span> <span id="exitDate"></span></p>
-    <p><span class="label">Qualifications:</span> <span id="qualifications"></span></p>
+  <div class="sidebar">
+    <button onclick="showSection('profileSection')">My Profile</button>
+    <button onclick="showReceipts()">My Receipts</button>
+    <button onclick="toggleEnquiry()">Enquiries</button>
+    <button onclick="logout()">Logout</button>
   </div>
 
-  <button class="logout-btn" onclick="logout()">Logout</button>
-</div>
+  <div class="main">
+    <section id="profileSection">
+      <h1>Welcome, <span id="username"></span></h1>
+      <h2>Member Profile</h2>
 
-<script>
-  async function loadUserProfile() {
-    try {
-      const res = await fetch('/api/profile', {
-        method: 'GET',
-        credentials: 'include' // 🔑 ensures session is sent
-      });
+      <!-- Display Section -->
+      <div id="profileDisplay">
+        <p><strong>Phone:</strong> <span id="phone"></span></p>
+        <p><strong>Email:</strong> <span id="email"></span></p>
+        <p><strong>State:</strong> <span id="state"></span></p>
+        <p><strong>Ward:</strong> <span id="ward"></span></p>
+        <p><strong>Quarters:</strong> <span id="quarters"></span></p>
+        <p><strong>Town:</strong> <span id="town"></span></p>
+        <p><strong>Age:</strong> <span id="age"></span></p>
+        <p><strong>Title:</strong> <span id="title"></span></p>
+        <p><strong>Honorary Title:</strong> <span id="honTitle"></span></p>
+        <p><strong>Qualifications:</strong> <span id="qualifications"></span></p>
+        <p><strong>Exit Date:</strong> <span id="exitDate"></span></p>
+        <button onclick="toggleEdit(true)">Edit Profile</button>
+      </div>
 
-      const user = await res.json();
+      <!-- Edit Section -->
+     <div id="profileEditForm" style="display:none">
+        <label><strong>Phone:</strong></label>
+        <input id="phone" disabled />
 
-      if (res.ok) {
-        document.getElementById('username').textContent = user.username || '';
-        document.getElementById('phone').textContent = user.phoneNo || '';
+        <label><strong>Email:</strong></label>
+        <input id="email" />
+
+        <label><strong>State:</strong></label>
+        <select id="state">
+          <option value="">Select State</option>
+          <option value="Abia">Abia</option>
+          <option value="Adamawa">Adamawa</option>
+          <option value="Akwa Ibom">Akwa Ibom</option>
+          <option value="Anambra">Anambra</option>
+          <option value="Bauchi">Bauchi</option>
+          <option value="Bayelsa">Bayelsa</option>
+          <option value="Benue">Benue</option>
+          <option value="Borno">Borno</option>
+          <option value="Cross River">Cross River</option>
+          <option value="Delta">Delta</option>
+          <option value="Ebonyi">Ebonyi</option>
+          <option value="Edo">Edo</option>
+          <option value="Ekiti">Ekiti</option>
+          <option value="Enugu">Enugu</option>
+          <option value="FCT">FCT</option>
+          <option value="Gombe">Gombe</option>
+          <option value="Imo">Imo</option>
+          <option value="Jigawa">Jigawa</option>
+          <option value="Kaduna">Kaduna</option>
+          <option value="Kano">Kano</option>
+          <option value="Katsina">Katsina</option>
+          <option value="Kebbi">Kebbi</option>
+          <option value="Kogi">Kogi</option>
+          <option value="Kwara">Kwara</option>
+          <option value="Lagos">Lagos</option>
+          <option value="Nasarawa">Nasarawa</option>
+          <option value="Niger">Niger</option>
+          <option value="Ogun">Ogun</option>
+          <option value="Ondo">Ondo</option>
+          <option value="Osun">Osun</option>
+          <option value="Oyo">Oyo</option>
+          <option value="Plateau">Plateau</option>
+          <option value="Rivers">Rivers</option>
+          <option value="Sokoto">Sokoto</option>
+          <option value="Taraba">Taraba</option>
+          <option value="Yobe">Yobe</option>
+          <option value="Zamfara">Zamfara</option>
+        </select>
+
+        <label><strong>Sex:</strong></label>
+        <select id="sex">
+          <option value="">Select Sex</option>
+          <option value="M">M</option>
+          <option value="F">F</option>
+        </select>
+
+        <label><strong>Title:</strong></label>
+        <select id="title">
+          <option value="">Select Title</option>
+          <option value="Alhaji">Alhaji</option>
+          <option value="Brig/Gen">Brig/Gen</option>
+          <option value="Chief">Chief</option>
+          <option value="Dr">Dr</option>
+          <option value="Engr">Engr</option>
+          <option value="Mr">Mr</option>
+          <option value="Mrs">Mrs</option>
+          <option value="Miss">Miss</option>
+          <option value="Oba">Oba</option>
+          <option value="R/Adm">R/Adm</option>
+        </select>
+
+        <label><strong>Honorary Title:</strong></label>
+        <select id="honTitle">
+          <option value="">Select Honorary Title</option>
+          <option value="AJAKA">AJAKA</option>
+          <option value="BALOGUN">BALOGUN</option>
+          <option value="Chief">Chief</option>
+          <option value="ELEBIRA">ELEBIRA</option>
+          <option value="ELEJOFI">ELEJOFI</option>
+          <option value="IGBEDI">IGBEDI</option>
+          <option value="KABIYESI">KABIYESI</option>              
+          <option value="Miss">Miss</option>
+          <option value="Mr">Mr</option>
+          <option value="Mrs">Mrs</option>
+          <option value="ODEMO">ODEMO</option>
+          <option value="ODOFIN">ODOFIN</option>
+          <option value="OJOMU">OJOMU</option>
+          <option value="OLORIEGBE">OLORIEGBE</option>
+          <option value="OLUGOTUN">OLUGOTUN</option>
+          <option value="OLUSA">OLUSA</option>
+          <option value="OSUNLA">OSUNLA</option>
+        </select>
+
+        <label><strong>Quarters:</strong></label>
+        <select id="quarters">
+          <option value="">Select Quarters</option>
+          <option value="Ogotun">Ogotun</option>
+          <option value="Ogunna">Ogunna</option>
+          <option value="Ogosi">Ogosi</option>
+        </select>
+
+        <label><strong>Ward:</strong></label>
+        <select id="ward">
+          <option value="">Select Ward</option>
+          <option value="Awanji">Awanji</option>
+          <option value="Ayagama">Ayagama</option>
+          <option value="Ayasu/Ayaya">Ayasu/Ayaya</option>
+          <option value="Igoho">Igoho</option>
+          <option value="Igonu">Igonu</option>
+          <option value="Igukan">Igukan</option>
+          <option value="IkanOlotu">IkanOlotu</option>
+          <option value="Okoko">Okoko</option>
+          <option value="Uhon">Uhon</option>
+        </select>
+
+        <label><strong>Town:</strong></label>
+        <input id="town" />
+
+        <label><strong>Age:</strong></label>
+        <input id="age" disabled />
+
+        <label><strong>Qualifications:</strong></label>
+        <select id="qualifications">
+          <option value="">Select Qualification</option>
+          <option value="">Select Qualification</option>
+          <option value="BSC">BSC</option>
+          <option value="Diploma">Diploma</option>
+          <option value="HND">HND</option>
+          <option value="MSC">MSC</option>
+          <option value="NCE">NCE</option>
+          <option value="OND">OND</option>
+          <option value="PHD">PHD</option>
+          <option value="SCert">SCert</option>
+        </select>
+
+        <label><strong>Exit Date:</strong></label>
+        <input id="exitDate" disabled />
+
+        <button onclick="updateProfile()">Save Changes</button>
+        <button onclick="toggleEdit(false)">Cancel</button>
+      </div>
+    </section>
+
+
+    <section id="receiptSection" class="hidden">
+      <h2>My Receipts</h2>
+      <div id="receiptTable"></div>
+      <button onclick="clearReceipts()">Close</button>
+    </section>
+
+    <section id="enquirySection" class="hidden">
+      <h2>Enquiries</h2>
+      <label><input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()"> Ward</label>
+      <label><input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()"> Quarters</label>
+
+      <select id="wardSelect"></select>
+      <select id="quartersSelect" class="hidden"></select>
+      <div id="enquiryResults"></div>
+      <button onclick="clearReceipts()">Close</button>
+    </section>
+  </div>
+
+  <script>
+    const phone = localStorage.getItem('loggedInPhone');
+    if (!phone) window.location.href = '/';
+
+    async function fetchAPI(url, method = 'GET', data = null) {
+      const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      };
+      if (data) options.body = JSON.stringify(data);
+      const res = await fetch(url, options);
+      return res.ok ? res.json() : Promise.reject(await res.json());
+    }
+
+    async function loadUserProfile() {
+      try {
+        const user = await fetchAPI('/api/profile', 'POST', { phoneNumber: phone });
+        document.getElementById('username').textContent = `${user.othernames || ''} ${user.surname || ''}`;
+        document.getElementById('phone').textContent = user.phoneNumber || '';
+        document.getElementById('email').textContent = user.email || '';
         document.getElementById('town').textContent = user.town || '';
         document.getElementById('state').textContent = user.state || '';
         document.getElementById('ward').textContent = user.ward || '';
         document.getElementById('quarters').textContent = user.quarters || '';
         document.getElementById('age').textContent = user.age || '';
-        document.getElementById('honors').textContent = user.honors || 'None';
+        document.getElementById('title').textContent = user.title || 'None';
+        document.getElementById('honTitle').textContent = user.honTitle || 'None';
         document.getElementById('exitDate').textContent = user.exitDate || 'N/A';
-        document.getElementById('qualifications').textContent = Array.isArray(user.qualifications) ? user.qualifications.join(', ') : 'None';
-      } else {
-        alert(user.message || 'Failed to load user data');
+        document.getElementById('qualifications').textContent = user.qualifications || 'None';
+      } catch (e) {
+        alert('Profile load failed.');
         window.location.href = '/';
       }
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    //user edit enable
+    
+    function toggleEdit() {
+      const profileDisplay = document.getElementById('profileDisplay');
+      const profileEditForm = document.getElementById('profileEditForm');
+      
+      if (profileEditForm.style.display === 'none' || profileEditForm.style.display === '') {
+        profileEditForm.style.display = 'block';
+        profileDisplay.style.display = 'none';
+      } else {
+        profileEditForm.style.display = 'none';
+        profileDisplay.style.display = 'block';
+      }
+    }
+
+
+    function enableEditMode() {
+    document.querySelectorAll('#profileSection select, #profileSection input:not([id=phone]):not([id=age]):not([id=exitDate])')
+      .forEach(el => el.disabled = false);
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('saveBtn').style.display = 'inline-block';
+    document.getElementById('cancelBtn').style.display = 'inline-block';
+  }
+
+  function cancelEdit() {
+    document.querySelectorAll('#profileSection select, #profileSection input')
+      .forEach(el => el.disabled = true);
+    document.getElementById('editBtn').style.display = 'inline-block';
+    document.getElementById('saveBtn').style.display = 'none';
+    document.getElementById('cancelBtn').style.display = 'none';
+    loadUserProfile();
+  }
+
+async function updateProfile() {
+  const phone = localStorage.getItem('loggedInPhone');
+  if (!phone) return alert("You're not logged in.");
+
+  const form = document.getElementById('profileEditForm');
+
+  // Fetch current user profile first
+  let currentData;
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone })
+    });
+    currentData = await res.json();
+  } catch (err) {
+    console.error('Error fetching current profile:', err);
+    return alert("Failed to retrieve current profile.");
+  }
+
+  // Build update payload by comparing current data with form data
+  const updatedData = { phoneNumber: phone };
+
+  const fields = ['email', 'state', 'ward', 'quarters', 'sex', 'town', 'title', 'honTitle', 'qualifications'];
+  fields.forEach(field => {
+    const input = form.querySelector(`#${field}`);
+    if (input && input.value.trim() !== (currentData[field] || '').trim()) {
+      updatedData[field] = input.value.trim();
+    }
+  });
+
+  if (Object.keys(updatedData).length === 1) {
+    alert("No changes detected.");
+    toggleEdit(false);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedData)
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert("Profile updated successfully!");
+      toggleEdit(false);
+      loadUserProfile();
+    } else {
+      alert(data.message || "Failed to update profile.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong updating profile.");
+  }
+}
+
+
+    //show user receipts
+    async function showReceipts() {
+      showSection('receiptSection');
+      try {
+        const data = await fetchAPI(`/api/ledger-entry/${phone}`);
+        const html = data.map(r => `
+          <p><strong>Date:</strong> ${r.transdate} — <strong>Amount:</strong> ₦${r.amount} — <strong>Remark:</strong> ${r.remark}</p>
+        `).join('');
+        document.getElementById('receiptTable').innerHTML = html || 'No transactions.';
+      } catch {
+        document.getElementById('receiptTable').innerHTML = 'Could not load receipts.';
+      }
+    }
+
+    function clearReceipts() {
+      document.getElementById('receiptTable').innerHTML = '';
+      showSection('profileSection');
+    }
+
+    async function toggleEnquiry() {
+      showSection('enquirySection');
+      const wards = ["Select Ward", "Awanji", "Ayagama", "Ayasu/Ayaya", "Igoho", "Igonu", "Igukan", "IkanOlotu", "Okoko", "Uhon"];
+      const quarters = ["Select Quarters", "Ogotun", "Ogunna", "Ogosi"];
+
+      wardSelect.innerHTML = wards.map(w => `<option value="${w}">${w}</option>`).join('');
+      quartersSelect.innerHTML = quarters.map(q => `<option value="${q}">${q}</option>`).join('');
+
+      wardSelect.onchange = () => fetchEnquiry('ward', wardSelect.value);
+      quartersSelect.onchange = () => fetchEnquiry('quarters', quartersSelect.value);
+    }
+
+  function toggleDropdown() {
+    const type = document.querySelector('input[name="filterType"]:checked').value;
+    document.getElementById('wardSelect').classList.toggle('hidden', type !== 'ward');
+    document.getElementById('quartersSelect').classList.toggle('hidden', type !== 'quarters');
+  }
+
+  // ✅ Now define fetchEnquiry
+  async function fetchEnquiry(type, value) {
+    try {
+      const res = await fetch(`/api/enquiry/${type}/${encodeURIComponent(value)}`);
+      const data = await res.json();
+
+      if (!res.ok || !Array.isArray(data) || data.length === 0) {
+        document.getElementById('enquiryResults').innerHTML = '<p>No results found.</p>';
+        return;
+      }
+
+      const html = data.map(r => `
+        <p><strong>Date:</strong> ${r.transdate} —
+           <strong>Amount:</strong> ₦${r.amount} —
+           <strong>Remark:</strong> ${r.remark} —
+           <strong>Phone:</strong> ${r.phoneno}
+        </p>
+      `).join('');
+      document.getElementById('enquiryResults').innerHTML = html;
     } catch (err) {
-      console.error('Error loading user profile:', err);
-      alert('Something went wrong');
-      window.location.href = '/';
+      console.error('Fetch enquiry failed:', err);
+      document.getElementById('enquiryResults').innerHTML = '<p>Error fetching records.</p>';
     }
   }
 
-  function logout() {
-  fetch('/logout', {
-    method: 'POST',
-    credentials: 'include'
-  }).then(() => {
-    localStorage.removeItem('loggedInPhone');
-    window.location.href = '/';
+  // ✅ Bind event listeners AFTER fetchEnquiry is defined
+  document.getElementById('wardSelect').addEventListener('change', function () {
+    const value = this.value;
+    if (value && value !== 'Select Ward') {
+      fetchEnquiry('ward', value);
+    }
   });
-  }
 
-  loadUserProfile();
-</script>
+  document.getElementById('quartersSelect').addEventListener('change', function () {
+    const value = this.value;
+    if (value && value !== 'Select Quaters') {
+      fetchEnquiry('quarters', value);
+    }
+  });
 
 
+    async function logout() {
+      await fetch('/logout', { method: 'POST', credentials: 'include' });
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    loadUserProfile();
+  </script>
 </body>
 </html>
-
