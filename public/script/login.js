@@ -1,4 +1,4 @@
-        // Login Form Handler
+ // Login Form Handler
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   clearAllErrors();

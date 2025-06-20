@@ -1,77 +1,77 @@
   function showForm(formType) {
-      const signupForm = document.getElementById('signupForm');
-      const loginForm = document.getElementById('loginForm');
-      const toggleBtns = document.querySelectorAll('.toggle-btn');
-      
-      // Reset active states
-      toggleBtns.forEach(btn => btn.classList.remove('active'));
-      signupForm.classList.remove('active');
-      loginForm.classList.remove('active');
-      
-      // Clear any success messages
-      document.getElementById('successMessage').style.display = 'none';
-      
-      if (formType === 'signup') {
-          signupForm.classList.add('active');
-          toggleBtns[0].classList.add('active');
-      } else {
-          loginForm.classList.add('active');
-          toggleBtns[1].classList.add('active');
-      }
+    const signupForm = document.getElementById('signupForm');
+    const loginForm = document.getElementById('loginForm');
+    const toggleBtns = document.querySelectorAll('.toggle-btn');
+    
+    // Reset active states
+    toggleBtns.forEach(btn => btn.classList.remove('active'));
+    signupForm.classList.remove('active');
+    loginForm.classList.remove('active');
+    
+    // Clear any success messages
+    document.getElementById('successMessage').style.display = 'none';
+    
+    if (formType === 'signup') {
+        signupForm.classList.add('active');
+        toggleBtns[0].classList.add('active');
+    } else {
+        loginForm.classList.add('active');
+        toggleBtns[1].classList.add('active');
+    }
   }
 
     // Validation functions
   function showError(fieldId, message) {
-      const errorElement = document.getElementById(fieldId + 'Error');
-      const inputElement = document.getElementById(fieldId);
-      
-      if (errorElement) {
-          errorElement.textContent = message;
-          errorElement.style.display = 'block';
-          inputElement.style.borderColor = '#e74c3c';
-      }
+    const errorElement = document.getElementById(fieldId + 'Error');
+    const inputElement = document.getElementById(fieldId);
+    
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        inputElement.style.borderColor = '#e74c3c';
+    }
   }
 
   function clearError(fieldId) {
-      const errorElement = document.getElementById(fieldId + 'Error');
-      const inputElement = document.getElementById(fieldId);
-      
-      if (errorElement) {
-          errorElement.style.display = 'none';
-          inputElement.style.borderColor = '#e1e5e9';
-      }
+    const errorElement = document.getElementById(fieldId + 'Error');
+    const inputElement = document.getElementById(fieldId);
+    
+    if (errorElement) {
+        errorElement.style.display = 'none';
+        inputElement.style.borderColor = '#e1e5e9';
+    }
   }
 
   function clearAllErrors() {
-      const errorElements = document.querySelectorAll('.error');
-      const inputElements = document.querySelectorAll('input, select');
-      
-      errorElements.forEach(error => error.style.display = 'none');
-      inputElements.forEach(input => input.style.borderColor = '#e1e5e9');
+    const errorElements = document.querySelectorAll('.error');
+    const inputElements = document.querySelectorAll('input, select');
+    
+    errorElements.forEach(error => error.style.display = 'none');
+    inputElements.forEach(input => input.style.borderColor = '#e1e5e9');
   }
 
   function validatePhone(phone) {
-      const phoneRegex = /^(\+234|234|0)[789][01]\d{8}$/;
-      return phoneRegex.test(phone.replace(/\s/g, ''));
+    const phoneRegex = /^(\+234|234|0)[789][01]\d{8}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ''));
   }
 
   function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-}
+ }
 
 
   function validatePassword(password) {
-      return password.length >= 6;
+    return password.length >= 6;
   }
 
   function showSuccessMessage(message) {
-      const successDiv = document.getElementById('successMessage');
-      successDiv.textContent = message;
-      successDiv.style.display = 'block';
-      
-      // Scroll to top to show the message
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    const successDiv = document.getElementById('successMessage');
+    successDiv.textContent = message;
+    successDiv.style.display = 'block';
+    
+    // Scroll to top to show the message
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
 
@@ -96,22 +96,22 @@
   if (!userData.otherNames) {
     showError('otherNames', 'Other names are required');
     isValid = false;
-  }
+    }
 
   if (!userData.surname) {
     showError('surname', 'Surname is required');
     isValid = false;
-  }
+}
 
   if (!userData.sex) {
     showError('sex', 'Please select your sex');
     isValid = false;
-}
+    }
 
   if (!userData.dob) {
     showError('dob', 'Date of birth is required');
     isValid = false;
-  } else {
+    } else {
       const today = new Date();
       const birthDate = new Date(userData.dob);
       let age = today.getFullYear() - birthDate.getFullYear();
@@ -126,60 +126,60 @@
   if (!userData.quarters) {
       showError('quarters', 'Address is required');
       isValid = false;
-  }
+    }
 
   if (!userData.ward) {
       showError('ward', 'Ward is required');
       isValid = false;
-  }
+    }
 
   if (!userData.town) {
       showError('town', 'Town is required');
       isValid = false;
-  }
+    }
 
   if (!userData.state) {
       showError('state', 'Please select your state');
       isValid = false;
-  }
+    }
 
   if (!userData.phoneNumber) {
       showError('phoneNumber', 'Phone number is required');
       isValid = false;
-  } else if (!validatePhone(userData.phoneNumber)) {
+    } else if (!validatePhone(userData.phoneNumber)) {
       showError('phoneNumber', 'Please enter a valid Nigerian phone number');
       isValid = false;
-  }
+    }
 
   if (!userData.email) {
     showError('email', 'Email is required');
     isValid = false;
-} else if (!validateEmail(userData.email)) {
+    } else if (!validateEmail(userData.email)) {
     showError('email', 'Enter a valid email address');
     isValid = false;
-}
+    }
 
 if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
     showError('phoneNo2', 'Enter a valid Nigerian phone number');
     isValid = false;
-}
+    }
 
 
   if (!userData.password) {
       showError('password', 'Password is required');
       isValid = false;
-  } else if (!validatePassword(userData.password)) {
+    } else if (!validatePassword(userData.password)) {
       showError('password', 'Password must be at least 6 characters long');
       isValid = false;
-  }
+    }
 
   if (!userData.retypePassword) {
       showError('retypePassword', 'Please retype your password');
       isValid = false;
-  } else if (userData.password !== userData.retypePassword) {
+    } else if (userData.password !== userData.retypePassword) {
       showError('retypePassword', 'Passwords do not match');
       isValid = false;
-  }
+    }
 
   if (isValid) {
       try {

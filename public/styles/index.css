@@ -126,6 +126,33 @@
   }
 }
 
+/* Landing */
+.landing-section {
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000; /* optional background to blend edges */
+}
+
+.landing-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: fadeInZoom 2s ease-in-out;
+}
+
+@keyframes fadeInZoom {
+  0% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* About Section */
 .about-section {
   background-color: var(--bg-color);
