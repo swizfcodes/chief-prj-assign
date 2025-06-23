@@ -143,7 +143,7 @@ app.post('/signup', async (req, res) => {
       .input('Town', sql.VarChar, userData.town)
       .input('State', sql.VarChar, userData.state)
       .input('PhoneNumber', sql.VarChar, userData.phoneNumber)
-      .input('phoneno2', sql.VarChar, '')
+      .input('phoneno2', sql.VarChar, userData.phoneNo2)
       .input('Password', sql.VarChar, userData.password)
       .input('Title', sql.VarChar, userData.title)
       .input('HonTitle', sql.VarChar, userData.honTitle)
@@ -237,6 +237,7 @@ app.post('/api/profile', async (req, res) => {
           othernames,
           Surname,
           PhoneNumber,
+          phoneno2,
           Town,
           email,
           State,
@@ -264,6 +265,7 @@ app.post('/api/profile', async (req, res) => {
       othernames: user.othernames,
       surname: user.Surname,
       phoneNumber: user.PhoneNumber,
+      phoneNo2: user.phoneno2,
       email: user.email,
       town: user.Town,
       state: user.State,
@@ -293,7 +295,9 @@ app.get('/dashboard', (req, res) => {
 //update profile route
 app.post('/api/update-profile', async (req, res) => {
   const {
-    phoneNumber,
+    oldPhoneNumber,
+    phone,
+    phoneNo2,
     email,
     state,
     sex,
@@ -302,11 +306,13 @@ app.post('/api/update-profile', async (req, res) => {
     quarters,
     ward,
     town,
-    qualifications
+    qualifications,
+    profession,
+    exitDate
   } = req.body;
 
-  if (!phoneNumber) {
-    return res.status(400).json({ message: 'Phone number is required' });
+  if (!oldPhoneNumber) {
+    return res.status(400).json({ message: 'Current phone number is required' });
   }
 
   try {
@@ -315,6 +321,14 @@ app.post('/api/update-profile', async (req, res) => {
     const updates = [];
     const inputs = [];
 
+    if (phone) {
+      updates.push('PhoneNumber = @newPhone');
+      inputs.push({ name: 'newPhone', type: sql.VarChar, value: phone });
+    }
+    if (phoneNo2) {
+      updates.push('phoneno2 = @phoneNo2');
+      inputs.push({ name: 'phoneNo2', type: sql.VarChar, value: phoneNo2 });
+    }
     if (email) {
       updates.push('email = @email');
       inputs.push({ name: 'email', type: sql.VarChar, value: email });
@@ -351,6 +365,14 @@ app.post('/api/update-profile', async (req, res) => {
       updates.push('Qualifications = @qualifications');
       inputs.push({ name: 'qualifications', type: sql.VarChar, value: qualifications });
     }
+    if (profession) {
+      updates.push('Profession = @profession');
+      inputs.push({ name: 'profession', type: sql.VarChar, value: profession });
+    }
+    if (exitDate) {
+      updates.push('exitdate = @exitDate');
+      inputs.push({ name: 'exitDate', type: sql.Date, value: exitDate });
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No fields to update' });
@@ -361,12 +383,12 @@ app.post('/api/update-profile', async (req, res) => {
     inputs.forEach(input => {
       request.input(input.name, input.type, input.value);
     });
-    request.input('phoneNumber', sql.VarChar, phoneNumber);
+    request.input('oldPhoneNumber', sql.VarChar, oldPhoneNumber);
 
     const updateQuery = `
       UPDATE Members
       SET ${updates.join(', ')}
-      WHERE PhoneNumber = @phoneNumber
+      WHERE PhoneNumber = @oldPhoneNumber
     `;
 
     await request.query(updateQuery);
@@ -378,6 +400,8 @@ app.post('/api/update-profile', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
 });
+
+
 
 
 

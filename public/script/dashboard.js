@@ -14,10 +14,13 @@
   }
 
   async function loadUserProfile() {
+    const phone = localStorage.getItem('loggedInPhone');
+
     try {
       const user = await fetchAPI('/api/profile', 'POST', { phoneNumber: phone });
       document.getElementById('username').textContent = `${user.othernames || ''} ${user.surname || ''}`;
       document.getElementById('phone').textContent = user.phoneNumber || '';
+      document.getElementById('phoneNo2').textContent = user.phoneNo2 || '';
       document.getElementById('email').textContent = user.email || '';
       document.getElementById('town').textContent = user.town || '';
       document.getElementById('state').textContent = user.state || '';
@@ -33,6 +36,7 @@
       window.location.href = '/';
     }
   }
+
 
   function showSection(id) {
     document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden'));
@@ -73,60 +77,69 @@
   }
 
   async function updateProfile() {
-  const phone = localStorage.getItem('loggedInPhone');
-  if (!phone) return alert("You're not logged in.");
+    const oldPhone = localStorage.getItem('loggedInPhone');
+    if (!oldPhone) return alert("You're not logged in.");
 
-  const form = document.getElementById('profileEditForm');
+    const form = document.getElementById('profileEditForm');
 
-  // Fetch current user profile first
-  let currentData;
-  try {
-    const res = await fetch('/api/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber: phone })
-    });
-    currentData = await res.json();
-  } catch (err) {
-    console.error('Error fetching current profile:', err);
-    return alert("Failed to retrieve current profile.");
-  }
-
-  // Build update payload by comparing current data with form data
-  const updatedData = { phoneNumber: phone };
-
-  const fields = ['email', 'state', 'ward', 'quarters', 'sex', 'town', 'title', 'honTitle', 'qualifications'];
-  fields.forEach(field => {
-    const input = form.querySelector(`#${field}`);
-    if (input && input.value.trim() !== (currentData[field] || '').trim()) {
-      updatedData[field] = input.value.trim();
+    // Get current data
+    let currentData;
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: oldPhone })
+      });
+      currentData = await res.json();
+    } catch (err) {
+      console.error('Error fetching current profile:', err);
+      return alert("Failed to retrieve current profile.");
     }
-  });
 
-  if (Object.keys(updatedData).length === 1) {
-    alert("No changes detected.");
-    toggleEdit(false);
-    return;
-  }
+    // Compare form values to current data
+    const updatedData = { oldPhoneNumber: oldPhone };
+    const fields = [
+      'phone', 'phoneNo2', 'email', 'state', 'sex', 'title',
+      'honTitle', 'quarters', 'ward', 'town',
+      'qualifications', 'profession', 'exitDate'
+    ];
 
-  try {
-    const res = await fetch('/api/update-profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedData)
+    fields.forEach(field => {
+      const input = form.querySelector(`#${field}`);
+      if (input && input.value.trim() !== (currentData[field] || '').trim()) {
+        updatedData[field] = input.value.trim();
+      }
     });
 
-    const data = await res.json();
-    if (res.ok) {
-      alert("Profile updated successfully!");
+    if (Object.keys(updatedData).length === 1) {
+      alert("No changes detected.");
       toggleEdit(false);
-      loadUserProfile();
-    } else {
-      alert(data.message || "Failed to update profile.");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong updating profile.");
+
+    try {
+      const res = await fetch('/api/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        //Update localStorage phone number before reload
+        if (updatedData.phone && updatedData.phone !== oldPhone) {
+          localStorage.setItem('loggedInPhone', updatedData.phone);
+        }
+
+        alert("Profile updated successfully!");
+        toggleEdit(false);
+        loadUserProfile(); // Now pulls updated phone
+      } else {
+        alert(data.message || "Failed to update profile.");
+      }
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert("Something went wrong updating profile.");
     }
   }
 
@@ -216,3 +229,4 @@
   }
 
   loadUserProfile();
+
