@@ -20,6 +20,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use('/admin', adminRoutes);
+app.use('/admin', require('./routes/admin'));
+
 
 // Middleware
 app.use(bodyParser.json());

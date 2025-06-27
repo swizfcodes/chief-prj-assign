@@ -6,15 +6,38 @@
   <title>User Dashboard</title>
   <link rel="stylesheet" href="styles/dashboard.css">
   <link rel="stylesheet" href="styles/index.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 
 <body>
 
-  <div class="sidebar">
-    <button onclick="showSection('profileSection')">My Profile</button>
-    <button onclick="showReceipts()">My Receipts</button>
-    <button onclick="toggleEnquiry()">Enquiries</button>
-    <button onclick="logout()">Logout</button>
+  <!-- Dark Mode Toggle -->
+  <div class="top-bar">
+    <img src="/photos/OCDA-Logo.jpg" alt="OCDA">
+    <button class="toggle-btn" onclick="toggleSidebar()">
+      <i class="fas fa-bars"></i>
+    </button>
+    <button class="dark-toggle" onclick="toggleDarkMode()">
+      <i class="fas fa-moon"></i>
+    </button>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar collapsed" id="sidebar">
+    <div class="sidebar-buttons">
+      <button onclick="showSection('profileSection')">
+        <i class="fas fa-user-circle"></i> <span>My Profile</span>
+      </button>
+      <button onclick="showReceipts()">
+        <i class="fas fa-receipt"></i> <span>My Receipts</span>
+      </button>
+      <button onclick="toggleEnquiry()">
+        <i class="fas fa-question-circle"></i> <span>Enquiries</span>
+      </button>
+      <button onclick="logout()">
+        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+      </button>
+    </div>
   </div>
 
   <div class="main">
@@ -238,22 +261,46 @@
       </div>
     </section>
 
-
     <section id="receiptSection" class="hidden">
       <h2>My Receipts</h2>
+
+      <div class="receipt-filters">
+        <label>From: <input type="date" id="fromDate"></label>
+        <label>To: <input type="date" id="toDate"></label>
+        <div class="receipt-buttons">
+          <button onclick="filterReceipts()">Apply</button>
+          <button onclick="printReceiptsPDF()">Print / Export</button>
+          <button onclick="exportReceiptsToCSV()">Export CSV</button>
+        </div>
+      </div>
+
       <div id="receiptTable"></div>
-      <button onclick="clearReceipts()">Close</button>
+
+      <button onclick="clearReceipts()" class="btn-secondary">Close</button>
     </section>
 
     <section id="enquirySection" class="hidden">
-      <h2>Enquiries</h2>
-      <label><input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()"> Ward</label>
-      <label><input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()"> Quarters</label>
+      <h2 style="text-align:center;">Enquiries</h2>
 
-      <select id="wardSelect"></select>
-      <select id="quartersSelect" class="hidden"></select>
-      <div id="enquiryResults"></div>
-      <button onclick="clearReceipts()">Close</button>
+      <div class="enquiry-tabs">
+        <label>
+          <input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()">
+          <span>Ward</span>
+        </label>
+        <label>
+          <input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()">
+          <span>Quarters</span>
+        </label>
+      </div>
+
+      <div class="select-wrap">
+        <select id="wardSelect"></select>
+        <select id="quartersSelect" class="hidden"></select>
+      </div>
+
+      <div id="enquiryResults">Select a ward or quarters to begin.</div>
+
+      <button onclick="clearReceipts()" class="btn-secondary">Close</button>
     </section>
   </div>
 

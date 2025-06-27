@@ -17,10 +17,16 @@
     <aside class="bg-white w-full lg:w-64 shadow-md">
       <div class="p-6 text-xl font-bold text-gray-800 border-b">OCDA Admin</div>
       <nav class="p-4 space-y-3">
-        <button class="w-full px-4 py-2 text-left rounded tab-button active-tab" data-tab="ledger">Member Ledger</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="create-member">Create Member</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ledger-entry">Ledger Entry</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expense">OCDA Expense</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="expenses">OCDA Expenses</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="enquiry">Enquiry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="std">Standard Expenses</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="member-list">View Members</button>
+        
+      <button onclick="adminLogout()" class="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+
       </nav>
     </aside>
 
@@ -65,9 +71,33 @@
         </div>
       </section>
 
-      <!-- Monthly Summary -->
+      <!-- Unified Monthly Summary Section (Screen F) -->
       <section id="summary" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Monthly Summary</h2>
+
+        <!-- Summary Generator Form -->
+        <form id="summaryForm" class="bg-white p-6 rounded shadow-md space-y-4 max-w-md mb-6">
+          <div class="text-lg font-semibold">Generate Monthly Summary</div>
+          <input name="year" type="number" placeholder="Year (e.g. 2025)" required class="w-full p-3 border rounded" />
+          <select name="month" required class="w-full p-3 border rounded">
+            <option value="">-- Select Month --</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded">Generate Summary</button>
+        </form>
+
+        <!-- Summary Table -->
         <div class="overflow-auto rounded shadow bg-white">
           <table class="min-w-full text-sm text-left">
             <thead class="bg-gray-200 text-gray-700">
@@ -83,6 +113,8 @@
           </table>
         </div>
       </section>
+
+
 
       <!-- OCDA Expenses -->
       <section id="expenses" class="tab-content hidden">
@@ -118,171 +150,219 @@
         </div>
       </section>
 
-      <button onclick="adminLogout()" class="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+          <!-- Create Member Form -->
+      <section id="create-member" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Register New Member</h2>
+        <form id="createMemberForm" class="bg-white p-6 rounded shadow-md grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input name="PhoneNumber" placeholder="Primary Phone Number" required class="p-3 border rounded" />
+          <input name="phoneno2" placeholder="Secondary Phone Number" class="p-3 border rounded" />
+          <input name="Surname" placeholder="Surname" required class="p-3 border rounded" />
+          <input name="othernames" placeholder="Other Names" required class="p-3 border rounded" />
+          <input name="Title" placeholder="Title" class="p-3 border rounded" />
+          <input name="HonTitle" placeholder="Honorary Title" class="p-3 border rounded" />
+          <input name="Sex" placeholder="Sex" class="p-3 border rounded" />
+          <input name="Quarters" placeholder="Quarter" class="p-3 border rounded" />
+          <input name="Ward" placeholder="Ward" class="p-3 border rounded" />
+          <input name="State" placeholder="State" class="p-3 border rounded" />
+          <input name="Town" placeholder="Town" class="p-3 border rounded" />
+          <input name="DOB" type="date" placeholder="Date of Birth" class="p-3 border rounded" />
+          <input name="Qualifications" placeholder="Qualifications" class="p-3 border rounded" />
+          <input name="Profession" placeholder="Profession" class="p-3 border rounded" />
+          <input name="exitdate" type="date" placeholder="Exit Date" class="p-3 border rounded" />
+          <input name="Password" type="text" placeholder="Initial Password" required class="p-3 border rounded" />
+          <input name="email" type="email" placeholder="Email" class="p-3 border rounded" />
+          <div class="col-span-2">
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Create Member</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Member Ledger Entry -->
+      <section id="ledger-entry" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Add Ledger Entry</h2>
+        <form id="ledgerForm" class="bg-white p-6 rounded shadow-md space-y-4 max-w-md">
+          <input name="phoneno" placeholder="Phone No" required class="w-full p-3 border rounded" />
+          <input name="transdate" type="date" placeholder="Date" required class="w-full p-3 border rounded" />
+          <input name="amount" placeholder="Amount (use negative for reversal)" required class="w-full p-3 border rounded" />
+          <input name="remark" placeholder="Remark" class="w-full p-3 border rounded" />
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+        </form>
+      </section>
+
+      <!-- OCDA Expense Entry -->
+      <section id="ocda-expense" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Record OCDA Expense</h2>
+          <!-- Screen C: OCDA Cheque Input + Other Charges -->
+        <form id="ocdaForm" class="bg-white p-6 rounded shadow max-w-xl space-y-4">
+          <h2 class="text-xl font-semibold">OCDA Cheque Input + Other Charges</h2>
+
+          <label class="block">
+            Date
+            <input name="docdate" type="date" required class="w-full p-2 border rounded" />
+          </label>
+
+          <label class="block">
+            Project
+            <select name="project" required class="w-full p-2 border rounded" id="projectDropdown">
+              <!-- Populated dynamically -->
+            </select>
+          </label>
+
+          <label class="block">
+            Amount <span class="text-sm text-gray-500">(use negative for reversal)</span>
+            <input name="amount" type="number" step="0.01" required class="w-full p-2 border rounded" />
+          </label>
+
+          <label class="block">
+            Remarks
+            <input name="remarks" type="text" required class="w-full p-2 border rounded" />
+          </label>
+
+          <div class="flex gap-4 mt-4">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+            <button type="button" onclick="document.getElementById('ocdaForm').reset()" class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Enquiry Section -->
+      <section id="enquiry" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Enquiry</h2>
+
+        <form id="enquiryForm" class="bg-white p-6 rounded shadow-md space-y-4">
+          <label>
+            <select name="enquiryType" class="w-full p-2 border rounded">
+              <option value="member">Individual Member (GSMNO)</option>
+              <option value="ward">Ward</option>
+              <option value="quarter">Quarter</option>
+              <option value="account">Account Summary</option>
+            </select>
+          </label>
+
+          <input type="text" name="queryParam" placeholder="Enter GSMNO / Ward / Quarter (or leave blank for ALL)" class="w-full p-2 border rounded" />
+
+          <div class="flex gap-4 items-center">
+            <label class="flex gap-2 items-center">
+              <input type="checkbox" name="detail" />
+              Detail Mode
+            </label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <input type="date" name="startDate" class="p-2 border rounded" />
+            <input type="date" name="endDate" class="p-2 border rounded" />
+          </div>
+
+          <div class="flex gap-4">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+            <button type="reset" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+          </div>
+        </form>
+
+        <!-- Screen I: Enquiry Results -->
+        <div id="enquiryResults" class="mt-8"></div>
+
+
+        <h3 class="text-lg font-semibold mt-8 mb-2">Recent OCDA Expenses</h3>
+        <div class="overflow-auto bg-white rounded shadow">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="p-2">Date</th>
+                <th class="p-2">Project</th>
+                <th class="p-2">Remarks</th>
+                <th class="p-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="ocdaTableBody"></tbody>
+          </table>
+        </div>
+
+      </section>
+
+      <!-- Member List -->
+      <section id="member-list" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Registered Members</h2>
+        <div class="overflow-auto rounded shadow bg-white">
+
+          <section id="member-list" class="tab-content hidden">
+            <h2 class="text-xl font-semibold mb-4">Registered Members</h2>
+
+            <div class="flex justify-between mb-4">
+              <input id="memberSearch" type="text" placeholder="Search..." class="p-2 border rounded w-full max-w-xs" />
+              <div class="space-x-2">
+                <button onclick="exportMembers('excel')" class="bg-green-600 text-white px-3 py-2 rounded">Export Excel</button>
+                <button onclick="exportMembers('pdf')" class="bg-red-600 text-white px-3 py-2 rounded">Export PDF</button>
+              </div>
+            </div>
+
+            <div class="overflow-auto rounded shadow bg-white">
+              <table class="min-w-full text-sm text-left" id="memberTableExport">
+                <thead>...</thead>
+                <tbody id="membersTable"></tbody>
+              </table>
+            </div>
+
+            <div id="pagination" class="flex justify-center mt-4 space-x-2"></div>
+          </section>
+
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-3">Phone No</th>
+                <th class="p-3">Surname</th>
+                <th class="p-3">Other Names</th>
+                <th class="p-3">Title</th>
+                <th class="p-3">Sex</th>
+                <th class="p-3">Quarter</th>
+                <th class="p-3">Ward</th>
+                <th class="p-3">State</th>
+                <th class="p-3">Town</th>
+                <th class="p-3">DOB</th>
+                <th class="p-3">Profession</th>
+                <th class="p-3">Qualification</th>
+                <th class="p-3">Email</th>
+                <th class="p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="membersTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Full Member View/Edit Section -->
+      <section id="memberDetails" class="hidden bg-white p-6 rounded shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Member Details</h2>
+        <form id="memberEditForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input name="PhoneNumber" placeholder="Phone Number" class="p-3 border rounded" />
+          <input name="phoneno2" placeholder="Secondary Phone" class="p-3 border rounded" />
+          <input name="Surname" placeholder="Surname" class="p-3 border rounded" />
+          <input name="othernames" placeholder="Other Names" class="p-3 border rounded" />
+          <input name="Title" placeholder="Title" class="p-3 border rounded" />
+          <input name="HonTitle" placeholder="Hon Title" class="p-3 border rounded" />
+          <input name="Sex" placeholder="Sex" class="p-3 border rounded" />
+          <input name="Quarters" placeholder="Quarter" class="p-3 border rounded" />
+          <input name="Ward" placeholder="Ward" class="p-3 border rounded" />
+          <input name="State" placeholder="State" class="p-3 border rounded" />
+          <input name="Town" placeholder="Town" class="p-3 border rounded" />
+          <input name="DOB" type="date" placeholder="Date of Birth" class="p-3 border rounded" />
+          <input name="Qualifications" placeholder="Qualifications" class="p-3 border rounded" />
+          <input name="Profession" placeholder="Profession" class="p-3 border rounded" />
+          <input name="exitdate" type="date" placeholder="Exit Date" class="p-3 border rounded" />
+          <input name="email" type="email" placeholder="Email" class="p-3 border rounded" />
+          <input name="Password" placeholder="Password" class="p-3 border rounded" />
+        </form>
+        <div class="mt-4 space-x-2">
+          <button onclick="saveMemberChanges()" class="bg-green-600 text-white px-4 py-2 rounded">Save</button>
+          <button onclick="closeMemberDetails()" class="bg-gray-500 text-white px-4 py-2 rounded">Close</button>
+        </div>
+      </section>
     </main>
   </div>
 
-  <script>
-    // Create Admin
-    document.getElementById('createAdminForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const data = {
-        fullname: form.fullname.value,
-        email: form.email.value,
-        password: form.password.value,
-        role: form.role.value
-      };
-
-      try {
-        const res = await fetch('http://localhost:5500/admin/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': localStorage.getItem('adminToken') || ''
-          },
-          body: JSON.stringify(data)
-        });
-        const result = await res.json();
-        alert(res.ok ? 'Admin created!' : (result.message || 'Error creating admin'));
-        if (res.ok) form.reset();
-      } catch (err) {
-        console.error('Create Admin Error:', err);
-        alert('Server error');
-      }
-    });
-
-    // Load Admin List
-    async function loadAdmins() {
-      const token = localStorage.getItem('adminToken');
-      if (!token) return document.getElementById('adminTable').innerText = 'Unauthorized – No token found.';
-
-      try {
-        const res = await fetch('http://localhost:5500/admin/list', {
-          headers: { 'Authorization': token }
-        });
-
-        const admins = await res.json();
-        if (!res.ok || !Array.isArray(admins)) {
-          return document.getElementById('adminTable').innerText = 'Failed to load admins.';
-        }
-
-        if (admins.length === 0) {
-          return document.getElementById('adminTable').innerText = 'No admins found.';
-        }
-
-        const table = `
-          <table class="w-full text-left border border-collapse">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="p-2 border">#</th>
-                <th class="p-2 border">Username</th>
-                <th class="p-2 border">Email</th>
-                <th class="p-2 border">Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${admins.map((admin, index) => `
-                <tr>
-                  <td class="p-2 border">${index + 1}</td>
-                  <td class="p-2 border">${admin.fullname}</td>
-                  <td class="p-2 border">${admin.email}</td>
-                  <td class="p-2 border">${admin.role}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>`;
-        document.getElementById('adminTable').innerHTML = table;
-      } catch (err) {
-        console.error('Admin Load Error:', err);
-        document.getElementById('adminTable').innerText = 'Error loading admins.';
-      }
-    }
-
-      // Format amount with ₦ and commas
-    const formatAmount = amount => `₦${parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-
-    // Format date to DD/MM/YYYY
-    const formatDate = dateStr => {
-      const date = new Date(dateStr);
-      if (isNaN(date)) return dateStr;
-      return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
-    };
-
-    // Tab navigation
-    const tabs = document.querySelectorAll('.tab-button');
-    const contents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active-tab'));
-        tab.classList.add('active-tab');
-        contents.forEach(c => c.classList.add('hidden'));
-        document.getElementById(tab.dataset.tab).classList.remove('hidden');
-      });
-    });
-
-    // Fetch Data Sections
-  function fetchTable(endpoint, targetId, renderFn) {
-    fetch(endpoint)
-      .then(res => res.json())
-      .then(data => {
-        const tableBody = document.getElementById(targetId);
-        if (!Array.isArray(data)) {
-          console.error(`Expected array but got:`, data);
-          return;
-        }
-        tableBody.innerHTML = data.map(renderFn).join('');
-      })
-      .catch(err => console.error(`Error loading ${endpoint}:`, err));
-  }
-
-  // Fetch and render Member Ledger
-  fetchTable('/admin/memberledger', 'ledgerData', row => `
-    <tr class="border-t">
-      <td class="p-2">${row.phoneno}</td>
-      <td class="p-2">${formatDate(row.transdate)}</td>
-      <td class="p-2">${formatAmount(row.amount)}</td>
-      <td class="p-2">${row.remark}</td>
-    </tr>
-  `);
-
-  // Fetch and render Monthly Summary
-  fetchTable('/admin/monthlysummary', 'summaryData', row => `
-    <tr class="border-t">
-      <td class="p-2">${row.period}</td>
-      <td class="p-2">${formatAmount(row.openbalance)}</td>
-      <td class="p-2">${formatAmount(row.Debitbalance)}</td>
-      <td class="p-2">${formatAmount(row.Creditbalance)}</td>
-      <td class="p-2">${formatAmount(row.Netbalance)}</td>
-    </tr>
-  `);
-
-  // Fetch and render OCDA Expenses
-  fetchTable('/admin/ocdaexpenses', 'expensesData', row => `
-    <tr class="border-t">
-      <td class="p-2">${formatDate(row.docdate)}</td>
-      <td class="p-2">${row.project}</td>
-      <td class="p-2">${row.remarks}</td>
-      <td class="p-2">${formatAmount(row.amount)}</td>
-    </tr>
-  `);
-
-  // Fetch and render Standard Expenses
-  fetchTable('/admin/stdxpenses', 'stdData', row => `
-    <tr class="border-t">
-      <td class="p-2">${row.expscode}</td>
-      <td class="p-2">${row.expsdesc}</td>
-    </tr>
-  `);
-
-    // Logout
-    function adminLogout() {
-      localStorage.removeItem('adminToken');
-      window.location.href = '/admin-login.html';
-    }
-
-    // Init
-    window.addEventListener('DOMContentLoaded', loadAdmins);
-  </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 </body>
+<script src="script/admin-dashboard.js"></script>
 </html>

@@ -13,11 +13,58 @@
     return res.ok ? res.json() : Promise.reject(await res.json());
   }
 
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('collapsed');
+  }
+
+
+  // On page load: collapse if screen is <= 1400px
+  document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.getElementById('sidebar');
+    if (window.innerWidth <= 1400) {
+      sidebar.classList.add('collapsed');
+    } 
+      // Optional: re-collapse on resize
+    window.addEventListener('resize', () => {
+      if (window.innerWidth <= 1400) {
+        sidebar.classList.add('collapsed');
+      } else {
+        sidebar.classList.remove('collapsed');
+      }
+    });
+  });
+
+  function toggleDropdown() {
+  const type = document.querySelector('input[name="filterType"]:checked').value;
+  document.getElementById('wardSelect').classList.toggle('hidden', type !== 'ward');
+  document.getElementById('quartersSelect').classList.toggle('hidden', type !== 'quarters');
+
+  // Animation effect on switch
+  const results = document.getElementById('enquiryResults');
+  results.style.opacity = 0;
+  setTimeout(() => {
+    results.innerHTML = 'Please select a ' + type + ' to view enquiries.';
+    results.style.opacity = 1;
+  }, 200);
+}
+
+
+  function toggleDarkMode() {
+    document.body.classList.toggle('dark');
+    const icon = document.querySelector('.dark-toggle i');
+    icon.classList.toggle('fa-moon');
+    icon.classList.toggle('fa-sun');
+  }
+
+
   async function loadUserProfile() {
     const phone = localStorage.getItem('loggedInPhone');
 
     try {
       const user = await fetchAPI('/api/profile', 'POST', { phoneNumber: phone });
+      currentUser = user;
       document.getElementById('username').textContent = `${user.othernames || ''} ${user.surname || ''}`;
       document.getElementById('phone').textContent = user.phoneNumber || '';
       document.getElementById('phoneNo2').textContent = user.phoneNo2 || '';
@@ -144,24 +191,250 @@
   }
 
 
-  //show user receipts
+
+  // Store all fetched receipts for advanced filtering and exporting
+  let allReceipts = [];
+
+  // Show receipts section and load data
   async function showReceipts() {
     showSection('receiptSection');
     try {
       const data = await fetchAPI(`/api/ledger-entry/${phone}`);
-      const html = data.map(r => `
-        <p><strong>Date:</strong> ${r.transdate} — <strong>Amount:</strong> ₦${r.amount} — <strong>Remark:</strong> ${r.remark}</p>
-      `).join('');
-      document.getElementById('receiptTable').innerHTML = html || 'No transactions.';
+      allReceipts = data;
+      renderReceipts(allReceipts);
     } catch {
       document.getElementById('receiptTable').innerHTML = 'Could not load receipts.';
     }
   }
 
+  // Render receipts in the table
+  function renderReceipts(receipts) {
+    if (!receipts || receipts.length === 0) {
+      document.getElementById('receiptTable').innerHTML = '<p>No transactions found.</p>';
+      return;
+    }
+
+    const table = `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Amount (₦)</th>
+            <th>Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${receipts.map((r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${new Date(r.transdate).toLocaleDateString()}</td>
+              <td>${Number(r.amount).toLocaleString()}</td>
+              <td>${r.remark}</td>
+              
+            </tr>
+          `).join('')}
+           <th> Total Amount</th>
+            <td>Total Receipts: ${receipts.length}</td>
+          <td>₦${receipts.reduce((sum, r) => sum + Number(r.amount), 0).toLocaleString()}</td>
+        </tbody>
+      </table>
+    `;
+
+    document.getElementById('receiptTable').innerHTML = table;
+  }
+
+
+  // Filter receipts by date range
+  function filterReceipts() {
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+
+    if (!from && !to) {
+      renderReceipts(allReceipts);
+      return;
+    }
+
+    const filtered = allReceipts.filter(r => {
+      const d = new Date(r.transdate);
+      const fromDate = from ? new Date(from) : null;
+      const toDate = to ? new Date(to) : null;
+      return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+    });
+
+    renderReceipts(filtered);
+  }
+
+  // Clear receipts view and filters
   function clearReceipts() {
     document.getElementById('receiptTable').innerHTML = '';
+    document.getElementById('fromDate').value = '';
+    document.getElementById('toDate').value = '';
     showSection('profileSection');
   }
+
+  // Export filtered receipts as CSV
+  function exportReceiptsToCSV() {
+    const from = document.getElementById('fromDate').value;
+    const to = document.getElementById('toDate').value;
+    const filtered = filterByDateRange(from, to);
+
+    let csv = 'Date,Amount,Remark\n';
+    filtered.forEach(r => {
+      const row = `${r.transdate},${r.amount},${r.remark}`;
+      csv += row + '\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'receipts.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Print/Download PDF of receipts
+function printReceiptsPDF() {
+  const fromDate = document.getElementById('fromDate').value;
+  const toDate = document.getElementById('toDate').value;
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  let filteredReceipts = allReceipts || [];
+
+  if (fromDate || toDate) {
+    filteredReceipts = filteredReceipts.filter(r => {
+      const date = new Date(r.transdate);
+      const iso = date.toISOString().split('T')[0];
+      if (fromDate && toDate) return iso >= fromDate && iso <= toDate;
+      if (fromDate) return iso >= fromDate;
+      if (toDate) return iso <= toDate;
+    });
+  }
+
+  let dateHeading;
+  if (!fromDate && !toDate) {
+    dateHeading = `Date: ${today.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    })}`;
+  } else if (fromDate === toDate) {
+    dateHeading = `Date: ${fromDate}`;
+  } else {
+    dateHeading = `FROM ${fromDate || todayStr} TO ${toDate || todayStr}`;
+  }
+
+  const phone = localStorage.getItem('loggedInPhone') || '';
+  const userName = document.getElementById('username')?.textContent || 'User';
+
+  const html = `
+    <html>
+      <head>
+        <title>OCDA Receipt</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            background: #fff;
+            color: #222;
+          }
+          h1, h2, h4 {
+            text-align: center;
+            margin-bottom: 10px;
+          }
+          h1 {
+            font-size: 24px;
+            font-weight: bold;
+          }
+          h2 {
+            font-size: 20px;
+            color: #555;
+          }
+          h4 {
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: normal;
+            color: #777;
+          }
+          hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 2px solid #888;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: left;
+          }
+          th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+          }
+          .no-data {
+            text-align: center;
+            color: #999;
+            margin-top: 40px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>OYIN-AKOKO COMMUNITY DEVELOPMENT ASSOCIATION (OCDA)</h1>
+        <h2>Receipt for ${userName} (${phone})</h2>
+        <h4>${dateHeading}</h4>
+        <hr />
+        ${filteredReceipts.length === 0
+          ? `<p class="no-data">No transactions found.</p>`
+          : `
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount (₦)</th>
+                  <th>Remark</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredReceipts.map(r => `
+                  <tr>
+                    <td>${r.transdate}</td>
+                    <td>${r.amount}</td>
+                    <td>${r.remark}</td>
+                  </tr>
+                `).join('')}
+            <th> Total Amount</th>
+          
+          <td>₦${filteredReceipts.reduce((sum, r) => sum + Number(r.amount), 0).toLocaleString()}</td>
+              </tbody>
+            </table>
+          `}
+      </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+}
+
+
+  // Utility to filter by current range
+  function filterByDateRange(from, to) {
+    const fromDate = from ? new Date(from) : null;
+    const toDate = to ? new Date(to) : null;
+
+    return allReceipts.filter(r => {
+      const d = new Date(r.transdate);
+      return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+    });
+  }
+
 
   async function toggleEnquiry() {
     showSection('enquirySection');
@@ -192,14 +465,55 @@
         return;
       }
 
-      const html = data.map(r => `
-        <p><strong>Date:</strong> ${r.transdate} —
-            <strong>Amount:</strong> ₦${r.amount} —
-            <strong>Remark:</strong> ${r.remark} —
-            <strong>Phone:</strong> ${r.phoneno}
-        </p>
+    const grouped = {};
+
+    data.forEach(r => {
+      if (!grouped[r.phoneno]) grouped[r.phoneno] = [];
+      grouped[r.phoneno].push(r);
+    });
+
+    const html = Object.entries(grouped).map(([phone, receipts]) => {
+      const totalAmount = receipts.reduce((sum, r) => sum + Number(r.amount), 0);
+
+      const rows = receipts.map(r => `
+        <tr>
+          <td>${r.transdate}</td>
+          <td>₦${Number(r.amount).toLocaleString()}</td>
+          <td>${r.remark}</td>
+        </tr>
       `).join('');
-      document.getElementById('enquiryResults').innerHTML = html;
+
+      return `
+        <div class="receipt-group">
+          <button class="accordion">Phone: ${phone} — Total Transactions Amount: ₦${totalAmount.toLocaleString()} (${receipts.length} receipts)</button>
+          <div class="panel">
+            <table class="enquiry-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Remark</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('enquiryResults').innerHTML = html;
+
+    // Enable accordion toggle
+    document.querySelectorAll('.accordion').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('active');
+        const panel = btn.nextElementSibling;
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+      });
+    });
+
+
     } catch (err) {
       console.error('Fetch enquiry failed:', err);
       document.getElementById('enquiryResults').innerHTML = '<p>Error fetching records.</p>';
