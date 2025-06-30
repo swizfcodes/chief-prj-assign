@@ -5,10 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles/index.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
     body { font-family: 'Inter', sans-serif; }
     .active-tab { background-color: #1f2937; color: white; }
+
+    @media (max-width: 4000px) and (min-width: 1700px) {
+    html {
+      font-size: 100% !important;
+    }
+  }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -17,13 +24,13 @@
     <aside class="bg-white w-full lg:w-64 shadow-md">
       <div class="p-6 text-xl font-bold text-gray-800 border-b">OCDA Admin</div>
       <nav class="p-4 space-y-3">
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="create-member">Create Member</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="member-list">OCDA Members</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="create-admin">Administrators</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ledger-entry">Ledger Entry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expense">OCDA Expense</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="enquiry">Enquiry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="std">Standard Expenses</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="member-list">View Members</button>
         
       <button onclick="adminLogout()" class="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
 
@@ -33,7 +40,7 @@
     <!-- Main Content -->
     <main class="flex-1 p-6 space-y-10">
       <!-- Create Admin Section -->
-      <section>
+      <section id="create-admin" class="tab-content hidden">
         <h2 class="text-xl font-semibold mb-4">Create New Admin</h2>
         <form id="createAdminForm" class="bg-white p-6 rounded shadow-md space-y-4 max-w-md">
           <input type="text" name="fullname" placeholder="Full Name" required class="w-full p-3 border rounded" />
@@ -45,10 +52,10 @@
           </select>
           <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Create Admin</button>
         </form>
-      </section>
 
-      <!-- Admin List -->
-      <section>
+        <br>
+
+        <!-- Admin List -->
         <h2 class="text-xl font-semibold mb-4">Admin List</h2>
         <div id="adminTable" class="bg-white p-4 rounded shadow text-sm">Loading...</div>
       </section>
@@ -152,36 +159,252 @@
 
           <!-- Create Member Form -->
       <section id="create-member" class="tab-content hidden">
-        <h2 class="text-2xl font-semibold mb-4">Register New Member</h2>
-        <form id="createMemberForm" class="bg-white p-6 rounded shadow-md grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="PhoneNumber" placeholder="Primary Phone Number" required class="p-3 border rounded" />
-          <input name="phoneno2" placeholder="Secondary Phone Number" class="p-3 border rounded" />
-          <input name="Surname" placeholder="Surname" required class="p-3 border rounded" />
-          <input name="othernames" placeholder="Other Names" required class="p-3 border rounded" />
-          <input name="Title" placeholder="Title" class="p-3 border rounded" />
-          <input name="HonTitle" placeholder="Honorary Title" class="p-3 border rounded" />
-          <input name="Sex" placeholder="Sex" class="p-3 border rounded" />
-          <input name="Quarters" placeholder="Quarter" class="p-3 border rounded" />
-          <input name="Ward" placeholder="Ward" class="p-3 border rounded" />
-          <input name="State" placeholder="State" class="p-3 border rounded" />
-          <input name="Town" placeholder="Town" class="p-3 border rounded" />
-          <input name="DOB" type="date" placeholder="Date of Birth" class="p-3 border rounded" />
-          <input name="Qualifications" placeholder="Qualifications" class="p-3 border rounded" />
-          <input name="Profession" placeholder="Profession" class="p-3 border rounded" />
-          <input name="exitdate" type="date" placeholder="Exit Date" class="p-3 border rounded" />
-          <input name="Password" type="text" placeholder="Initial Password" required class="p-3 border rounded" />
-          <input name="email" type="email" placeholder="Email" class="p-3 border rounded" />
-          <div class="col-span-2">
-            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Create Member</button>
+        <div class="form-wrapper">
+          <div class="container-form">
+            <form class="form active" id="createMemberForm">
+              <h2 class="title">Register New Member</h2>
+
+              
+              <div class="form-container">
+                  <!-- Success Message -->
+                  <div class="success-message" id="successMessage">
+              </div>
+
+              <!-- Row: Surname + Other Names -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="surname">Surname <span class="required">*</span></label>
+                  <input type="text" id="surname" name="Surname" required>
+                  <div class="error" id="surnameError"></div>
+                </div>
+                <div class="form-group">
+                  <label for="otherNames">OtherNames <span class="required">*</span></label>
+                  <input type="text" id="othernames" name="othernames" required>
+                  <div class="error" id="otherNamesError"></div>
+                </div>
+              </div>
+
+              <!-- Row: Title + HonTitle -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="title">Title</label>
+                  <select id="title" name="Title"> 
+                    <option value="">Select Title</option>
+                    <option value="Alhaji">Alhaji</option>
+                    <option value="Brig/Gen">Brig/Gen</option>
+                    <option value="Chief">Chief</option>
+                    <option value="Dr">Dr</option>
+                    <option value="Engr">Engr</option>
+                    <option value="Mr">Mr</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="Miss">Miss</option>
+                    <option value="Oba">Oba</option>
+                    <option value="R/Adm">R/Adm</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="honTitle">Honorary Title</label>
+                  <select id="honTitle" name="HonTitle"> 
+                    <option value="">Select Honorary Title</option>
+                    <option value="AJAKA">AJAKA</option>
+                    <option value="BALOGUN">BALOGUN</option>
+                    <option value="Chief">Chief</option>
+                    <option value="ELEBIRA">ELEBIRA</option>
+                    <option value="ELEJOFI">ELEJOFI</option>
+                    <option value="IGBEDI">IGBEDI</option>
+                    <option value="KABIYESI">KABIYESI</option>              
+                    <option value="Miss">Miss</option>
+                    <option value="Mr">Mr</option>
+                    <option value="Mrs">Mrs</option>
+                    <option value="ODEMO">ODEMO</option>
+                    <option value="ODOFIN">ODOFIN</option>
+                    <option value="OJOMU">OJOMU</option>
+                    <option value="OLORIEGBE">OLORIEGBE</option>
+                    <option value="OLUGOTUN">OLUGOTUN</option>
+                    <option value="OLUSA">OLUSA</option>
+                    <option value="OSUNLA">OSUNLA</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Row: Sex + DOB -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="sex">Sex <span class="required">*</span></label>
+                  <select id="sex" name="Sex" required> 
+                    <option value="">Select Sex</option>
+                    <option value="M">M</option>
+                    <option value="F">F</option>
+                  </select>
+                  <div class="error" id="sexError"></div>
+                </div>
+                <div class="form-group">
+                  <label for="dob">Date of Birth <span class="required">*</span></label>
+                  <input type="date" id="dob" name="DOB" required>
+                  <div class="error" id="dobError"></div>
+                </div>
+              </div>
+
+              <!-- Quarters -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="quarters">Quarters<span class="required">*</span></label>
+                  <select id="quarters" name="Quarters" required> 
+                    <option value="">Select Quaters</option>
+                    <option value="Ogunna">Ogunna</option>
+                    <option value="Ogosi">Ogosi</option>
+                    <option value="Ogotun">Ogotun</option>
+                  </select>
+                  <div class="error" id="quartersError"></div>
+                </div>
+                        <!-- State -->
+                <div class="form-group">
+                  <label for="state">State <span class="required">*</span></label>
+                  <select id="state" name="State" required> 
+                    <option value="">Select State</option>
+                    <option value="Abia">Abia</option>
+                    <option value="Adamawa">Adamawa</option>
+                    <option value="Akwa Ibom">Akwa Ibom</option>
+                    <option value="Anambra">Anambra</option>
+                    <option value="Bauchi">Bauchi</option>
+                    <option value="Bayelsa">Bayelsa</option>
+                    <option value="Benue">Benue</option>
+                    <option value="Borno">Borno</option>
+                    <option value="Cross River">Cross River</option>
+                    <option value="Delta">Delta</option>
+                    <option value="Ebonyi">Ebonyi</option>
+                    <option value="Edo">Edo</option>
+                    <option value="Ekiti">Ekiti</option>
+                    <option value="Enugu">Enugu</option>
+                    <option value="FCT">FCT</option>
+                    <option value="Gombe">Gombe</option>
+                    <option value="Imo">Imo</option>
+                    <option value="Jigawa">Jigawa</option>
+                    <option value="Kaduna">Kaduna</option>
+                    <option value="Kano">Kano</option>
+                    <option value="Katsina">Katsina</option>
+                    <option value="Kebbi">Kebbi</option>
+                    <option value="Kogi">Kogi</option>
+                    <option value="Kwara">Kwara</option>
+                    <option value="Lagos">Lagos</option>
+                    <option value="Nasarawa">Nasarawa</option>
+                    <option value="Niger">Niger</option>
+                    <option value="Ogun">Ogun</option>
+                    <option value="Ondo">Ondo</option>
+                    <option value="Osun">Osun</option>
+                    <option value="Oyo">Oyo</option>
+                    <option value="Plateau">Plateau</option>
+                    <option value="Rivers">Rivers</option>
+                    <option value="Sokoto">Sokoto</option>
+                    <option value="Taraba">Taraba</option>
+                    <option value="Yobe">Yobe</option>
+                    <option value="Zamfara">Zamfara</option>
+                  </select>
+                  <div class="error" id="stateError"></div>
+                </div>
+              </div>
+              
+              <!-- Row: Ward + Town -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="ward">Ward <span class="required">*</span></label>
+                  <select id="ward" name="Ward" required> 
+                    <option value="">Select Ward</option>
+                    <option value="Awanji">Awanji</option>
+                    <option value="Ayagama">Ayagama</option>
+                    <option value="Ayasu/Ayaya">Ayasu/Ayaya</option>
+                    <option value="Igoho">Igoho</option>
+                    <option value="Igonu">Igonu</option>
+                    <option value="Igukan">Igukan</option>
+                    <option value="IkanOlotu">IkanOlotu</option>
+                    <option value="Okoko">Okoko</option>
+                    <option value="Uhon">Uhon</option>
+                  </select>
+                  <div class="error" id="wardError"></div>
+                </div>
+                <div class="form-group">
+                  <label for="town">Town <span class="required">*</span></label>
+                  <input type="text" id="town" name="Town" required>
+                  <div class="error" id="townError"></div>
+                </div>
+              </div>
+
+
+
+              <!-- Row: Qualifications + Profession -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="qualifications">Qualification</label>
+                  <select id="qualifications" name="Qualifications"> 
+                    <option value="">Select Qualification</option>
+                    <option value="BSC">BSC</option>
+                    <option value="Diploma">Diploma</option>
+                    <option value="HND">HND</option>
+                    <option value="MSC">MSC</option>
+                    <option value="NCE">NCE</option>
+                    <option value="OND">OND</option>
+                    <option value="PHD">PHD</option>
+                    <option value="SCert">SCert</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="profession">Profession</label>
+                  <input type="text" id="profession" name="Profession">
+                </div>
+              </div>
+
+                  <!-- ✅ Email -->
+              <div class="form-group">
+                  <label for="email">Email Address</label>
+                  <input type="email" id="email" name="email" placeholder="example@domain.com">
+              </div>
+
+              <!-- Phone Numbers -->
+              <div class="form-row">
+                  <div class="form-group">
+                      <label for="phoneNumber">Phone Number <span class="required">*</span></label>
+                      <input type="tel" id="phoneNumber" name="PhoneNumber" required placeholder="e.g., 08012345678">
+                  </div>
+                  <div class="form-group">
+                      <label for="phoneNo2">Secondary Phone</label>
+                      <input type="tel" id="phoneno2" name="phoneno2" placeholder="Optional">
+                  </div>
+              </div>
+
+              <!-- Exit Date -->
+              <div class="form-group">
+                <label for="exitDate">Exit Date</label>
+                <input type="date" id="exitDate" name="exitdate">
+              </div>
+
+              <!-- Row: Passwords -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="password">Password <span class="required">*</span></label>
+                  <input type="password" id="password" name="Password" required>
+                  <div class="error" id="passwordError"></div>
+                </div>
+                <div class="form-group">
+                  <label for="retypePassword">Retype Password <span class="required">*</span></label>
+                  <input type="password" id="retypePassword" name="RetypePassword" required>
+                  <div class="error" id="retypePasswordError"></div>
+                </div>
+              </div>
+
+              <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Create Member</button>
+              <button onclick="closeMemberDetails()" class="bg-red-600 text-white px-4 py-2 rounded">Cancel</button>
+            </form>
           </div>
-        </form>
+        </div>
       </section>
 
       <!-- Member Ledger Entry -->
       <section id="ledger-entry" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Add Ledger Entry</h2>
         <form id="ledgerForm" class="bg-white p-6 rounded shadow-md space-y-4 max-w-md">
-          <input name="phoneno" placeholder="Phone No" required class="w-full p-3 border rounded" />
+          <input list="phonenoList" id="phoneno" name="phoneno" class="w-full p-3 border rounded" placeholder="Search phone number..." required>
+          <datalist id="phonenoList"></datalist>
           <input name="transdate" type="date" placeholder="Date" required class="w-full p-3 border rounded" />
           <input name="amount" placeholder="Amount (use negative for reversal)" required class="w-full p-3 border rounded" />
           <input name="remark" placeholder="Remark" class="w-full p-3 border rounded" />
@@ -243,7 +466,7 @@
       <section id="enquiry" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Enquiry</h2>
 
-        <!-- 🔘 Option Selection -->
+        <!--  Option Selection -->
         <form id="enquiryForm" class="bg-white p-4 rounded shadow space-y-4">
           <div class="flex gap-6 flex-wrap">
             <label><input type="radio" name="enquiryType" value="member" checked /> Member</label>
@@ -251,7 +474,7 @@
             <label><input type="radio" name="enquiryType" value="quarter" /> Quarter</label>
           </div>
 
-          <!-- 📱 Member -->
+          <!-- Member -->
           <div id="memberSelectGroup">
             <label class="block mt-2 font-medium">Member GSMNO</label>
             <select name="queryParam" id="enquiry-member" class="w-full p-2 border rounded">
@@ -259,7 +482,7 @@
             </select>
           </div>
 
-          <!-- 🏘 Ward -->
+          <!-- Ward -->
           <div id="wardSelectGroup" class="hidden">
             <label class="block mt-2 font-medium">Select Ward</label>
             <select name="queryParam" id="enquiry-ward" class="w-full p-2 border rounded">
@@ -267,7 +490,7 @@
             </select>
           </div>
 
-          <!-- 🏠 Quarter -->
+          <!--  Quarter -->
           <div id="quarterSelectGroup" class="hidden">
             <label class="block mt-2 font-medium">Select Quarter</label>
             <select name="queryParam" id="enquiry-quarter" class="w-full p-2 border rounded">
@@ -275,14 +498,14 @@
             </select>
           </div>
 
-          <!-- 📅 Date Filters -->
+          <!--  Date Filters -->
           <div class="grid grid-cols-2 gap-4">
             <input type="date" name="start" class="p-2 border rounded" />
             <input type="date" name="end" class="p-2 border rounded" />
           </div>
 
-          <!-- 📋 Mode -->
-          <label><input type="checkbox" name="detail" id="detailCheck" /> Show All Details</label>
+          <!--  Mode -->
+          <label style="display: inline-block;"><input type="checkbox" name="detail" id="detailCheck" /> Show All Details</label>
 
           <div class="flex items-center gap-4 mt-4">
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
@@ -290,11 +513,11 @@
           </div>
         </form>
 
-        <!-- 📥📄 Result View (Screen I Style) -->
+        <!--  Result View (Screen I Style) -->
        
         <div id="enquiryResults" class="mt-6 hidden">
           <div class="flex justify-between items-center mb-2">
-            <strong>Results from Screen H</strong>
+            <strong>Enquiry Results</strong>
             <div class="space-x-2">
               <button onclick="printEnquiry()" class="bg-gray-300 px-3 py-1 rounded">Print</button>
               <button onclick="exportEnquiry('excel')" class="bg-green-500 px-3 py-1 text-white rounded">Export Excel</button>
@@ -302,7 +525,7 @@
             </div>
           </div>
 
-          <!-- ✅ Dual-Column Result View -->
+          <!--  Dual-Column Result View -->
           <div id="enquiryTableWrapper" class="md:flex gap-4 space-y-6 md:space-y-0 mb-4">
             <div id="summaryWrapper" class="w-full md:w-1/2">
               <h3 class="font-semibold text-lg mb-2">Summary</h3>
@@ -318,13 +541,13 @@
             </div>
           </div>
 
-          <!-- 🔒 Hidden Export Table -->
+          <!--  Hidden Export Table -->
           <table id="enquiryTableExport" class="hidden"></table>
 
           <button onclick="document.getElementById('enquiryResults').classList.add('hidden')" class="mt-4 text-blue-600 underline">Cancel</button>
         </div>
 
-        <!-- 📊 Account Summary (Separate from Member Ledger) -->
+        <!-- Account Summary (Separate from Member Ledger) -->
         <div id="account-summary" class="tab-content hidden">
           <h2 class="text-2xl font-semibold mb-4">Account Summary</h2>
           <div class="overflow-auto rounded shadow bg-white">
@@ -348,30 +571,20 @@
       <!-- Member List -->
       <section id="member-list" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Registered Members</h2>
+
+        <!-- 🔍 Search & Export -->
+        <div class="flex justify-between mb-4">
+          <input id="memberSearch" type="text" placeholder="Search..." class="p-2 border rounded w-full max-w-xs" />
+          <div class="space-x-2">
+            <button class="bg-blue-600 text-white px-3 py-2 rounded tab-button" data-tab="create-member">Add New Member</button>
+            <button onclick="exportMembers('excel')" class="bg-green-600 text-white px-3 py-2 rounded">Export Excel</button>
+            <button onclick="exportMembers('pdf')" class="bg-red-600 text-white px-3 py-2 rounded">Export PDF</button>
+          </div>
+        </div>
+
+        <!-- 📋 Members Table -->
         <div class="overflow-auto rounded shadow bg-white">
-
-          <section id="member-list" class="tab-content hidden">
-            <h2 class="text-xl font-semibold mb-4">Registered Members</h2>
-
-            <div class="flex justify-between mb-4">
-              <input id="memberSearch" type="text" placeholder="Search..." class="p-2 border rounded w-full max-w-xs" />
-              <div class="space-x-2">
-                <button onclick="exportMembers('excel')" class="bg-green-600 text-white px-3 py-2 rounded">Export Excel</button>
-                <button onclick="exportMembers('pdf')" class="bg-red-600 text-white px-3 py-2 rounded">Export PDF</button>
-              </div>
-            </div>
-
-            <div class="overflow-auto rounded shadow bg-white">
-              <table class="min-w-full text-sm text-left" id="memberTableExport">
-                <thead>...</thead>
-                <tbody id="membersTable"></tbody>
-              </table>
-            </div>
-
-            <div id="pagination" class="flex justify-center mt-4 space-x-2"></div>
-          </section>
-
-          <table class="min-w-full text-sm text-left">
+          <table class="min-w-full text-sm text-left" id="memberTableExport">
             <thead class="bg-gray-200 text-gray-700">
               <tr>
                 <th class="p-3">Phone No</th>
@@ -393,35 +606,243 @@
             <tbody id="membersTable"></tbody>
           </table>
         </div>
+
+        <!-- 📌 Pagination -->
+        <div id="pagination" class="flex justify-center mt-4 space-x-2"></div>
       </section>
+
 
       <!-- Full Member View/Edit Section -->
       <section id="memberDetails" class="hidden bg-white p-6 rounded shadow-md">
         <h2 class="text-xl font-semibold mb-4">Member Details</h2>
-        <form id="memberEditForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="PhoneNumber" placeholder="Phone Number" class="p-3 border rounded" />
-          <input name="phoneno2" placeholder="Secondary Phone" class="p-3 border rounded" />
-          <input name="Surname" placeholder="Surname" class="p-3 border rounded" />
-          <input name="othernames" placeholder="Other Names" class="p-3 border rounded" />
-          <input name="Title" placeholder="Title" class="p-3 border rounded" />
-          <input name="HonTitle" placeholder="Hon Title" class="p-3 border rounded" />
-          <input name="Sex" placeholder="Sex" class="p-3 border rounded" />
-          <input name="Quarters" placeholder="Quarter" class="p-3 border rounded" />
-          <input name="Ward" placeholder="Ward" class="p-3 border rounded" />
-          <input name="State" placeholder="State" class="p-3 border rounded" />
-          <input name="Town" placeholder="Town" class="p-3 border rounded" />
-          <input name="DOB" type="date" placeholder="Date of Birth" class="p-3 border rounded" />
-          <input name="Qualifications" placeholder="Qualifications" class="p-3 border rounded" />
-          <input name="Profession" placeholder="Profession" class="p-3 border rounded" />
-          <input name="exitdate" type="date" placeholder="Exit Date" class="p-3 border rounded" />
-          <input name="email" type="email" placeholder="Email" class="p-3 border rounded" />
-          <input name="Password" placeholder="Password" class="p-3 border rounded" />
+        
+        <form id="memberEditForm" style="display:none" class="space-y-6">
+
+          <!-- Phone Numbers -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="PhoneNumber">Phone Number</label>
+              <input name="PhoneNumber" id="PhoneNumber" type="tel" class="p-3 border rounded w-full" />
+            </div>
+            <div class="form-group">
+              <label for="phoneno2">Secondary Phone</label>
+              <input name="phoneno2" id="phoneno2" type="tel" class="p-3 border rounded w-full" />
+            </div>
+          </div>
+
+          <!-- Email + Sex -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input name="email" id="email" type="email" class="p-3 border rounded w-full" />
+            </div>
+            <div class="form-group">
+              <label for="Sex">Sex</label>
+              <select name="Sex" id="Sex" class="p-3 border rounded w-full">
+                <option value="">Select Sex</option>
+                <option>M</option>
+                <option>F</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Quarter + State -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="Quarters">Quarter</label>
+              <select name="Quarters" id="Quarters" class="p-3 border rounded w-full">
+                <option value="">Select Quarter</option>
+                <option>Ogunna</option>
+                <option>Ogosi</option>
+                <option>Ogotun</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="State">State</label>
+              <select name="State" id="State" class="p-3 border rounded w-full">
+                <option value="">Select State</option>
+                <option>Abia</option>
+                <option>Adamawa</option>
+                <option>Akwa Ibom</option>
+                <option>Anambra</option>
+                <option>Bauchi</option>
+                <option>Bayelsa</option>
+                <option>Benue</option>
+                <option>Borno</option>
+                <option>Cross River</option>
+                <option>Delta</option>
+                <option>Ebonyi</option>
+                <option>Edo</option>
+                <option>Ekiti</option>
+                <option>Enugu</option>
+                <option>FCT</option>
+                <option>Gombe</option>
+                <option>Imo</option>
+                <option>Jigawa</option>
+                <option>Kaduna</option>
+                <option>Kano</option>
+                <option>Katsina</option>
+                <option>Kebbi</option>
+                <option>Kogi</option>
+                <option>Kwara</option>
+                <option>Lagos</option>
+                <option>Nasarawa</option>
+                <option>Niger</option>
+                <option>Ogun</option>
+                <option>Ondo</option>
+                <option>Osun</option>
+                <option>Oyo</option>
+                <option>Plateau</option>
+                <option>Rivers</option>
+                <option>Sokoto</option>
+                <option>Taraba</option>
+                <option>Yobe</option>
+                <option>Zamfara</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Ward + Town -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="Ward">Ward</label>
+              <select name="Ward" id="Ward" class="p-3 border rounded w-full">
+                <option value="">Select Ward</option>
+                <option>Awanji</option>
+                <option>Ayagama</option>
+                <option>Ayasu/Ayaya</option>
+                <option>Igoho</option>
+                <option>Igonu</option>
+                <option>Igukan</option>
+                <option>IkanOlotu</option>
+                <option>Okoko</option>
+                <option>Uhon</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="Town">Town</label>
+              <input name="Town" id="Town" type="text" class="p-3 border rounded w-full" />
+            </div>
+          </div>
+
+          <!-- Title + Hon Title -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="Title">Title</label>
+              <select name="Title" id="Title" class="p-3 border rounded w-full">
+                <option value="">Select Title</option>
+                <option>Alhaji</option>
+                <option>Brig/Gen</option>
+                <option>Chief</option>
+                <option>Dr</option>
+                <option>Engr</option>
+                <option>Mr</option>
+                <option>Mrs</option>
+                <option>Miss</option>
+                <option>Oba</option>
+                <option>R/Adm</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="HonTitle">Honorary Title</label>
+              <select name="HonTitle" id="HonTitle" class="p-3 border rounded w-full">
+                <option value="">Select Honorary Title</option>
+                <option>AJAKA</option>
+                <option>BALOGUN</option>
+                <option>Chief</option>
+                <option>ELEBIRA</option>
+                <option>ELEJOFI</option>
+                <option>IGBEDI</option>
+                <option>KABIYESI</option>
+                <option>Miss</option>
+                <option>Mr</option>
+                <option>Mrs</option>
+                <option>ODEMO</option>
+                <option>ODOFIN</option>
+                <option>OJOMU</option>
+                <option>OLORIEGBE</option>
+                <option>OLUGOTUN</option>
+                <option>OLUSA</option>
+                <option>OSUNLA</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Qualification + Profession -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="Qualifications">Qualification</label>
+              <select name="Qualifications" id="Qualifications" class="p-3 border rounded w-full">
+                <option value="">Select Qualification</option>
+                <option>BSC</option>
+                <option>Diploma</option>
+                <option>HND</option>
+                <option>MSC</option>
+                <option>NCE</option>
+                <option>OND</option>
+                <option>PHD</option>
+                <option>SCert</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="Profession">Profession</label>
+              <input name="Profession" id="Profession" type="text" class="p-3 border rounded w-full" />
+            </div>
+          </div>
+
+          <!-- DOB + Exit -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="DOB">Date of Birth</label>
+              <input name="DOB" id="DOB" type="date" class="p-3 border rounded w-full" />
+            </div>
+            <div class="form-group">
+              <label for="exitdate">Exit Date</label>
+              <input name="exitdate" id="exitdate" type="date" class="p-3 border rounded w-full" />
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label for="Password">Password</label>
+            <input name="Password" id="Password" type="text" class="p-3 border rounded w-full" />
+          </div>
         </form>
+
+        <div id="memberViewOnly" class="bg-gray-100 p-6 rounded shadow hidden">
+          <h2 class="text-xl font-bold mb-4">📄 Member Profile</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div><strong>Phone:</strong> <span id="viewPhone"></span></div>
+            <div><strong>Secondary Phone:</strong> <span id="viewPhone2"></span></div>
+            <div><strong>Surname:</strong> <span id="viewSurname"></span></div>
+            <div><strong>Other Names:</strong> <span id="viewOthernames"></span></div>
+            <div><strong>Title:</strong> <span id="viewTitle"></span></div>
+            <div><strong>Hon Title:</strong> <span id="viewHonTitle"></span></div>
+            <div><strong>Sex:</strong> <span id="viewSex"></span></div>
+            <div><strong>Quarter:</strong> <span id="viewQuarters"></span></div>
+            <div><strong>Ward:</strong> <span id="viewWard"></span></div>
+            <div><strong>State:</strong> <span id="viewState"></span></div>
+            <div><strong>Town:</strong> <span id="viewTown"></span></div>
+            <div><strong>DOB:</strong> <span id="viewDOB"></span></div>
+            <div><strong>Exit:</strong> <span id="viewExit"></span></div>
+            <div><strong>Qualification:</strong> <span id="viewQualifications"></span></div>
+            <div><strong>Profession:</strong> <span id="viewProfession"></span></div>
+            <div><strong>Email:</strong> <span id="viewEmail"></span></div>
+          </div>
+        </div>
+
+
+
         <div class="mt-4 space-x-2">
-          <button onclick="saveMemberChanges()" class="bg-green-600 text-white px-4 py-2 rounded">Save</button>
-          <button onclick="closeMemberDetails()" class="bg-gray-500 text-white px-4 py-2 rounded">Close</button>
+          <button id="updateMemberBtn" onclick="saveMemberChanges()" class="bg-green-600 text-white px-4 py-2 rounded hidden">
+            Save
+          </button>
+          <button onclick="closeMemberDetails()" class="bg-gray-500 text-white px-4 py-2 rounded">
+            Close
+          </button>
         </div>
       </section>
+
     </main>
   </div>
 
@@ -430,4 +851,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 </body>
 <script src="script/admin-dashboard.js"></script>
+<script src="script/signup.js"></script>
 </html>

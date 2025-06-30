@@ -325,13 +325,20 @@ router.get('/members', verifyToken, async (req, res) => {
   try {
     const pool = await poolPromise;
     const result = await pool.request()
-      .query(`SELECT gsmno, surname, othernames, title, sex, quarter, ward, state, email FROM Members ORDER BY surname`);
+      .query(`
+        SELECT 
+          PhoneNumber, Surname, othernames, Title, Sex, Quarters, Ward, 
+          State, Town, DOB, Profession, Qualifications, email
+        FROM Members
+        ORDER BY surname
+      `);
     res.json(result.recordset);
   } catch (err) {
     console.error('Fetch Members Error:', err);
     res.status(500).json({ message: 'Failed to fetch members' });
   }
 });
+
 
 // Delete members
 router.delete('/member/:phone', verifyToken, async (req, res) => {
@@ -373,35 +380,66 @@ router.get('/member/:phone', verifyToken, async (req, res) => {
 
 // PUT update member
 router.put('/member/:phone', verifyToken, async (req, res) => {
-
-    // Check if new phone exists and it's not the same as old
-  if (req.body.PhoneNumber !== req.params.phone) {
-    const check = await pool.request()
-      .input('newPhone', sql.VarChar, req.body.PhoneNumber)
-      .query('SELECT PhoneNumber FROM Members WHERE PhoneNumber = @newPhone');
-
-    if (check.recordset.length > 0) {
-      return res.status(409).json({ message: 'Phone number already in use by another member' });
-    }
-  }
-
   try {
+    const pool = await poolPromise;
+
+    // Get the existing member
+    const existingResult = await pool.request()
+      .input('PhoneNumber', sql.VarChar, req.params.phone)
+      .query('SELECT * FROM Members WHERE PhoneNumber = @PhoneNumber');
+    if (existingResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Member not found' });
+    }
+    const existing = existingResult.recordset[0];
+
+    //  If phone number is changing, check for conflicts
+    if (req.body.PhoneNumber && req.body.PhoneNumber !== req.params.phone) {
+      const check = await pool.request()
+        .input('newPhone', sql.VarChar, req.body.PhoneNumber)
+        .query('SELECT PhoneNumber FROM Members WHERE PhoneNumber = @newPhone');
+      if (check.recordset.length > 0) {
+        return res.status(409).json({ message: 'Phone number already in use by another member' });
+      }
+    }
+
+    // Merge fields: use req.body if present, else existing value
     const fields = [
       'PhoneNumber', 'phoneno2', 'Surname', 'othernames', 'Title', 'HonTitle', 'Sex',
       'Quarters', 'Ward', 'State', 'Town', 'DOB', 'Qualifications',
       'Profession', 'exitdate', 'Password', 'email'
     ];
 
-    const pool = await poolPromise;
-    const request = pool.request();
-
-    // Bind all fields
+    const merged = {};
     fields.forEach(field => {
-      request.input(field, sql.VarChar, req.body[field]);
+      // For date fields, set to null if empty or not provided
+      fields.forEach(field => {
+        if (field === 'DOB' || field === 'exitdate') {
+          if (req.body[field] === undefined) {
+            merged[field] = existing[field];
+          } else if (req.body[field] === '') {
+            merged[field] = null;
+          } else {
+            merged[field] = req.body[field];
+          }
+        } else {
+          merged[field] = req.body[field] !== undefined ? req.body[field] : existing[field];
+        }
+      });
     });
 
+
+    // Bind all fields
+    const request = pool.request();
+    fields.forEach(field => {
+      if (field === 'DOB' || field === 'exitdate') {
+        request.input(field, sql.Date, merged[field]);
+      } else {
+        request.input(field, sql.VarChar, merged[field]);
+      }
+    });
     request.input('oldPhone', sql.VarChar, req.params.phone);
 
+    // Update
     await request.query(`
       UPDATE Members SET
         PhoneNumber=@PhoneNumber,
@@ -430,13 +468,6 @@ router.put('/member/:phone', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Failed to update member' });
   }
 });
-
-
-
-
-
-
-
 
 
 // POST: Add Ledger Entry
@@ -477,7 +508,7 @@ router.get('/api/ledger-entry/:phoneno', async (req, res) => {
 });
 
 // Add Expense with user-supplied date and project
-router.post('/admin/ocdaexpenses', async (req, res) => {
+router.post('/ocdaexpenses', async (req, res) => {
   const { docdate, project, amount, remarks } = req.body;
 
   try {
@@ -496,6 +527,19 @@ router.post('/admin/ocdaexpenses', async (req, res) => {
   } catch (err) {
     console.error('OCDA Expense Error:', err);
     res.status(500).json({ error: 'Failed to save OCDA expense' });
+  }
+});
+
+// GET: Project List for Dropdown
+router.get('/project-list', async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request()
+      .query('SELECT expscode, expsdesc FROM Stdxpenses ORDER BY expsdesc');
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Project List Load Error:', err);
+    res.status(500).json({ error: 'Failed to load project list' });
   }
 });
 

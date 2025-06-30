@@ -1,5 +1,58 @@
 
-    // Create Admin
+let allMembers = [];
+let currentPage = 1;
+const rowsPerPage = 10;
+
+async function loadAdmins() {
+  const token = localStorage.getItem('adminToken');
+  if (!token) return document.getElementById('adminTable').innerText = 'Unauthorized – No token found.';
+
+  try {
+    const res = await fetch('http://localhost:5500/admin/list', {
+      headers: { 'Authorization': token }
+    });
+
+    const admins = await res.json();
+    if (!res.ok || !Array.isArray(admins)) {
+      return document.getElementById('adminTable').innerText = 'Failed to load admins.';
+    }
+
+    if (admins.length === 0) {
+      return document.getElementById('adminTable').innerText = 'No admins found.';
+    }
+
+    const table = `
+      <table class="w-full text-left border border-collapse">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="p-2 border">#</th>
+            <th class="p-2 border">Username</th>
+            <th class="p-2 border">Email</th>
+            <th class="p-2 border">Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${admins.map((admin, index) => `
+            <tr>
+              <td class="p-2 border">${index + 1}</td>
+              <td class="p-2 border">${admin.fullname}</td>
+              <td class="p-2 border">${admin.email}</td>
+              <td class="p-2 border">${admin.role}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+    document.getElementById('adminTable').innerHTML = table;
+  } catch (err) {
+    console.error('Admin Load Error:', err);
+    document.getElementById('adminTable').innerText = 'Error loading admins.';
+  }
+}
+
+// 2. Define setupAdminTab globally
+function setupAdminTab() {
+  // Attach submit handler only once
+  if (!setupAdminTab.initialized) {
     document.getElementById('createAdminForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
@@ -22,58 +75,25 @@
         const result = await res.json();
         alert(res.ok ? 'Admin created!' : (result.message || 'Error creating admin'));
         if (res.ok) form.reset();
+        loadAdmins(); // Refresh list after creation
       } catch (err) {
         console.error('Create Admin Error:', err);
         alert('Server error');
       }
     });
+    setupAdminTab.initialized = true;
+  }
+  loadAdmins(); // Always refresh admin list when tab is shown
+}
 
-    // Load Admin List
-    async function loadAdmins() {
-      const token = localStorage.getItem('adminToken');
-      if (!token) return document.getElementById('adminTable').innerText = 'Unauthorized – No token found.';
-
-      try {
-        const res = await fetch('http://localhost:5500/admin/list', {
-          headers: { 'Authorization': token }
-        });
-
-        const admins = await res.json();
-        if (!res.ok || !Array.isArray(admins)) {
-          return document.getElementById('adminTable').innerText = 'Failed to load admins.';
-        }
-
-        if (admins.length === 0) {
-          return document.getElementById('adminTable').innerText = 'No admins found.';
-        }
-
-        const table = `
-          <table class="w-full text-left border border-collapse">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="p-2 border">#</th>
-                <th class="p-2 border">Username</th>
-                <th class="p-2 border">Email</th>
-                <th class="p-2 border">Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${admins.map((admin, index) => `
-                <tr>
-                  <td class="p-2 border">${index + 1}</td>
-                  <td class="p-2 border">${admin.fullname}</td>
-                  <td class="p-2 border">${admin.email}</td>
-                  <td class="p-2 border">${admin.role}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>`;
-        document.getElementById('adminTable').innerHTML = table;
-      } catch (err) {
-        console.error('Admin Load Error:', err);
-        document.getElementById('adminTable').innerText = 'Error loading admins.';
+  // Call setupAdminTab() when the "Administrators" tab is shown
+  document.querySelectorAll('.tab-button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if (btn.dataset.tab === 'create-member') {
+        setupAdminTab();
       }
-    }
+    });
+  });
 
       // Format amount with ₦ and commas
     const formatAmount = amount => `₦${parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
@@ -86,14 +106,20 @@
     };
 
     // Tab navigation
-    const tabs = document.querySelectorAll('.tab-button');
-    const contents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active-tab'));
-        tab.classList.add('active-tab');
-        contents.forEach(c => c.classList.add('hidden'));
-        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+    document.querySelectorAll('.tab-button').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active-tab'));
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+
+        this.classList.add('active-tab');
+        const tabId = this.getAttribute('data-tab');
+        const tabSection = document.getElementById(tabId);
+        if (tabSection) tabSection.classList.remove('hidden');
+
+        // Only call setupAdminTab when admin tab is clicked
+        if (tabId === 'create-admin') setupAdminTab();
+        if (tabId === 'member-list') loadMembers();
+        // ...other tab-specific loaders
       });
     });
 
@@ -230,9 +256,9 @@ document.getElementById('createMemberForm')?.addEventListener('submit', async (e
 });
 
 //show the member list
-let allMembers = [];
+/*let allMembers = [];
 let currentPage = 1;
-const rowsPerPage = 10;
+const rowsPerPage = 10;*/
 
 function displayMembers(data) {
   const table = document.getElementById('membersTable');
@@ -273,7 +299,7 @@ function renderPagination(total) {
   for (let i = 1; i <= pages; i++) {
     pagination.innerHTML += `
       <button class="px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : ''}"
-              onclick="goToPage(${i})">${i}</button>`;
+      onclick="goToPage(${i})">${i}</button>`;
   }
 }
 
@@ -308,7 +334,13 @@ async function loadMembers() {
     console.error('Member Load Error:', err);
     document.getElementById('membersTable').innerHTML = `<tr><td colspan="9">Failed to load members</td></tr>`;
   }
-}
+} 
+
+window.addEventListener('DOMContentLoaded', () => {
+  //loadEnquiryDropdowns?.();
+  loadMembers(); // 👈 ensure this is called
+});
+
 
 // Export to Excel or PDF
 function exportMembers(type) {
@@ -324,7 +356,7 @@ function exportMembers(type) {
 }
 
 // Show and populate member detail section
-let originalPhone = ''; // global
+
 
 async function viewMember(phone) {
   originalPhone = phone;
@@ -336,20 +368,37 @@ async function viewMember(phone) {
       }
     });
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch member');
-    }
+    if (!res.ok) throw new Error('Failed to fetch member');
 
     const member = await res.json();
-    const form = document.getElementById('memberEditForm');
 
-    for (const key in member) {
-      if (form.elements[key]) {
-        form.elements[key].value = member[key];
-      }
-    }
+    // Hide the edit form and show the view-only div
+    document.getElementById('memberEditForm').style.display = 'none';
+    const viewDiv = document.getElementById('memberViewOnly');
+    viewDiv.classList.remove('hidden');
 
-    document.getElementById('memberDetails').classList.remove('hidden');
+    // Fill all view fields
+    document.getElementById('viewPhone').innerText = member.PhoneNumber || '';
+    document.getElementById('viewPhone2').innerText = member.phoneno2 || '';
+    document.getElementById('viewSurname').innerText = member.Surname || '';
+    document.getElementById('viewOthernames').innerText = member.othernames || '';
+    document.getElementById('viewTitle').innerText = member.Title || '';
+    document.getElementById('viewHonTitle').innerText = member.HonTitle || '';
+    document.getElementById('viewSex').innerText = member.Sex || '';
+    document.getElementById('viewQuarters').innerText = member.Quarters || '';
+    document.getElementById('viewWard').innerText = member.Ward || '';
+    document.getElementById('viewState').innerText = member.State || '';
+    document.getElementById('viewTown').innerText = member.Town || '';
+    document.getElementById('viewDOB').innerText = member.DOB ? member.DOB.split('T')[0] : '';
+    document.getElementById('viewExit').innerText = member.exitdate ? member.exitdate.split('T')[0] : '';
+    document.getElementById('viewQualifications').innerText = member.Qualifications || '';
+    document.getElementById('viewProfession').innerText = member.Profession || '';
+    document.getElementById('viewEmail').innerText = member.email || '';
+
+    // Hide save button while viewing
+    document.getElementById('updateMemberBtn')?.classList.add('hidden');
+    document.getElementById('memberDetails')?.classList.remove('hidden');
+
     window.scrollTo({
       top: document.getElementById('memberDetails').offsetTop,
       behavior: 'smooth'
@@ -361,37 +410,108 @@ async function viewMember(phone) {
   }
 }
 
-function closeMemberDetails() {
-  document.getElementById('memberDetails').classList.add('hidden');
+
+let originalMemberData = {}; // global to hold the original data
+
+async function editMember(phone) {
+  originalPhone = phone;
+
+  try {
+    const res = await fetch(`/admin/member/${phone}`, {
+      headers: {
+        'Authorization': localStorage.getItem('adminToken')
+      }
+    });
+
+    if (!res.ok) throw new Error('Failed to fetch member');
+
+    const member = await res.json();
+    originalMemberData = { ...member }; // Save original data for comparison
+    const form = document.getElementById('memberEditForm');
+
+    // Hide the view-only div and show the edit form
+    document.getElementById('memberViewOnly').classList.add('hidden');
+    form.style.display = '';
+
+    // Fill form and enable inputs for editing
+    for (const key in member) {
+      if (form.elements[key]) {
+        if (key === 'DOB' || key === 'exitdate') {
+          // Format date for input type="date"
+          form.elements[key].value = member[key] ? member[key].split('T')[0] : '';
+        } else {
+          form.elements[key].value = member[key] ?? '';
+        }
+        form.elements[key].disabled = false;
+      }
+    }
+
+    // Show the update button when editing
+    document.getElementById('updateMemberBtn')?.classList.remove('hidden');
+    document.getElementById('memberDetails')?.classList.remove('hidden');
+
+    window.scrollTo({
+      top: document.getElementById('memberDetails').offsetTop,
+      behavior: 'smooth'
+    });
+
+  } catch (err) {
+    console.error('Edit member error:', err);
+    alert('Could not load member for editing.');
+  }
 }
+
+
+function closeMemberDetails() {
+  const form = document.getElementById('memberEditForm');
+  form.reset();
+  [...form.elements].forEach(el => el.disabled = false);
+  document.getElementById('memberDetails').classList.add('hidden');
+  document.getElementById('updateMemberBtn')?.classList.add('hidden');
+}
+
 
 // Save changes
 async function saveMemberChanges() {
   const form = document.getElementById('memberEditForm');
-  const data = Object.fromEntries(new FormData(form));
-  const newPhone = data.PhoneNumber.trim();
+  const formData = Object.fromEntries(new FormData(form));
+  const newPhone = formData.PhoneNumber.trim();
+
+  // Only include changed fields
+  const changedData = {};
+  for (const key in formData) {
+    if (formData[key] !== String(originalMemberData[key] ?? '')) {
+      changedData[key] = formData[key];
+    }
+  }
+
+  // If nothing changed, do nothing
+  if (Object.keys(changedData).length === 0) {
+    alert('No changes detected.');
+    return;
+  }
 
   // 🔒 Confirm if main phone number was changed
-  if (newPhone !== originalPhone) {
+  if (changedData.PhoneNumber && changedData.PhoneNumber !== originalPhone) {
     const confirmChange = confirm(
-      `You changed the primary phone number from ${originalPhone} to ${newPhone}. This may affect member identity.\n\nDo you want to proceed?`
+      `You changed the primary phone number from ${originalPhone} to ${changedData.PhoneNumber}. This may affect member identity.\n\nDo you want to proceed?`
     );
     if (!confirmChange) return;
   }
 
   // 🔎 Check if new phone number already exists
-  try {
-    const checkRes = await fetch(`/admin/member/${newPhone}`, {
-      headers: { 'Authorization': localStorage.getItem('adminToken') }
-    });
-
-    // If exists and is NOT the same member, stop
-    if (checkRes.ok && newPhone !== originalPhone) {
-      alert(`A member already exists with phone number: ${newPhone}`);
-      return;
+  if (changedData.PhoneNumber && changedData.PhoneNumber !== originalPhone) {
+    try {
+      const checkRes = await fetch(`/admin/member/${changedData.PhoneNumber}`, {
+        headers: { 'Authorization': localStorage.getItem('adminToken') }
+      });
+      if (checkRes.ok) {
+        alert(`A member already exists with phone number: ${changedData.PhoneNumber}`);
+        return;
+      }
+    } catch (err) {
+      // Not found is OK
     }
-  } catch (err) {
-    console.warn('Phone check skipped (probably not found, that’s okay).');
   }
 
   // 🔄 Proceed with update
@@ -402,7 +522,7 @@ async function saveMemberChanges() {
         'Content-Type': 'application/json',
         'Authorization': localStorage.getItem('adminToken')
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(changedData)
     });
 
     const result = await res.json();
@@ -418,7 +538,26 @@ async function saveMemberChanges() {
 }
 
 
+//Load phone numbers
+async function loadPhoneNumbers() {
+  try {
+    const token = localStorage.getItem('adminToken');
+    const res = await fetch('/admin/members', {
+      headers: { 'Authorization': token }
+    });
+    const members = await res.json();
+    const datalist = document.getElementById('phonenoList');
+    datalist.innerHTML = members.map(
+      m => `<option value="${m.PhoneNumber}">${m.Surname} ${m.othernames}</option>`
+    ).join('');
+  } catch (err) {
+    console.error('Failed to load phone numbers', err);
+  }
+}
 
+window.addEventListener('DOMContentLoaded', () => {
+  loadPhoneNumbers();
+});
 
 // 🟢 Add Payment to Member Ledger (Screen D)
 document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
@@ -486,16 +625,20 @@ document.getElementById('ocdaForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-/*async function loadProjectDropdown() {
+async function loadProjectDropdown() {
   try {
-    const res = await fetch('/api/project-list');
+    const res = await fetch('/admin/stdxpenses');
     const projects = await res.json();
     const dropdown = document.getElementById('projectDropdown');
-    dropdown.innerHTML = projects.map(p => `<option value="${p}">${p}</option>`).join('');
+    dropdown.innerHTML = projects.map(
+      p => `<option value="${p.expscode}">${p.expsdesc} (${p.expscode})</option>`
+    ).join('');
   } catch (err) {
     console.error('Project List Load Error:', err);
   }
-}*/
+} window.addEventListener('DOMContentLoaded', () => {
+  loadProjectDropdown();
+});
 
 
 //render ocda update
@@ -656,7 +799,7 @@ document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => 
 });
 
 
-// 📄 Render Results like Screen H
+//  Render Results like Screen H
 function renderEnquiryResults(data) {
   const wrapper = document.getElementById('enquiryTableWrapper');
   const container = document.getElementById('enquiryResults');
