@@ -223,45 +223,6 @@
             <button type="button" onclick="document.getElementById('ocdaForm').reset()" class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
           </div>
         </form>
-      </section>
-
-      <!-- Enquiry Section -->
-      <section id="enquiry" class="tab-content hidden">
-        <h2 class="text-2xl font-semibold mb-4">Enquiry</h2>
-
-        <form id="enquiryForm" class="bg-white p-6 rounded shadow-md space-y-4">
-          <label>
-            <select name="enquiryType" class="w-full p-2 border rounded">
-              <option value="member">Individual Member (GSMNO)</option>
-              <option value="ward">Ward</option>
-              <option value="quarter">Quarter</option>
-              <option value="account">Account Summary</option>
-            </select>
-          </label>
-
-          <input type="text" name="queryParam" placeholder="Enter GSMNO / Ward / Quarter (or leave blank for ALL)" class="w-full p-2 border rounded" />
-
-          <div class="flex gap-4 items-center">
-            <label class="flex gap-2 items-center">
-              <input type="checkbox" name="detail" />
-              Detail Mode
-            </label>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <input type="date" name="startDate" class="p-2 border rounded" />
-            <input type="date" name="endDate" class="p-2 border rounded" />
-          </div>
-
-          <div class="flex gap-4">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
-            <button type="reset" class="bg-gray-300 px-4 py-2 rounded">Cancel</button>
-          </div>
-        </form>
-
-        <!-- Screen I: Enquiry Results -->
-        <div id="enquiryResults" class="mt-8"></div>
-
 
         <h3 class="text-lg font-semibold mt-8 mb-2">Recent OCDA Expenses</h3>
         <div class="overflow-auto bg-white rounded shadow">
@@ -276,9 +237,113 @@
             </thead>
             <tbody id="ocdaTableBody"></tbody>
           </table>
+      </section>
+
+      <!-- Enquiry Section -->
+      <section id="enquiry" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Enquiry</h2>
+
+        <!-- 🔘 Option Selection -->
+        <form id="enquiryForm" class="bg-white p-4 rounded shadow space-y-4">
+          <div class="flex gap-6 flex-wrap">
+            <label><input type="radio" name="enquiryType" value="member" checked /> Member</label>
+            <label><input type="radio" name="enquiryType" value="ward" /> Ward</label>
+            <label><input type="radio" name="enquiryType" value="quarter" /> Quarter</label>
+          </div>
+
+          <!-- 📱 Member -->
+          <div id="memberSelectGroup">
+            <label class="block mt-2 font-medium">Member GSMNO</label>
+            <select name="queryParam" id="enquiry-member" class="w-full p-2 border rounded">
+              <option value="ALL">ALL</option>
+            </select>
+          </div>
+
+          <!-- 🏘 Ward -->
+          <div id="wardSelectGroup" class="hidden">
+            <label class="block mt-2 font-medium">Select Ward</label>
+            <select name="queryParam" id="enquiry-ward" class="w-full p-2 border rounded">
+              <option value="ALL">ALL</option>
+            </select>
+          </div>
+
+          <!-- 🏠 Quarter -->
+          <div id="quarterSelectGroup" class="hidden">
+            <label class="block mt-2 font-medium">Select Quarter</label>
+            <select name="queryParam" id="enquiry-quarter" class="w-full p-2 border rounded">
+              <option value="ALL">ALL</option>
+            </select>
+          </div>
+
+          <!-- 📅 Date Filters -->
+          <div class="grid grid-cols-2 gap-4">
+            <input type="date" name="start" class="p-2 border rounded" />
+            <input type="date" name="end" class="p-2 border rounded" />
+          </div>
+
+          <!-- 📋 Mode -->
+          <label><input type="checkbox" name="detail" id="detailCheck" /> Show All Details</label>
+
+          <div class="flex items-center gap-4 mt-4">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+            <button type="button" class="bg-purple-600 text-white px-4 py-2 rounded" onclick="showAccountSummary()">Account Summary</button>
+          </div>
+        </form>
+
+        <!-- 📥📄 Result View (Screen I Style) -->
+       
+        <div id="enquiryResults" class="mt-6 hidden">
+          <div class="flex justify-between items-center mb-2">
+            <strong>Results from Screen H</strong>
+            <div class="space-x-2">
+              <button onclick="printEnquiry()" class="bg-gray-300 px-3 py-1 rounded">Print</button>
+              <button onclick="exportEnquiry('excel')" class="bg-green-500 px-3 py-1 text-white rounded">Export Excel</button>
+              <button onclick="exportEnquiry('pdf')" class="bg-red-500 px-3 py-1 text-white rounded">Export PDF</button>
+            </div>
+          </div>
+
+          <!-- ✅ Dual-Column Result View -->
+          <div id="enquiryTableWrapper" class="md:flex gap-4 space-y-6 md:space-y-0 mb-4">
+            <div id="summaryWrapper" class="w-full md:w-1/2">
+              <h3 class="font-semibold text-lg mb-2">Summary</h3>
+              <div class="bg-white border rounded p-2 overflow-auto" id="summaryTableBox">
+                <!-- JS will inject summary table here -->
+              </div>
+            </div>
+            <div id="detailWrapper" class="w-full md:w-1/2">
+              <h3 class="font-semibold text-lg mb-2">Details</h3>
+              <div class="bg-white border rounded p-2 overflow-auto" id="detailTableBox">
+                <!-- JS will inject detail table here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 🔒 Hidden Export Table -->
+          <table id="enquiryTableExport" class="hidden"></table>
+
+          <button onclick="document.getElementById('enquiryResults').classList.add('hidden')" class="mt-4 text-blue-600 underline">Cancel</button>
+        </div>
+
+        <!-- 📊 Account Summary (Separate from Member Ledger) -->
+        <div id="account-summary" class="tab-content hidden">
+          <h2 class="text-2xl font-semibold mb-4">Account Summary</h2>
+          <div class="overflow-auto rounded shadow bg-white">
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                  <th class="p-3">Phone No</th>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Amount</th>
+                  <th class="p-3">Remark</th>
+                </tr>
+              </thead>
+              <tbody id="accountSummaryData"></tbody>
+            </table>
+          </div>
         </div>
 
       </section>
+
 
       <!-- Member List -->
       <section id="member-list" class="tab-content hidden">

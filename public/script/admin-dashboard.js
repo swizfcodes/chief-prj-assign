@@ -138,8 +138,6 @@
     });
 }
 
-
-
   // Fetch and render Member Ledger
   fetchTable('/admin/memberledger', 'ledgerData', row => `
     <tr class="border-t">
@@ -579,7 +577,7 @@ async function loadEnquiryDropdowns() {
     const quarterSelect = document.getElementById('enquiry-quarter');
 
     result.members.forEach(m => {
-      memberSelect.innerHTML += `<option value="${m.gsmno}">${m.fullname} (${m.gsmno})</option>`;
+      memberSelect.innerHTML += `<option value="${m.PhoneNumber}">${m.fullname} (${m.PhoneNumber})</option>`;
     });
 
     result.wards.forEach(w => {
@@ -601,40 +599,56 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 
-// 🟢 Enquiry System (Screen H)
+// Enquiry System (Screen H)
+// Toggle dropdowns based on radio selection
+document.querySelectorAll('input[name="enquiryType"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const type = radio.value;
+
+    ['member', 'ward', 'quarter'].forEach(t => {
+      const group = document.getElementById(`${t}SelectGroup`);
+      group.classList.toggle('hidden', t !== type);
+    });
+
+    // Clear dropdown selections
+    document.getElementById('enquiry-member').value = 'ALL';
+    document.getElementById('enquiry-ward').value = 'ALL';
+    document.getElementById('enquiry-quarter').value = 'ALL';
+  });
+});
+
+// 📤 Submit Enquiry
 document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
   const type = form.enquiryType.value;
-  const value = form.queryParam.value?.trim() || 'ALL';
   const mode = form.detail.checked ? 'detail' : 'summary';
-  const start = form.startDate.value;
-  const end = form.endDate.value;
+  const start = form.start.value;
+  const end = form.end.value;
 
-  const params = new URLSearchParams({
-    type,
-    param: value,
-    mode
-  });
+  // 🔁 Grab the right param based on visible group
+  let value = 'ALL';
+  if (type === 'member') {
+    value = document.getElementById('enquiry-member').value;
+  } else if (type === 'ward') {
+    value = document.getElementById('enquiry-ward').value;
+  } else if (type === 'quarter') {
+    value = document.getElementById('enquiry-quarter').value;
+  }
 
+  const params = new URLSearchParams({ type, param: value, mode });
   if (start) params.append('start', start);
   if (end) params.append('end', end);
 
-  const endpoint = `/admin/enquiry?${params.toString()}`;
-
   try {
-    const res = await fetch(endpoint, {
-      headers: {
-        'Authorization': localStorage.getItem('adminToken') || ''
-      }
+    const res = await fetch(`/admin/enquiry?${params.toString()}`, {
+      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
     });
-
     const result = await res.json();
-    if (!res.ok) {
-      return alert(result.message || 'Enquiry failed.');
-    }
 
-    renderEnquiryResults(result);
+    if (!res.ok) return alert(result.message || 'Enquiry failed.');
+
+    renderEnquiryResults(result); // render both summary & detail
   } catch (err) {
     console.error('Enquiry Error:', err);
     alert('Server error');
@@ -642,28 +656,118 @@ document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => 
 });
 
 
-// Optional Helper
+// 📄 Render Results like Screen H
 function renderEnquiryResults(data) {
+  const wrapper = document.getElementById('enquiryTableWrapper');
   const container = document.getElementById('enquiryResults');
-  if (!data || data.length === 0) {
-    return container.innerHTML = '<p>No results found.</p>';
+  container.classList.remove('hidden');
+
+  const summary = data?.summary || [];
+  const detail = data?.detail || [];
+
+  // If both are empty
+  if (summary.length === 0 && detail.length === 0) {
+    wrapper.innerHTML = '<p class="text-gray-500 italic">No results found.</p>';
+    document.getElementById('enquiryTableExport').innerHTML = '';
+    return;
   }
 
-  const table = `
-    <table class="w-full border">
-      <thead>
-        <tr class="bg-gray-300">
-          ${Object.keys(data[0]).map(k => `<th class="p-2 border">${k}</th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map(row => `
-          <tr>
-            ${Object.values(row).map(val => `<td class="p-2 border">${val}</td>`).join('')}
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
-  container.innerHTML = table;
+  // Table generator
+  const generateTable = (title, rows) => {
+    if (!rows.length) {
+      return `<div class="w-full"><h3 class="font-bold mb-2">${title}</h3><p>No data.</p></div>`;
+    }
+
+    const headers = Object.keys(rows[0]);
+    const headerRow = headers.map(h => `<th class="p-2 border">${h}</th>`).join('');
+    const dataRows = rows.map(row =>
+      `<tr>${headers.map(h => `<td class="p-2 border">${row[h] ?? ''}</td>`).join('')}</tr>`
+    ).join('');
+
+    return `
+      <div class="w-full md:w-1/2 pr-2 mb-4">
+        <h3 class="font-bold mb-2">${title}</h3>
+        <div class="overflow-auto border rounded">
+          <table class="min-w-full text-sm text-left border border-collapse">
+            <thead class="bg-gray-200"><tr>${headerRow}</tr></thead>
+            <tbody>${dataRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  };
+
+  // Render to visible wrapper
+  wrapper.innerHTML = `
+    <div class="flex flex-col md:flex-row md:space-x-4">
+      ${generateTable('Summary', summary)}
+      ${generateTable('Details', detail)}
+    </div>
+  `;
+
+  // Prepare hidden export table
+  const allRows = [...summary, ...detail];
+  if (allRows.length > 0) {
+    const headers = Object.keys(allRows[0]);
+    const headerRow = headers.map(h => `<th>${h}</th>`).join('');
+    const dataRows = allRows.map(row =>
+      `<tr>${headers.map(h => `<td>${row[h] ?? ''}</td>`).join('')}</tr>`
+    ).join('');
+
+    document.getElementById('enquiryTableExport').innerHTML = `
+      <table>
+        <thead><tr>${headerRow}</tr></thead>
+        <tbody>${dataRows}</tbody>
+      </table>
+    `;
+
+  } else {
+    document.getElementById('enquiryTableExport').innerHTML = '';
+  }
 }
+
+
+// 📤 Export
+function exportEnquiry(type) {
+  const table = document.getElementById('enquiryTableExport');
+  if (type === 'excel') {
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Enquiry" });
+    XLSX.writeFile(wb, "enquiry.xlsx");
+  } else if (type === 'pdf') {
+    const doc = new jspdf.jsPDF();
+    doc.autoTable({ html: '#enquiryTableExport' });
+    doc.save("enquiry.pdf");
+  }
+}
+
+// 🖨 Print
+function printEnquiry() {
+  const content = document.getElementById('enquiryTableWrapper').innerHTML;
+  const win = window.open('', '', 'width=900,height=700');
+  win.document.write('<html><head><title>Print Enquiry</title></head><body>');
+  win.document.write(content);
+  win.document.write('</body></html>');
+  win.document.close();
+  win.print();
+}
+
+// Account Summary (View Member Ledger)
+
+function showAccountSummary() {
+  // Hide all tab content and show this one
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  document.getElementById('account-summary').classList.remove('hidden');
+
+  // Fetch and render account summary data
+  fetchTable('/admin/memberledger', 'accountSummaryData', row => `
+    <tr class="border-t">
+      <td class="p-2">${row.phoneno}</td>
+      <td class="p-2">${formatDate(row.transdate)}</td>
+      <td class="p-2">${formatAmount(row.amount)}</td>
+      <td class="p-2">${row.remark}</td>
+    </tr>
+  `);
+}
+
 
   

@@ -542,74 +542,128 @@ router.get('/enquiry/options', verifyToken, async (req, res) => {
   }
 });
 
-// 🟢 Main Enquiry Endpoint
+// Helper to apply optional date filters
+const whereDate = (dateField, start, end) => {
+  const clauses = [];
+  if (start) clauses.push(`${dateField} >= '${start}'`);
+  if (end) clauses.push(`${dateField} <= '${end}'`);
+  return clauses.length ? ' AND ' + clauses.join(' AND ') : '';
+};
+
+// Main Enquiry Endpoint (updated)
 router.get('/enquiry', verifyToken, async (req, res) => {
   const { type, param = 'ALL', mode = 'summary', start, end } = req.query;
   const pool = await poolPromise;
-  let query = '';
-  let where = [];
+  let summary = [];
+  let detail = [];
 
   try {
+    // MEMBER
     if (type === 'member') {
-      if (param !== 'ALL') where.push(`phoneno = '${param}'`);
-      if (start) where.push(`transdate >= '${start}'`);
-      if (end) where.push(`transdate <= '${end}'`);
+      const filter = param !== 'ALL' ? `phoneno = '${param}'` : '1=1';
+      const dateFilter = whereDate('transdate', start, end);
+      const whereClause = `WHERE ${filter}${dateFilter}`;
 
-      const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
-
-      query = mode === 'detail'
-        ? `SELECT FORMAT(transdate, 'yyyy-MM-dd') AS transdate, amount, remark FROM memberledger ${whereClause} ORDER BY transdate DESC`
-        : `SELECT phoneno, SUM(amount) AS total FROM memberledger ${whereClause} GROUP BY phoneno`;
+      if (mode === 'summary') {
+        summary = await pool.request().query(`
+          SELECT phoneno, SUM(amount) AS total
+          FROM memberledger ${whereClause}
+          GROUP BY phoneno
+        `).then(r => r.recordset);
+      } else {
+        detail = await pool.request().query(`
+          SELECT FORMAT(transdate, 'yyyy-MM-dd') AS transdate, amount, remark
+          FROM memberledger ${whereClause}
+          ORDER BY transdate DESC
+        `).then(r => r.recordset);
+        summary = [{ phoneno: param, total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0) }];
+      }
     }
 
+    // WARD
     else if (type === 'ward') {
-      if (param !== 'ALL') where.push(`Ward = '${param}'`);
-      const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+      const wardClause = param !== 'ALL' ? `Ward = '${param}'` : '1=1';
 
-      query = mode === 'detail'
-        ? `SELECT gsmno, Surname + ' ' + othernames AS fullname, email FROM Members ${whereClause} ORDER BY Surname`
-        : `SELECT Ward, COUNT(*) AS members FROM Members ${whereClause} GROUP BY Ward`;
+      // Get phones in ward
+      const memberList = await pool.request().query(`SELECT PhoneNumber FROM Members WHERE ${wardClause}`);
+      const phones = memberList.recordset.map(m => `'${m.PhoneNumber}'`);
+      const phoneFilter = phones.length ? `phoneno IN (${phones.join(',')})` : '1=0';
+      const transFilter = `WHERE ${phoneFilter}${whereDate('transdate', start, end)}`;
+
+      summary = await pool.request().query(`
+        SELECT '${param}' AS Ward, SUM(amount) AS total FROM memberledger ${transFilter}
+      `).then(r => r.recordset);
+
+      if (mode === 'detail') {
+        detail = await pool.request().query(`
+          SELECT phoneno, SUM(amount) AS total FROM memberledger
+          ${transFilter}
+          GROUP BY phoneno
+        `).then(r => r.recordset);
+      }
     }
 
+    // QUARTER
     else if (type === 'quarter') {
-      if (param !== 'ALL') where.push(`Quarters = '${param}'`);
-      const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+      const qClause = param !== 'ALL' ? `Quarters = '${param}'` : '1=1';
 
-      query = mode === 'detail'
-        ? `SELECT gsmno, Surname + ' ' + othernames AS fullname, email FROM Members ${whereClause} ORDER BY Surname`
-        : `SELECT Quarters, COUNT(*) AS members FROM Members ${whereClause} GROUP BY Quarters`;
+      // Get wards and phones
+      const wardsResult = await pool.request().query(`SELECT DISTINCT Ward FROM Members WHERE ${qClause}`);
+      const wards = wardsResult.recordset.map(w => w.Ward);
+
+      const phonesResult = await pool.request().query(`SELECT PhoneNumber, Ward FROM Members WHERE ${qClause}`);
+      const phonesByWard = phonesResult.recordset.reduce((acc, row) => {
+        acc[row.Ward] = acc[row.Ward] || [];
+        acc[row.Ward].push(`'${row.PhoneNumber}'`);
+        return acc;
+      }, {});
+
+      const allPhones = Object.values(phonesByWard).flat().join(',');
+      const phoneFilter = allPhones.length ? `phoneno IN (${allPhones})` : '1=0';
+
+      summary = await pool.request().query(`
+        SELECT '${param}' AS Quarter, SUM(amount) AS total
+        FROM memberledger
+        WHERE ${phoneFilter}${whereDate('transdate', start, end)}
+      `).then(r => r.recordset);
+
+      if (mode === 'detail') {
+        for (const ward of wards) {
+          const phones = phonesByWard[ward] || [];
+          if (phones.length === 0) continue;
+
+          const wardTotal = await pool.request().query(`
+            SELECT SUM(amount) AS total FROM memberledger
+            WHERE phoneno IN (${phones.join(',')})${whereDate('transdate', start, end)}
+          `).then(r => r.recordset[0]?.total || 0);
+
+          detail.push({ ward, total: wardTotal });
+        }
+      }
     }
 
+    // ACCOUNT
     else if (type === 'account') {
-      const creditWhere = [];
-      const debitWhere = [];
+      const creditFilter = whereDate('transdate', start, end);
+      const debitFilter = whereDate('docdate', start, end);
 
-      if (start) creditWhere.push(`transdate >= '${start}'`);
-      if (end) creditWhere.push(`transdate <= '${end}'`);
-      if (start) debitWhere.push(`docdate >= '${start}'`);
-      if (end) debitWhere.push(`docdate <= '${end}'`);
-
-      const creditClause = creditWhere.length ? 'WHERE ' + creditWhere.join(' AND ') : '';
-      const debitClause = debitWhere.length ? 'WHERE ' + debitWhere.join(' AND ') : '';
-
-      query = `
+      summary = await pool.request().query(`
         SELECT
           '${start || 'N/A'}' AS StartDate,
           '${end || 'N/A'}' AS EndDate,
-          (SELECT ISNULL(SUM(amount), 0) FROM memberledger ${creditClause}) AS TotalCredit,
-          (SELECT ISNULL(SUM(amount), 0) FROM ocdaexpenses ${debitClause}) AS TotalDebit
-      `;
+          (SELECT ISNULL(SUM(amount), 0) FROM memberledger WHERE 1=1${creditFilter}) AS TotalCredit,
+          (SELECT ISNULL(SUM(amount), 0) FROM ocdaexpenses WHERE 1=1${debitFilter}) AS TotalDebit
+      `).then(r => r.recordset);
     }
 
-    if (!query) return res.status(400).json({ message: 'Invalid enquiry type' });
-
-    const result = await pool.request().query(query);
-    res.json(result.recordset);
+    return res.json({ summary, detail });
   } catch (err) {
     console.error('Enquiry Error:', err);
-    res.status(500).json({ message: 'Failed to process enquiry' });
+    return res.status(500).json({ message: 'Failed to process enquiry' });
   }
 });
+
+
 
 
 
