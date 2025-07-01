@@ -1,4 +1,4 @@
-  function showForm(formType) {
+function showForm(formType) {
     const signupForm = document.getElementById('signupForm');
     const loginForm = document.getElementById('loginForm');
     const toggleBtns = document.querySelectorAll('.toggle-btn');
@@ -78,6 +78,7 @@
 // Sign Up Form Handler
   document.getElementById('signupForm').addEventListener('submit', async function(e) {
   e.preventDefault();
+  console.log('Form Submitted');
   clearAllErrors();
 
   let isValid = true;
@@ -86,6 +87,8 @@
 
   for (let [key, value] of formData.entries()) {
       userData[key] = value.trim();
+      console.log('Collected form data:', userData);
+
   }
 
   ['otherNames', 'title', 'honTitle', 'qualifications', 'profession'].forEach(field => {
@@ -151,13 +154,11 @@
       isValid = false;
     }
 
-  if (!userData.email) {
-    showError('email', 'Email is required');
-    isValid = false;
-    } else if (!validateEmail(userData.email)) {
-    showError('email', 'Enter a valid email address');
-    isValid = false;
+    if (userData.email && !validateEmail(userData.email)) {
+      showError('email', 'Enter a valid email address');
+      isValid = false;
     }
+
 
 if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
     showError('phoneNo2', 'Enter a valid Nigerian phone number');
@@ -182,6 +183,7 @@ if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
     }
 
   if (isValid) {
+     console.log('Passed validation. Sending data...', userData);
       try {
           const res = await fetch('http://localhost:5500/signup', {
               method: 'POST',
@@ -236,6 +238,7 @@ if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
         clearError('retypePassword');
     }
   });
+
 
   // Export function to get user data (for database integration)
   window.getUserData = function() {

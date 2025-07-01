@@ -31,8 +31,10 @@
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="enquiry">Enquiry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="std">Standard Expenses</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="static-tables">Static Tables</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="change-PhoneNumber">Change PhoneNumber</button>
         
-      <button onclick="adminLogout()" class="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+      <button onclick="adminLogout()" class="bg-red-500 w-full px-4 py-2 text-left rounded tab-button">Logout</button>
 
       </nav>
     </aside>
@@ -145,11 +147,17 @@
       <section id="std" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Standard Expenses</h2>
         <div class="overflow-auto rounded shadow bg-white">
+          <form id="addStdExpenseForm" class="flex gap-2 mb-2">
+            <input type="text" id="newExpscode" placeholder="Code..." required class="border rounded px-2 py-1">
+            <input type="text" id="newExpsdesc" placeholder="Description..." required class="border rounded px-2 py-1">
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Add</button>
+          </form>
           <table class="min-w-full text-sm text-left">
             <thead class="bg-gray-200 text-gray-700">
               <tr>
-                <th class="p-3">Code</th>
-                <th class="p-3">Description</th>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="stdData"></tbody>
@@ -354,7 +362,7 @@
                 </div>
               </div>
 
-                  <!-- ✅ Email -->
+                  <!-- Email -->
               <div class="form-group">
                   <label for="email">Email Address</label>
                   <input type="email" id="email" name="email" placeholder="example@domain.com">
@@ -393,7 +401,7 @@
               </div>
 
               <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Create Member</button>
-              <button onclick="closeMemberDetails()" class="bg-red-600 text-white px-4 py-2 rounded">Cancel</button>
+              <button class="bg-red-600 text-white px-4 py-2 rounded"><a href="/admin-dashboard.html">Cancel</a></button>
             </form>
           </div>
         </div>
@@ -513,7 +521,7 @@
           </div>
         </form>
 
-        <!--  Result View (Screen I Style) -->
+        <!--  Result View -->
        
         <div id="enquiryResults" class="mt-6 hidden">
           <div class="flex justify-between items-center mb-2">
@@ -526,20 +534,25 @@
           </div>
 
           <!--  Dual-Column Result View -->
-          <div id="enquiryTableWrapper" class="md:flex gap-4 space-y-6 md:space-y-0 mb-4">
-            <div id="summaryWrapper" class="w-full md:w-1/2">
+          <div id="enquiryTableWrapper" class="flex flex-col lg:flex-row flex-wrap gap-4 mb-4 w-full">
+            
+            <!-- Summary Section -->
+            <div id="summaryWrapper" class="w-full lg:w-full">
               <h3 class="font-semibold text-lg mb-2">Summary</h3>
-              <div class="bg-white border rounded p-2 overflow-auto" id="summaryTableBox">
+              <div class="bg-white border rounded p-2 overflow-x-auto" id="summaryTableBox">
                 <!-- JS will inject summary table here -->
               </div>
             </div>
-            <div id="detailWrapper" class="w-full md:w-1/2">
+
+            <!-- Detail Section -->
+            <div id="detailWrapper" class="w-full lg:w-full">
               <h3 class="font-semibold text-lg mb-2">Details</h3>
-              <div class="bg-white border rounded p-2 overflow-auto" id="detailTableBox">
+              <div class="bg-white border rounded p-2 overflow-x-auto" id="detailTableBox">
                 <!-- JS will inject detail table here -->
               </div>
             </div>
           </div>
+
 
           <!--  Hidden Export Table -->
           <table id="enquiryTableExport" class="hidden"></table>
@@ -575,6 +588,7 @@
         <!-- 🔍 Search & Export -->
         <div class="flex justify-between mb-4">
           <input id="memberSearch" type="text" placeholder="Search..." class="p-2 border rounded w-full max-w-xs" />
+          
           <div class="space-x-2">
             <button class="bg-blue-600 text-white px-3 py-2 rounded tab-button" data-tab="create-member">Add New Member</button>
             <button onclick="exportMembers('excel')" class="bg-green-600 text-white px-3 py-2 rounded">Export Excel</button>
@@ -843,13 +857,117 @@
         </div>
       </section>
 
+      <section id="static-tables" class="tab-content hidden">
+        <div class="grid gap-8 md:grid-cols-2 p-4">
+          <!-- Titles -->
+          <div class="bg-white shadow rounded p-4">
+            <h2 class="text-lg font-semibold mb-2">Titles</h2>
+            <form id="addTitleForm" class="flex gap-2 mb-2">
+              <input type="text" id="newTitle" name="title" placeholder="New title..." required class="flex-1 border rounded px-2 py-1">
+              <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Add</button>
+            </form>
+            <table class="w-full border text-sm">
+              <thead>
+                <tr class="bg-gray-100"><th class="p-2">Title</th><th class="p-2">Actions</th></tr>
+              </thead>
+              <tbody id="titlesTableBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Qualifications -->
+          <div class="bg-white shadow rounded p-4">
+            <h2 class="text-lg font-semibold mb-4">Qualifications</h2>
+            <form id="addQualificationForm" class="flex gap-2 mb-4">
+              <input type="text" id="newQualification" name="qualification" placeholder="New qualification..." required class="flex-1 border rounded px-3 py-2">
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add</button>
+            </form>
+            <table class="w-full table-auto border border-gray-300 text-sm text-center">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="p-2 border">Qualification</th>
+                  <th class="p-2 border">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="qualificationsTableBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Hon Titles -->
+          <div class="bg-white shadow rounded p-4 mt-8">
+            <h2 class="text-lg font-semibold mb-4">Hon Titles</h2>
+            <form id="addHontitleForm" class="flex gap-2 mb-4">
+            <input type="text" id="newHtitle" name="Htitle" placeholder="New Hon Title..." required class="flex-1 border rounded px-3 py-2">
+              <input type="text" id="newTitlerank" name="titlerank" placeholder="Rank..." required class="flex-1 border rounded px-3 py-2">
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add</button>
+            </form>
+            <table class="w-full table-auto border border-gray-300 text-sm text-center">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="p-2 border">Hon Title</th>
+                  <th class="p-2 border">Rank</th>
+                  <th class="p-2 border">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="hontitlesTableBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Wards & Quarters -->
+          <div class="bg-white shadow rounded p-4 mt-8">
+            <h2 class="text-lg font-semibold mb-4">Wards & Quarters</h2>
+            <form id="addWardsForm" class="flex gap-2 mb-4">
+              <input type="text" id="newWard" name="ward" placeholder="Ward..." required class="border rounded px-3 py-2">
+              <input type="text" id="newQuarter" name="Quarter" placeholder="Quarter..." required class="border rounded px-3 py-2">
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add</button>
+            </form>
+            <table class="w-full table-auto border border-gray-300 text-sm text-center">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="p-2 border">Ward</th>
+                  <th class="p-2 border">Quarter</th>
+                  <th class="p-2 border">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="wardsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
+
+  <!-- Hidden Export Table -->
+<table id="memberTableExport" class="hidden">
+  <thead>
+    <tr>
+      <th>Surname</th>
+      <th>Other Names</th>
+      <th>Email</th>
+      <th>Sex</th>
+      <th>Date of Birth</th>
+      <th>Quarters</th>
+      <th>Ward</th>
+      <th>Town</th>
+      <th>State</th>
+      <th>Phone Number</th>
+      <th>Phone Number 2</th>
+      <th>Title</th>
+      <th>Hon Title</th>
+      <th>Qualifications</th>
+      <th>Profession</th>
+      <th>Exit Date</th>
+      <th>Created At</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- JS injects rows here -->
+  </tbody>
+</table>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 </body>
 <script src="script/admin-dashboard.js"></script>
-<script src="script/signup.js"></script>
 </html>

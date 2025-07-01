@@ -471,7 +471,7 @@ router.put('/member/:phone', verifyToken, async (req, res) => {
 
 
 // POST: Add Ledger Entry
-router.post('/ledger-entry/:phoneno', async (req, res) => {
+router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   const { amount, remark } = req.body;
   const phoneno = req.params.phoneno;
 
@@ -492,7 +492,7 @@ router.post('/ledger-entry/:phoneno', async (req, res) => {
 });
 
 // GET: Ledger Entries
-router.get('/api/ledger-entry/:phoneno', async (req, res) => {
+router.get('/api/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   const { phoneno } = req.params;
   try {
     const pool = await sql.connect(config);
@@ -508,7 +508,7 @@ router.get('/api/ledger-entry/:phoneno', async (req, res) => {
 });
 
 // Add Expense with user-supplied date and project
-router.post('/ocdaexpenses', async (req, res) => {
+router.post('/ocdaexpenses', verifyToken, async (req, res) => {
   const { docdate, project, amount, remarks } = req.body;
 
   try {
@@ -531,7 +531,7 @@ router.post('/ocdaexpenses', async (req, res) => {
 });
 
 // GET: Project List for Dropdown
-router.get('/project-list', async (req, res) => {
+router.get('/project-list', verifyToken, async (req, res) => {
   try {
     const pool = await sql.connect(config);
     const result = await pool.request()
@@ -543,7 +543,7 @@ router.get('/project-list', async (req, res) => {
   }
 });
 
-router.get('/ocdaexpenses', async (req, res) => {
+router.get('/ocdaexpenses', verifyToken, async (req, res) => {
   try {
     const pool = await sql.connect(config);
     const result = await pool.request()
@@ -604,89 +604,197 @@ router.get('/enquiry', verifyToken, async (req, res) => {
   try {
     // MEMBER
     if (type === 'member') {
-      const filter = param !== 'ALL' ? `phoneno = '${param}'` : '1=1';
       const dateFilter = whereDate('transdate', start, end);
-      const whereClause = `WHERE ${filter}${dateFilter}`;
 
-      if (mode === 'summary') {
+      if (param === 'ALL') {
+        // List all members with total transactions
         summary = await pool.request().query(`
-          SELECT phoneno, SUM(amount) AS total
-          FROM memberledger ${whereClause}
-          GROUP BY phoneno
+          SELECT m.PhoneNumber, m.Surname + ' ' + m.othernames AS fullname, ISNULL(SUM(l.amount), 0) AS total
+          FROM Members m
+          LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter ? `AND 1=1${dateFilter}` : ''}
+          GROUP BY m.PhoneNumber, m.Surname, m.othernames
+          ORDER BY fullname
         `).then(r => r.recordset);
+
+        // Sum for ALL
+        const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
+        summary.push({ PhoneNumber: 'ALL', fullname: 'ALL', total: allTotal });
+
+        if (mode === 'detail') {
+          // All member transactions (for right side)
+          detail = await pool.request().query(`
+            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
+            FROM memberledger l
+            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
+            ${dateFilter ? `WHERE 1=1${dateFilter}` : ''}
+            ORDER BY l.phoneno, l.transdate DESC
+          `).then(r => r.recordset);
+        }
       } else {
-        detail = await pool.request().query(`
-          SELECT FORMAT(transdate, 'yyyy-MM-dd') AS transdate, amount, remark
-          FROM memberledger ${whereClause}
-          ORDER BY transdate DESC
-        `).then(r => r.recordset);
-        summary = [{ phoneno: param, total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0) }];
+        // Single member as before
+        const filter = `phoneno = '${param}'`;
+        const whereClause = `WHERE ${filter}${dateFilter}`;
+        if (mode === 'summary') {
+          summary = await pool.request().query(`
+            SELECT phoneno, SUM(amount) AS total
+            FROM memberledger ${whereClause}
+            GROUP BY phoneno
+          `).then(r => r.recordset);
+        } else {
+          detail = await pool.request().query(`
+            SELECT FORMAT(transdate, 'yyyy-MM-dd') AS transdate, amount, remark
+            FROM memberledger ${whereClause}
+            ORDER BY transdate DESC
+          `).then(r => r.recordset);
+          summary = [{ phoneno: param, total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0) }];
+        }
       }
     }
 
     // WARD
     else if (type === 'ward') {
-      const wardClause = param !== 'ALL' ? `Ward = '${param}'` : '1=1';
+      const dateFilter = whereDate('transdate', start, end);
 
-      // Get phones in ward
-      const memberList = await pool.request().query(`SELECT PhoneNumber FROM Members WHERE ${wardClause}`);
-      const phones = memberList.recordset.map(m => `'${m.PhoneNumber}'`);
-      const phoneFilter = phones.length ? `phoneno IN (${phones.join(',')})` : '1=0';
-      const transFilter = `WHERE ${phoneFilter}${whereDate('transdate', start, end)}`;
-
-      summary = await pool.request().query(`
-        SELECT '${param}' AS Ward, SUM(amount) AS total FROM memberledger ${transFilter}
-      `).then(r => r.recordset);
-
-      if (mode === 'detail') {
-        detail = await pool.request().query(`
-          SELECT phoneno, SUM(amount) AS total FROM memberledger
-          ${transFilter}
-          GROUP BY phoneno
+      if (param === 'ALL') {
+        // List all wards with total transactions
+        summary = await pool.request().query(`
+          SELECT m.Ward, ISNULL(SUM(l.amount), 0) AS total
+          FROM Members m
+          LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter ? `AND 1=1${dateFilter}` : ''}
+          WHERE m.Ward IS NOT NULL AND m.Ward <> ''
+          GROUP BY m.Ward
+          ORDER BY m.Ward
         `).then(r => r.recordset);
+
+        // Sum for ALL
+        const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
+        summary.push({ Ward: 'ALL', total: allTotal });
+
+        if (mode === 'detail') {
+          // For each ward, list member transactions
+          const wards = summary.filter(w => w.Ward !== 'ALL').map(w => w.Ward);
+          for (const ward of wards) {
+            const members = await pool.request()
+              .input('ward', ward)
+              .query(`
+                SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
+                FROM memberledger l
+                LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
+                WHERE m.Ward = @ward ${dateFilter}
+                ORDER BY l.phoneno, l.transdate DESC
+              `)
+              .then(r => r.recordset);
+            detail.push({ ward, members });
+          }
+        }
+      } else {
+        // Single ward as before
+        const wardClause = `Ward = '${param}'`;
+        const memberList = await pool.request().query(`SELECT PhoneNumber FROM Members WHERE ${wardClause}`);
+        const phones = memberList.recordset.map(m => `'${m.PhoneNumber}'`);
+        const phoneFilter = phones.length ? `phoneno IN (${phones.join(',')})` : '1=0';
+        const transFilter = `WHERE ${phoneFilter}${dateFilter}`;
+
+        summary = await pool.request().query(`
+          SELECT '${param}' AS Ward, SUM(amount) AS total FROM memberledger ${transFilter}
+        `).then(r => r.recordset);
+
+        if (mode === 'detail') {
+          detail = await pool.request().query(`
+            SELECT phoneno, SUM(amount) AS total FROM memberledger
+            ${transFilter}
+            GROUP BY phoneno
+          `).then(r => r.recordset);
+        }
       }
     }
 
     // QUARTER
     else if (type === 'quarter') {
-      const qClause = param !== 'ALL' ? `Quarters = '${param}'` : '1=1';
+      const dateFilter = whereDate('transdate', start, end);
 
-      // Get wards and phones
-      const wardsResult = await pool.request().query(`SELECT DISTINCT Ward FROM Members WHERE ${qClause}`);
-      const wards = wardsResult.recordset.map(w => w.Ward);
+      if (param === 'ALL') {
+        // List all quarters with total transactions
+        summary = await pool.request().query(`
+          SELECT m.Quarters, ISNULL(SUM(l.amount), 0) AS total
+          FROM Members m
+          LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter ? `AND 1=1${dateFilter}` : ''}
+          WHERE m.Quarters IS NOT NULL AND m.Quarters <> ''
+          GROUP BY m.Quarters
+          ORDER BY m.Quarters
+        `).then(r => r.recordset);
 
-      const phonesResult = await pool.request().query(`SELECT PhoneNumber, Ward FROM Members WHERE ${qClause}`);
-      const phonesByWard = phonesResult.recordset.reduce((acc, row) => {
-        acc[row.Ward] = acc[row.Ward] || [];
-        acc[row.Ward].push(`'${row.PhoneNumber}'`);
-        return acc;
-      }, {});
+        // Sum for ALL
+        const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
+        summary.push({ Quarters: 'ALL', total: allTotal });
 
-      const allPhones = Object.values(phonesByWard).flat().join(',');
-      const phoneFilter = allPhones.length ? `phoneno IN (${allPhones})` : '1=0';
+        if (mode === 'detail') {
+          // For each quarter, list wards and under each ward, list member transactions
+          const quarters = summary.filter(q => q.Quarters !== 'ALL').map(q => q.Quarters);
+          for (const quarter of quarters) {
+            // Get wards in this quarter
+            const wardsResult = await pool.request()
+              .input('quarter', quarter)
+              .query(`SELECT DISTINCT Ward FROM Members WHERE Quarters = @quarter`);
+            const wards = wardsResult.recordset.map(w => w.Ward);
 
-      summary = await pool.request().query(`
-        SELECT '${param}' AS Quarter, SUM(amount) AS total
-        FROM memberledger
-        WHERE ${phoneFilter}${whereDate('transdate', start, end)}
-      `).then(r => r.recordset);
+            const wardsData = [];
+            for (const ward of wards) {
+              const members = await pool.request()
+                .input('ward', ward)
+                .input('quarter', quarter)
+                .query(`
+                  SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
+                  FROM memberledger l
+                  LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
+                  WHERE m.Ward = @ward AND m.Quarters = @quarter ${dateFilter}
+                  ORDER BY l.phoneno, l.transdate DESC
+                `)
+                .then(r => r.recordset);
+              wardsData.push({ ward, members });
+            }
+            detail.push({ quarter, wards: wardsData });
+          }
+        }
+      } else {
+        // Single quarter as before
+        const qClause = `Quarters = '${param}'`;
+        const wardsResult = await pool.request().query(`SELECT DISTINCT Ward FROM Members WHERE ${qClause}`);
+        const wards = wardsResult.recordset.map(w => w.Ward);
 
-      if (mode === 'detail') {
-        for (const ward of wards) {
-          const phones = phonesByWard[ward] || [];
-          if (phones.length === 0) continue;
+        const phonesResult = await pool.request().query(`SELECT PhoneNumber, Ward FROM Members WHERE ${qClause}`);
+        const phonesByWard = phonesResult.recordset.reduce((acc, row) => {
+          acc[row.Ward] = acc[row.Ward] || [];
+          acc[row.Ward].push(`'${row.PhoneNumber}'`);
+          return acc;
+        }, {});
 
-          const wardTotal = await pool.request().query(`
-            SELECT SUM(amount) AS total FROM memberledger
-            WHERE phoneno IN (${phones.join(',')})${whereDate('transdate', start, end)}
-          `).then(r => r.recordset[0]?.total || 0);
+        const allPhones = Object.values(phonesByWard).flat().join(',');
+        const phoneFilter = allPhones.length ? `phoneno IN (${allPhones})` : '1=0';
 
-          detail.push({ ward, total: wardTotal });
+        summary = await pool.request().query(`
+          SELECT '${param}' AS Quarter, SUM(amount) AS total
+          FROM memberledger
+          WHERE ${phoneFilter}${dateFilter}
+        `).then(r => r.recordset);
+
+        if (mode === 'detail') {
+          for (const ward of wards) {
+            const phones = phonesByWard[ward] || [];
+            if (phones.length === 0) continue;
+
+            const wardTotal = await pool.request().query(`
+              SELECT SUM(amount) AS total FROM memberledger
+              WHERE phoneno IN (${phones.join(',')})${dateFilter}
+            `).then(r => r.recordset[0]?.total || 0);
+
+            detail.push({ ward, total: wardTotal });
+          }
         }
       }
     }
 
-    // ACCOUNT
+    // ACCOUNT (unchanged)
     else if (type === 'account') {
       const creditFilter = whereDate('transdate', start, end);
       const debitFilter = whereDate('docdate', start, end);
@@ -707,6 +815,205 @@ router.get('/enquiry', verifyToken, async (req, res) => {
   }
 });
 
+//Static Tables
+//  GET all 
+router.get('/static/:type', async (req, res) => {
+  const { type } = req.params;
+  const tableMap = {
+    titles: { table: 'Title', columns: ['title'] },
+    qualifications: { table: 'Qualfication', columns: ['qualification'] },
+    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
+    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
+  };
+  const config = tableMap[type];
+  if (!config) return res.status(400).json({ error: 'Invalid type' });
+
+  try {
+    const pool = await poolPromise;
+    const cols = config.columns.join(', ');
+    const result = await pool.request().query(`SELECT ${cols} FROM ${config.table}`);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(`Error fetching ${type}:`, err);
+    res.status(500).json({ error: `Failed to fetch ${type}` });
+  }
+});
+
+// --- POST (Add) ---
+router.post('/static/:type', async (req, res) => {
+  const { type } = req.params;
+  const tableMap = {
+    titles: { table: 'Title', columns: ['title'] },
+    qualifications: { table: 'Qualfication', columns: ['qualification'] },
+    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
+    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
+  };
+  const config = tableMap[type];
+  if (!config) return res.status(400).json({ error: 'Invalid type' });
+
+  try {
+    const pool = await poolPromise;
+    const values = config.columns.map(col => req.body[col]);
+    const placeholders = config.columns.map((_, i) => `@val${i}`).join(', ');
+    const request = pool.request();
+    config.columns.forEach((col, i) => request.input(`val${i}`, values[i]));
+    await request.query(`INSERT INTO ${config.table} (${config.columns.join(', ')}) VALUES (${placeholders})`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(`Error inserting into ${type}:`, err);
+    res.status(500).json({ error: `Failed to insert into ${type}` });
+  }
+});
+
+// --- PUT (Edit) ---
+router.put('/static/:type', async (req, res) => {
+  const { type } = req.params;
+  const tableMap = {
+    titles: { table: 'Title', columns: ['title'] },
+    qualifications: { table: 'Qualfication', columns: ['qualification'] },
+    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
+    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
+  };
+  const config = tableMap[type];
+  if (!config) return res.status(400).json({ error: 'Invalid type' });
+
+  try {
+    const pool = await poolPromise;
+    let where = '';
+    let request = pool.request();
+
+    if (type === 'wards') {
+      const { ward, Quarter } = req.query;
+      where = 'WHERE ward = @ward AND Quarter = @Quarter';
+      request.input('ward', ward).input('Quarter', Quarter);
+    } else if (type === 'hontitles') {
+      const { Htitle, titlerank } = req.query;
+      where = 'WHERE Htitle = @Htitle AND titlerank = @titlerank';
+      request.input('Htitle', Htitle).input('titlerank', titlerank);
+    } else if (type === 'titles') {
+      const { value } = req.query;
+      where = 'WHERE title = @value';
+      request.input('value', value);
+    } else if (type === 'qualifications') {
+      const { value } = req.query;
+      where = 'WHERE qualification = @value';
+      request.input('value', value);
+    }
+
+    // Build SET clause
+    const setClause = config.columns.map(col => `${col} = @new_${col}`).join(', ');
+    config.columns.forEach(col => request.input(`new_${col}`, req.body[col]));
+
+    await request.query(`UPDATE ${config.table} SET ${setClause} ${where}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(`Error updating ${type}:`, err);
+    res.status(500).json({ error: `Failed to update ${type}` });
+  }
+});
+
+// --- DELETE ---
+router.delete('/static/:type', async (req, res) => {
+  const { type } = req.params;
+  const tableMap = {
+    titles: { table: 'Title', columns: ['title'] },
+    qualifications: { table: 'Qualfication', columns: ['qualification'] },
+    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
+    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
+  };
+  const config = tableMap[type];
+  if (!config) return res.status(400).json({ error: 'Invalid type' });
+
+  try {
+    const pool = await poolPromise;
+    let where = '';
+    let request = pool.request();
+
+    if (type === 'wards') {
+      const { ward, Quarter } = req.query;
+      where = 'WHERE ward = @ward AND Quarter = @Quarter';
+      request.input('ward', ward).input('Quarter', Quarter);
+    } else if (type === 'hontitles') {
+      const { Htitle, titlerank } = req.query;
+      where = 'WHERE Htitle = @Htitle AND titlerank = @titlerank';
+      request.input('Htitle', Htitle).input('titlerank', titlerank);
+    } else if (type === 'titles') {
+      const { value } = req.query;
+      where = 'WHERE title = @value';
+      request.input('value', value);
+    } else if (type === 'qualifications') {
+      const { value } = req.query;
+      where = 'WHERE qualification = @value';
+      request.input('value', value);
+    }
+
+    await request.query(`DELETE FROM ${config.table} ${where}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(`Error deleting from ${type}:`, err);
+    res.status(500).json({ error: `Failed to delete from ${type}` });
+  }
+});
+
+
+//Standard Expenses
+// GET all
+router.get('/stdxpenses', async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request().query('SELECT expscode, expsdesc FROM stdxpenses');
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch' });
+  }
+});
+
+// POST
+router.post('/stdxpenses', async (req, res) => {
+  const { expscode, expsdesc } = req.body;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('expscode', expscode)
+      .input('expsdesc', expsdesc)
+      .query('INSERT INTO stdxpenses (expscode, expsdesc) VALUES (@expscode, @expsdesc)');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Insert failed' });
+  }
+});
+
+// PUT
+router.put('/stdxpenses', async (req, res) => {
+  const { expscode } = req.query;
+  const { expsdesc } = req.body;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('expscode', expscode)
+      .input('expsdesc', expsdesc)
+      .query('UPDATE stdxpenses SET expsdesc = @expsdesc WHERE expscode = @expscode');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+// DELETE
+router.delete('/stdxpenses', async (req, res) => {
+  const { expscode } = req.query;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('expscode', expscode)
+      .query('DELETE FROM stdxpenses WHERE expscode = @expscode');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+module.exports = router;
 
 
 
@@ -805,4 +1112,4 @@ router.get('/api/monthlysummary/:phoneno', async (req, res) => {
   }
 });*/
 
-module.exports = router;
+

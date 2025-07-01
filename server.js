@@ -137,7 +137,7 @@ app.post('/signup', async (req, res) => {
     const result = await insertRequest
       .input('Surname', sql.VarChar, userData.surname)
       .input('othernames', sql.VarChar, userData.otherNames)
-      .input('email', sql.VarChar, userData.email)
+      .input('email', sql.VarChar, userData.email || '')
       .input('Sex', sql.VarChar, userData.sex)
       .input('DOB', sql.Date, userData.dob)
       .input('Quarters', sql.VarChar, userData.quarters)
@@ -151,7 +151,7 @@ app.post('/signup', async (req, res) => {
       .input('HonTitle', sql.VarChar, userData.honTitle)
       .input('Qualifications', sql.VarChar, userData.qualifications)
       .input('Profession', sql.VarChar, userData.profession)
-      .input('exitdate', sql.Date, userData.exitDate)
+      .input('exitdate', sql.Date, userData.exitDate || null)
       .input('CreatedAt', sql.DateTime, new Date())
       .query(`
         INSERT INTO Members 

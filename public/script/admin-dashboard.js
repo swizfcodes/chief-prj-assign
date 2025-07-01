@@ -1,3 +1,17 @@
+function verifyToken(req, res, next) {
+  const token = req.headers['authorization'];
+  if (!token) return res.status(401).json({ message: 'Missing token' });
+
+  try {
+    // For example with JWT
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.admin = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+}
+
 
 let allMembers = [];
 let currentPage = 1;
@@ -196,12 +210,88 @@ function setupAdminTab() {
   `);
 
   // Fetch and render Standard Expenses
-  fetchTable('/admin/stdxpenses', 'stdData', row => `
+    fetchTable('/admin/stdxpenses', 'stdData', row => `
+      <tr class="border-t">
+        <td data-field="expscode" contenteditable="false" class="p-2">${row.expscode}</td>
+        <td data-field="expsdesc" contenteditable="false" class="p-2">${row.expsdesc}</td>
+        <td class="p-2">
+          <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editStdExpense('${row.expscode}', this)">Edit</button>
+          <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteStdExpense('${row.expscode}')">Delete</button>
+        </td>
+      </tr>
+    `);
+
+    document.getElementById('addStdExpenseForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const code = document.getElementById('newExpscode').value.trim();
+  const desc = document.getElementById('newExpsdesc').value.trim();
+  if (!code || !desc) return alert('Enter both code and description');
+  try {
+    const res = await fetch('/admin/stdxpenses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expscode: code, expsdesc: desc })
+    });
+    if (res.ok) {
+      document.getElementById('newExpscode').value = '';
+      document.getElementById('newExpsdesc').value = '';
+      fetchTable('/admin/stdxpenses', 'stdData', stdExpenseRowRender);
+    } else {
+      const result = await res.json();
+      alert(result.error || 'Insert failed');
+    }
+  } catch (err) {
+    console.error('Failed to add std expense:', err);
+  }
+});
+
+function editStdExpense(code, btn) {
+  const row = btn.closest('tr');
+  const fields = row.querySelectorAll('[data-field]');
+  const editing = btn.textContent === '✅';
+  if (editing) {
+    // Save
+    const body = {};
+    fields.forEach(f => body[f.dataset.field] = f.textContent.trim());
+    fetch(`/admin/stdxpenses?expscode=${encodeURIComponent(code)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(res => {
+      if (!res.ok) return alert('Update failed');
+      btn.textContent = 'Edit';
+      fields.forEach(f => f.setAttribute('contenteditable', 'false'));
+      fetchTable('/admin/stdxpenses', 'stdData', stdExpenseRowRender);
+    });
+  } else {
+    // Enable editing
+    fields.forEach(f => f.setAttribute('contenteditable', 'true'));
+    btn.textContent = '✅';
+  }
+}
+
+function deleteStdExpense(code) {
+  if (!confirm('Delete this expense?')) return;
+  fetch(`/admin/stdxpenses?expscode=${encodeURIComponent(code)}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) return alert('Delete failed');
+      fetchTable('/admin/stdxpenses', 'stdData', stdExpenseRowRender);
+    });
+}
+
+// Helper for rendering rows (so you can reuse in fetchTable)
+function stdExpenseRowRender(row) {
+  return `
     <tr class="border-t">
-      <td class="p-2">${row.expscode}</td>
-      <td class="p-2">${row.expsdesc}</td>
+      <td data-field="expscode" contenteditable="false" class="p-2">${row.expscode}</td>
+      <td data-field="expsdesc" contenteditable="false" class="p-2">${row.expsdesc}</td>
+      <td class="p-2">
+        <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editStdExpense('${row.expscode}', this)">Edit</button>
+        <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteStdExpense('${row.expscode}')">Delete</button>
+      </td>
     </tr>
-  `);
+  `;
+}
 
     // Logout
     function adminLogout() {
@@ -212,7 +302,7 @@ function setupAdminTab() {
     // Init
     window.addEventListener('DOMContentLoaded', loadAdmins);
 
-    // 🟢 Create New Member (Screen G)
+    // Create New Member (Screen G)
 document.getElementById('createMemberForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
@@ -356,8 +446,6 @@ function exportMembers(type) {
 }
 
 // Show and populate member detail section
-
-
 async function viewMember(phone) {
   originalPhone = phone;
 
@@ -559,7 +647,7 @@ window.addEventListener('DOMContentLoaded', () => {
   loadPhoneNumbers();
 });
 
-// 🟢 Add Payment to Member Ledger (Screen D)
+//  Add Payment to Member Ledger (Screen D)
 document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
@@ -592,7 +680,7 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
 });
 
 
-// 🟢 Add OCDA Expense (Screen E)
+// Add OCDA Expense (Screen E)
 document.getElementById('ocdaForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
@@ -670,7 +758,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 
-// 🟢 Monthly Summary Update (Screen F)
+//  Monthly Summary Update (Screen F)
 document.getElementById('summaryForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
@@ -760,7 +848,7 @@ document.querySelectorAll('input[name="enquiryType"]').forEach(radio => {
   });
 });
 
-// 📤 Submit Enquiry
+//  Submit Enquiry
 document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
@@ -769,7 +857,7 @@ document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => 
   const start = form.start.value;
   const end = form.end.value;
 
-  // 🔁 Grab the right param based on visible group
+  //  Grab the right param based on visible group
   let value = 'ALL';
   if (type === 'member') {
     value = document.getElementById('enquiry-member').value;
@@ -791,60 +879,188 @@ document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => 
 
     if (!res.ok) return alert(result.message || 'Enquiry failed.');
 
-    renderEnquiryResults(result); // render both summary & detail
+    // 👇 CALL IT HERE, passing type and mode!
+    renderEnquiryResults(result, type, mode);
   } catch (err) {
     console.error('Enquiry Error:', err);
     alert('Server error');
   }
 });
 
-
-//  Render Results like Screen H
-function renderEnquiryResults(data) {
+//  Render Results 
+function renderEnquiryResults(data, type, mode) {
   const wrapper = document.getElementById('enquiryTableWrapper');
   const container = document.getElementById('enquiryResults');
   container.classList.remove('hidden');
 
-  const summary = data?.summary || [];
-  const detail = data?.detail || [];
+  const summary = Array.isArray(data.summary) ? data.summary : [];
+  const detail = Array.isArray(data.detail) ? data.detail : [];
 
-  // If both are empty
-  if (summary.length === 0 && detail.length === 0) {
-    wrapper.innerHTML = '<p class="text-gray-500 italic">No results found.</p>';
-    document.getElementById('enquiryTableExport').innerHTML = '';
-    return;
-  }
+  // --- SUMMARY TABLE ---
+let summaryHtml = '';
+if (type === 'member') {
+  summaryHtml = `
+    <table class="w-full border border-gray-400 mb-6 shadow-sm" style="border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Phone Number</th>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Name</th>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summary.map(row => `
+          <tr>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.PhoneNumber || row.phoneno || ''}</td>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.fullname || ''}</td>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.total}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+} else if (type === 'ward') {
+  summaryHtml = `
+    <table class="w-full border border-gray-400 mb-6 shadow-sm" style="border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Ward</th>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summary.map(row => `
+          <tr>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.Ward || ''}</td>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.total}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+} else if (type === 'quarter') {
+  summaryHtml = `
+    <table class="w-full border border-gray-400 mb-6 shadow-sm" style="border-collapse: collapse;">
+      <thead>
+        <tr>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Quarter</th>
+          <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${summary.map(row => `
+          <tr>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.Quarters || row.Quarter || ''}</td>
+            <td class="border border-gray-400 px-4 py-2 text-center">${row.total}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
 
-  // Table generator
-  const generateTable = (title, rows) => {
-    if (!rows.length) {
-      return `<div class="w-full"><h3 class="font-bold mb-2">${title}</h3><p>No data.</p></div>`;
-    }
-
-    const headers = Object.keys(rows[0]);
-    const headerRow = headers.map(h => `<th class="p-2 border">${h}</th>`).join('');
-    const dataRows = rows.map(row =>
-      `<tr>${headers.map(h => `<td class="p-2 border">${row[h] ?? ''}</td>`).join('')}</tr>`
-    ).join('');
-
-    return `
-      <div class="w-full md:w-1/2 pr-2 mb-4">
-        <h3 class="font-bold mb-2">${title}</h3>
-        <div class="overflow-auto border rounded">
-          <table class="min-w-full text-sm text-left border border-collapse">
-            <thead class="bg-gray-200"><tr>${headerRow}</tr></thead>
-            <tbody>${dataRows}</tbody>
-          </table>
-        </div>
+// --- DETAIL TABLE ---
+// --- DETAIL TABLE ---
+let detailHtml = '';
+if (mode === 'detail') {
+  if (type === 'member') {
+    const grouped = {};
+    detail.forEach(tx => {
+      if (!grouped[tx.phoneno]) grouped[tx.phoneno] = [];
+      grouped[tx.phoneno].push(tx);
+    });
+    detailHtml = Object.entries(grouped).map(([phoneno, txs]) => `
+      <div class="mb-8">
+        <div class="font-bold text-lg mb-2">${phoneno} - ${txs[0]?.fullname || ''}</div>
+        <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${txs.map(tx => `
+              <tr>
+                <td class="border border-gray-400 px-4 py-2 text-center">${tx.transdate}</td>
+                <td class="border border-gray-400 px-4 py-2 text-center">${tx.amount}</td>
+                <td class="border border-gray-400 px-4 py-2 text-center">${tx.remark}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-    `;
-  };
+    `).join('');
+  } else if (type === 'ward') {
+    detailHtml = detail.map(w => `
+      <div class="mb-8">
+        <div class="font-bold text-blue-600 text-lg mb-2">Ward: ${w.ward}</div>
+        <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Phone</th>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Name</th>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
+              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${w.members.map(m => `
+              <tr>
+                <td class="border border-gray-400 px-4 py-2 text-center">${m.phoneno}</td>
+                <td class="border border-gray-400 px-4 py-2 text-center">${m.fullname}</td>
+                <td class="border border-gray-400 px-4 py-2 text-center">${m.transdate}</td>
+                <td class="border border-gray-400 px-4 py-2 text-center">${m.amount}</td>
+                <td class="border border-gray-400 px-4 py-2 text-center">${m.remark}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `).join('');
+  } else if (type === 'quarter') {
+    detailHtml = detail.map(q => `
+      <div class="mb-10">
+        <div class="text-xl text-indigo-700 font-bold mb-3">Quarter: ${q.quarter}</div>
+        ${q.wards.map(w => `
+          <div class="ml-4 mb-6">
+            <div class="font-semibold text-lg text-blue-500 mb-2">Ward: ${w.ward}</div>
+            <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Phone</th>
+                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Name</th>
+                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
+                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
+                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${w.members.map(m => `
+                  <tr>
+                    <td class="border border-gray-400 px-4 py-2 text-center">${m.phoneno}</td>
+                    <td class="border border-gray-400 px-4 py-2 text-center">${m.fullname}</td>
+                    <td class="border border-gray-400 px-4 py-2 text-center">${m.transdate}</td>
+                    <td class="border border-gray-400 px-4 py-2 text-center">${m.amount}</td>
+                    <td class="border border-gray-400 px-4 py-2 text-center">${m.remark}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  }
+}
 
-  // Render to visible wrapper
   wrapper.innerHTML = `
-    <div class="flex flex-col md:flex-row md:space-x-4">
-      ${generateTable('Summary', summary)}
-      ${generateTable('Details', detail)}
+    <div>
+      <h3 class="font-bold mb-2">Summary</h3>
+      ${summaryHtml}
+      ${mode === 'detail' ? `<h3 class="font-bold mb-2">Details</h3>${detailHtml}` : ''}
     </div>
   `;
 
@@ -870,7 +1086,7 @@ function renderEnquiryResults(data) {
 }
 
 
-// 📤 Export
+// Export
 function exportEnquiry(type) {
   const table = document.getElementById('enquiryTableExport');
   if (type === 'excel') {
@@ -883,7 +1099,7 @@ function exportEnquiry(type) {
   }
 }
 
-// 🖨 Print
+//  Print
 function printEnquiry() {
   const content = document.getElementById('enquiryTableWrapper').innerHTML;
   const win = window.open('', '', 'width=900,height=700');
@@ -911,6 +1127,222 @@ function showAccountSummary() {
     </tr>
   `);
 }
+
+// admin-static tables
+const staticTypes = ['titles', 'qualifications', 'wards', 'hontitles'];
+
+async function loadStaticTable(type) {
+  try {
+    const tableBodyId = {
+      titles: 'titlesTableBody',
+      qualifications: 'qualificationsTableBody',
+      wards: 'wardsTableBody',
+      hontitles: 'hontitlesTableBody'
+    }[type];
+
+    const listEl = document.getElementById(tableBodyId);
+    if (!listEl) {
+      console.error(`Element with id ${tableBodyId} not found for type ${type}`);
+      return;
+    }
+
+    const res = await fetch(`/admin/static/${type}`);
+    const data = await res.json();
+
+    listEl.innerHTML = data.map(row => {
+      // Use Id if present, else use composite keys
+      if (type === 'wards') {
+        // Use both ward and Quarter as keys if Id is missing
+        const key = row.Id !== undefined ? row.Id : `${encodeURIComponent(row.ward)}|${encodeURIComponent(row.Quarter)}`;
+        return `<tr data-id="${key}" class="hover:bg-gray-50">
+          <td data-field="ward" contenteditable="false" class="text-center py-2 px-3 border border-gray-300">${row.ward || ''}</td>
+          <td data-field="Quarter" contenteditable="false" class="text-center py-2 px-3 border border-gray-300">${row.Quarter || ''}</td>
+          <td class="text-center py-2 px-3 border border-gray-300">
+            <div class="flex justify-center gap-4">
+              <button class="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs" onclick="editRow('wards', '${row.ward}', '${row.Quarter}', this)">Edit</button>
+              <button class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs" onclick="deleteRow('wards', '${row.ward}', '${row.Quarter}')">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+      } else if (type === 'hontitles') {
+        // Use both Htitle and titlerank as keys if Id is missing
+        const key = row.Id !== undefined ? row.Id : `${encodeURIComponent(row.Htitle)}|${encodeURIComponent(row.titlerank)}`;
+        return `<tr data-id="${key}" class="hover:bg-gray-50">
+          <td data-field="Htitle" contenteditable="false" class="text-center py-2 px-3 border border-gray-300">${row.Htitle || ''}</td>
+          <td data-field="titlerank" contenteditable="false" class="text-center py-2 px-3 border border-gray-300">${row.titlerank || ''}</td>
+          <td class="text-center py-2 px-3 border border-gray-300">
+            <div class="flex justify-center gap-4">
+              <button class="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs" onclick="editRow('hontitles', '${row.Htitle}', '${row.titlerank}', this)">Edit</button>
+              <button class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs" onclick="deleteRow('hontitles', '${row.Htitle}', '${row.titlerank}')">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+      } else {
+        // Titles and Qualifications
+        const fieldMap = {
+          titles: 'title',
+          qualifications: 'qualification',
+        };
+        const field = fieldMap[type];
+        const key = row.Id !== undefined ? row.Id : encodeURIComponent(row[field]);
+        return `<tr data-id="${key}" class="hover:bg-gray-50">
+          <td data-field="${field}" contenteditable="false" class="text-center py-2 px-3 border border-gray-300">${row[field] || ''}</td>
+          <td class="text-center py-2 px-3 border border-gray-300">
+            <div class="flex justify-center gap-4">
+              <button class="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded text-xs" onclick="editRow('${type}', '${row[field]}', null, this)">Edit</button>
+              <button class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs" onclick="deleteRow('${type}', '${row[field]}')">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+      }
+    }).join('');
+  } catch (err) {
+    console.error(`Failed to load ${type}:`, err);
+  }
+}
+
+async function addStaticValue(type) {
+  const field = type.slice(0, -1);
+
+  if (type === 'wards') {
+    const ward = document.getElementById('newWard').value.trim();
+    const quarter = document.getElementById('newQuarter').value.trim();
+    if (!ward || !quarter) return alert('Enter both ward and quarter');
+    var body = { ward, Quarter: quarter };
+  } else if (type === 'hontitles') {
+    const htitle = document.getElementById('newHtitle').value.trim();
+    const titlerank = document.getElementById('newTitlerank')?.value.trim() || '';
+    if (!htitle) return alert('Enter Hon Title');
+    var body = { Htitle: htitle, titlerank };
+  } else {
+    const input = document.getElementById(`new${capitalize(field)}`);
+    const value = input.value.trim();
+    if (!value) return alert('Enter a value');
+    var body = { [field]: value };
+  }
+
+  try {
+    const res = await fetch(`/admin/static/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      if (type === 'wards') {
+        document.getElementById('newWard').value = '';
+        document.getElementById('newQuarter').value = '';
+      } else if (type === 'hontitles') {
+        document.getElementById('newHtitle').value = '';
+        document.getElementById('newTitlerank') && (document.getElementById('newTitlerank').value = '');
+      } else {
+        document.getElementById(`new${capitalize(field)}`).value = '';
+      }
+      loadStaticTable(type);
+    } else {
+      const result = await res.json();
+      alert(result.error || 'Insert failed');
+    }
+  } catch (err) {
+    console.error(`Failed to insert into ${type}:`, err);
+  }
+}
+
+// Edit Row for all static tables
+function editRow(type, key1, key2, btn) {
+  const row = btn.closest('tr');
+  const fields = row.querySelectorAll('[data-field]');
+  const editing = btn.textContent === '✅';
+
+  if (editing) {
+    // Save changes
+    const body = {};
+    fields.forEach(f => body[f.dataset.field] = f.textContent.trim());
+
+    let url = `/admin/static/${type}`;
+    let params = '';
+
+    if (type === 'wards') {
+      params = `?ward=${encodeURIComponent(key1)}&Quarter=${encodeURIComponent(key2)}`;
+    } else if (type === 'hontitles') {
+      params = `?Htitle=${encodeURIComponent(key1)}&titlerank=${encodeURIComponent(key2)}`;
+    } else {
+      params = `?value=${encodeURIComponent(key1)}`;
+    }
+
+    fetch(url + params, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(res => {
+      if (!res.ok) return alert('Update failed');
+      btn.textContent = 'Edit';
+      fields.forEach(f => f.setAttribute('contenteditable', 'false'));
+      loadStaticTable(type);
+    }).catch(err => {
+      console.error('Update error:', err);
+    });
+  } else {
+    // Enable editing
+    fields.forEach(f => f.setAttribute('contenteditable', 'true'));
+    btn.textContent = '✅';
+  }
+}
+
+// Delete Row for all static tables
+function deleteRow(type, key1, key2) {
+  if (!confirm('Are you sure you want to delete this?')) return;
+
+  let url = `/admin/static/${type}`;
+  let params = '';
+
+  if (type === 'wards') {
+    params = `?ward=${encodeURIComponent(key1)}&Quarter=${encodeURIComponent(key2)}`;
+  } else if (type === 'hontitles') {
+    params = `?Htitle=${encodeURIComponent(key1)}&titlerank=${encodeURIComponent(key2)}`;
+  } else {
+    params = `?value=${encodeURIComponent(key1)}`;
+  }
+
+  fetch(url + params, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) return alert('Delete failed');
+      loadStaticTable(type);
+    })
+    .catch(err => console.error('Delete error:', err));
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  staticTypes.forEach(loadStaticTable);
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  staticTypes.forEach(loadStaticTable);
+
+  // Prevent default form submission and use AJAX for all static tables
+  document.getElementById('addHontitleForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    addStaticValue('hontitles');
+  });
+  document.getElementById('addQualificationForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    addStaticValue('qualifications');
+  });
+  document.getElementById('addWardsForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    addStaticValue('wards');
+  });
+  document.getElementById('addTitleForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    addStaticValue('titles');
+  });
+});
+
+
 
 
   
