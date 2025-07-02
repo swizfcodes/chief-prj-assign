@@ -13,9 +13,14 @@ const config = require('./dbconfig');
 const PORT = 5500;
 
 app.use(cors({
-  origin: 'http://localhost:5500',  // ✅ your frontend
-  credentials: true                 // ✅ allow cookies
+  origin: [
+    'https://ocdaonline-backend.onrender.com', // your backend domain
+    'https://ocdaonline.net',                  // your frontend domain (if you have one)
+    'http://localhost:5500'                    // for local testing
+  ],
+  credentials: true // if you use cookies or authentication
 }));
+
 app.use(express.json());
 app.use('/admin', adminRoutes);
 app.use('/admin', require('./routes/admin'));
