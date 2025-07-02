@@ -18,7 +18,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// ✅ Create Admin (no password hashing)
+// Create Admin (no password hashing)
 router.post('/create', async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -60,7 +60,7 @@ router.post('/create', async (req, res) => {
   }
 });
 
-// 🟢 Login (no password hashing)
+//  Login (no password hashing)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -91,7 +91,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 🔄 List Admins
+//  List Admins
 router.get('/list', verifyToken, async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -103,7 +103,7 @@ router.get('/list', verifyToken, async (req, res) => {
   }
 });
 
-// ✏️ Update Admin
+//  Update Admin
 router.put('/update/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -124,7 +124,7 @@ router.put('/update/:id', verifyToken, async (req, res) => {
   }
 });
 
-// 📊 Dashboard Data
+// Dashboard Data
 router.get('/dashboard', verifyToken, async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -565,7 +565,7 @@ router.get('/ocdaexpenses', verifyToken, async (req, res) => {
 });
 
 
-// 🟢 GET: Populate dropdowns
+// GET: Populate dropdowns
 router.get('/enquiry/options', verifyToken, async (req, res) => {
   try {
     const pool = await poolPromise;
@@ -636,17 +636,25 @@ router.get('/enquiry', verifyToken, async (req, res) => {
         const whereClause = `WHERE ${filter}${dateFilter}`;
         if (mode === 'summary') {
           summary = await pool.request().query(`
-            SELECT phoneno, SUM(amount) AS total
-            FROM memberledger ${whereClause}
-            GROUP BY phoneno
+            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, SUM(l.amount) AS total
+            FROM memberledger l
+            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
+            ${whereClause}
+            GROUP BY l.phoneno, m.Surname, m.othernames
           `).then(r => r.recordset);
         } else {
           detail = await pool.request().query(`
-            SELECT FORMAT(transdate, 'yyyy-MM-dd') AS transdate, amount, remark
-            FROM memberledger ${whereClause}
-            ORDER BY transdate DESC
+            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
+            FROM memberledger l
+            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
+            ${whereClause}
+            ORDER BY l.transdate DESC
           `).then(r => r.recordset);
-          summary = [{ phoneno: param, total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0) }];
+          summary = [{
+            phoneno: param,
+            fullname: detail[0]?.fullname || '',
+            total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0)
+          }];
         }
       }
     }
@@ -684,7 +692,9 @@ router.get('/enquiry', verifyToken, async (req, res) => {
                 ORDER BY l.phoneno, l.transdate DESC
               `)
               .then(r => r.recordset);
-            detail.push({ ward, members });
+            if (ward && members && members.length > 0) {
+              detail.push({ ward, members });
+            }
           }
         }
       } else {
@@ -692,19 +702,24 @@ router.get('/enquiry', verifyToken, async (req, res) => {
         const wardClause = `Ward = '${param}'`;
         const memberList = await pool.request().query(`SELECT PhoneNumber FROM Members WHERE ${wardClause}`);
         const phones = memberList.recordset.map(m => `'${m.PhoneNumber}'`);
-        const phoneFilter = phones.length ? `phoneno IN (${phones.join(',')})` : '1=0';
+        const phoneFilter = phones.length ? `l.phoneno IN (${phones.join(',')})` : '1=0';
         const transFilter = `WHERE ${phoneFilter}${dateFilter}`;
 
         summary = await pool.request().query(`
-          SELECT '${param}' AS Ward, SUM(amount) AS total FROM memberledger ${transFilter}
+          SELECT '${param}' AS Ward, SUM(l.amount) AS total
+          FROM memberledger l
+          ${transFilter}
         `).then(r => r.recordset);
 
         if (mode === 'detail') {
-          detail = await pool.request().query(`
-            SELECT phoneno, SUM(amount) AS total FROM memberledger
+          const members = await pool.request().query(`
+            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
+            FROM memberledger l
+            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
             ${transFilter}
-            GROUP BY phoneno
+            ORDER BY l.phoneno, l.transdate DESC
           `).then(r => r.recordset);
+          detail = [{ ward: param, members }];
         }
       }
     }
@@ -779,17 +794,23 @@ router.get('/enquiry', verifyToken, async (req, res) => {
         `).then(r => r.recordset);
 
         if (mode === 'detail') {
+          const wardsData = [];
           for (const ward of wards) {
             const phones = phonesByWard[ward] || [];
             if (phones.length === 0) continue;
 
-            const wardTotal = await pool.request().query(`
-              SELECT SUM(amount) AS total FROM memberledger
-              WHERE phoneno IN (${phones.join(',')})${dateFilter}
-            `).then(r => r.recordset[0]?.total || 0);
+            // Get all transactions for this ward
+            const members = await pool.request().query(`
+              SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
+              FROM memberledger l
+              LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
+              WHERE l.phoneno IN (${phones.join(',')})${dateFilter}
+              ORDER BY l.phoneno, l.transdate DESC
+            `).then(r => r.recordset);
 
-            detail.push({ ward, total: wardTotal });
+            wardsData.push({ ward, members });
           }
+          detail = [{ quarter: param, wards: wardsData }];
         }
       }
     }
@@ -1014,102 +1035,3 @@ router.delete('/stdxpenses', async (req, res) => {
 });
 
 module.exports = router;
-
-
-
-
-
-
-
-
-/*// Add Expense
-router.post('/api/expense/:phoneno', async (req, res) => {
-  const { amount, remark } = req.body;
-  const { phoneno } = req.params;
-  try {
-    const pool = await sql.connect(config);
-    await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .input('amount', sql.Decimal(18, 2), amount)
-      .input('remark', sql.VarChar, remark)
-      .query(`INSERT INTO Stdxpenses (phoneno, amount, remark, transdate) VALUES (@phoneno, @amount, @remark, GETDATE())`);
-    res.send({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Expense error' });
-  }
-});
-
-// Get Expenses
-router.get('/api/expense/:phoneno', async (req, res) => {
-  const { phoneno } = req.params;
-  try {
-    const pool = await sql.connect(config);
-    const result = await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .query(`SELECT FORMAT(transdate, 'yyyy-MM-dd') AS transdate, amount, remark
-              FROM Stdxpenses WHERE phoneno = @phoneno ORDER BY transdate DESC`);
-    res.send(result.recordset);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Expense fetch error' });
-  }
-});
-
-// Generate Monthly Summary
-router.post('/api/monthlysummary/:phoneno', async (req, res) => {
-  const { phoneno } = req.params;
-  const { period } = req.body;
-  try {
-    const pool = await sql.connect(config);
-    const [{ totalLedger }] = (await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .input('period', sql.VarChar, `${period}%`)
-      .query(`SELECT ISNULL(SUM(amount), 0) AS totalLedger FROM memberledger WHERE phoneno = @phoneno AND FORMAT(transdate, 'yyyy-MM') LIKE @period`)
-    ).recordset;
-
-    const [{ totalExpense }] = (await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .input('period', sql.VarChar, `${period}%`)
-      .query(`SELECT ISNULL(SUM(amount), 0) AS totalExpense FROM Stdxpenses WHERE phoneno = @phoneno AND FORMAT(transdate, 'yyyy-MM') LIKE @period`)
-    ).recordset;
-
-    const last = await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .query(`SELECT TOP 1 Netbalance FROM monthlysummary WHERE phoneno = @phoneno ORDER BY period DESC`);
-
-    const openBalance = last.recordset[0]?.Netbalance || 0;
-    const netBalance = openBalance + totalLedger - totalExpense;
-
-    await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .input('period', sql.VarChar, period)
-      .input('openbalance', sql.Decimal(18, 2), openBalance)
-      .input('debit', sql.Decimal(18, 2), totalExpense)
-      .input('credit', sql.Decimal(18, 2), totalLedger)
-      .input('net', sql.Decimal(18, 2), netBalance)
-      .query(`INSERT INTO monthlysummary (phoneno, period, openbalance, Debitbalance, Creditbalance, Netbalance) VALUES (@phoneno, @period, @openbalance, @debit, @credit, @net)`);
-
-    res.send({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Summary generation failed' });
-  }
-});
-
-// Get Monthly Summary
-router.get('/api/monthlysummary/:phoneno', async (req, res) => {
-  const { phoneno } = req.params;
-  try {
-    const pool = await sql.connect(config);
-    const result = await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .query(`SELECT period, openbalance, Creditbalance, Debitbalance, Netbalance FROM monthlysummary WHERE phoneno = @phoneno ORDER BY period DESC`);
-    res.send(result.recordset);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Summary fetch failed' });
-  }
-});*/
-
-

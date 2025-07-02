@@ -12,7 +12,6 @@ function verifyToken(req, res, next) {
   }
 }
 
-
 let allMembers = [];
 let currentPage = 1;
 const rowsPerPage = 10;
@@ -178,50 +177,50 @@ function setupAdminTab() {
     });
 }
 
-  // Fetch and render Member Ledger
-  fetchTable('/admin/memberledger', 'ledgerData', row => `
+// Fetch and render Member Ledger
+fetchTable('/admin/memberledger', 'ledgerData', row => `
+  <tr class="border-t">
+    <td class="p-2">${row.phoneno}</td>
+    <td class="p-2">${formatDate(row.transdate)}</td>
+    <td class="p-2">${formatAmount(row.amount)}</td>
+    <td class="p-2">${row.remark}</td>
+  </tr>
+`);
+
+// Fetch and render Monthly Summary
+fetchTable('/admin/monthlysummary', 'summaryData', row => `
+  <tr class="border-t">
+    <td class="p-2">${row.period}</td>
+    <td class="p-2">${formatAmount(row.openbalance)}</td>
+    <td class="p-2">${formatAmount(row.Debitbalance)}</td>
+    <td class="p-2">${formatAmount(row.Creditbalance)}</td>
+    <td class="p-2">${formatAmount(row.Netbalance)}</td>
+  </tr>
+`);
+
+// Fetch and render OCDA Expenses
+fetchTable('/admin/ocdaexpenses', 'expensesData', row => `
+  <tr class="border-t">
+    <td class="p-2">${formatDate(row.docdate)}</td>
+    <td class="p-2">${row.project}</td>
+    <td class="p-2">${row.remarks}</td>
+    <td class="p-2">${formatAmount(row.amount)}</td>
+  </tr>
+`);
+
+// Fetch and render Standard Expenses
+  fetchTable('/admin/stdxpenses', 'stdData', row => `
     <tr class="border-t">
-      <td class="p-2">${row.phoneno}</td>
-      <td class="p-2">${formatDate(row.transdate)}</td>
-      <td class="p-2">${formatAmount(row.amount)}</td>
-      <td class="p-2">${row.remark}</td>
+      <td data-field="expscode" contenteditable="false" class="p-2">${row.expscode}</td>
+      <td data-field="expsdesc" contenteditable="false" class="p-2">${row.expsdesc}</td>
+      <td class="p-2">
+        <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editStdExpense('${row.expscode}', this)">Edit</button>
+        <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteStdExpense('${row.expscode}')">Delete</button>
+      </td>
     </tr>
   `);
 
-  // Fetch and render Monthly Summary
-  fetchTable('/admin/monthlysummary', 'summaryData', row => `
-    <tr class="border-t">
-      <td class="p-2">${row.period}</td>
-      <td class="p-2">${formatAmount(row.openbalance)}</td>
-      <td class="p-2">${formatAmount(row.Debitbalance)}</td>
-      <td class="p-2">${formatAmount(row.Creditbalance)}</td>
-      <td class="p-2">${formatAmount(row.Netbalance)}</td>
-    </tr>
-  `);
-
-  // Fetch and render OCDA Expenses
-  fetchTable('/admin/ocdaexpenses', 'expensesData', row => `
-    <tr class="border-t">
-      <td class="p-2">${formatDate(row.docdate)}</td>
-      <td class="p-2">${row.project}</td>
-      <td class="p-2">${row.remarks}</td>
-      <td class="p-2">${formatAmount(row.amount)}</td>
-    </tr>
-  `);
-
-  // Fetch and render Standard Expenses
-    fetchTable('/admin/stdxpenses', 'stdData', row => `
-      <tr class="border-t">
-        <td data-field="expscode" contenteditable="false" class="p-2">${row.expscode}</td>
-        <td data-field="expsdesc" contenteditable="false" class="p-2">${row.expsdesc}</td>
-        <td class="p-2">
-          <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editStdExpense('${row.expscode}', this)">Edit</button>
-          <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteStdExpense('${row.expscode}')">Delete</button>
-        </td>
-      </tr>
-    `);
-
-    document.getElementById('addStdExpenseForm')?.addEventListener('submit', async function(e) {
+document.getElementById('addStdExpenseForm')?.addEventListener('submit', async function(e) {
   e.preventDefault();
   const code = document.getElementById('newExpscode').value.trim();
   const desc = document.getElementById('newExpsdesc').value.trim();
@@ -248,7 +247,7 @@ function setupAdminTab() {
 function editStdExpense(code, btn) {
   const row = btn.closest('tr');
   const fields = row.querySelectorAll('[data-field]');
-  const editing = btn.textContent === '✅';
+  const editing = btn.textContent === 'Save';
   if (editing) {
     // Save
     const body = {};
@@ -259,6 +258,7 @@ function editStdExpense(code, btn) {
       body: JSON.stringify(body)
     }).then(res => {
       if (!res.ok) return alert('Update failed');
+      alert('Saved successfully!');
       btn.textContent = 'Edit';
       fields.forEach(f => f.setAttribute('contenteditable', 'false'));
       fetchTable('/admin/stdxpenses', 'stdData', stdExpenseRowRender);
@@ -266,7 +266,8 @@ function editStdExpense(code, btn) {
   } else {
     // Enable editing
     fields.forEach(f => f.setAttribute('contenteditable', 'true'));
-    btn.textContent = '✅';
+    btn.textContent = 'Save';
+    alert('Editing is enabled. You can now modify the fields.');
   }
 }
 
@@ -274,9 +275,10 @@ function deleteStdExpense(code) {
   if (!confirm('Delete this expense?')) return;
   fetch(`/admin/stdxpenses?expscode=${encodeURIComponent(code)}`, { method: 'DELETE' })
     .then(res => {
-      if (!res.ok) return alert('Delete failed');
-      fetchTable('/admin/stdxpenses', 'stdData', stdExpenseRowRender);
-    });
+    if (!res.ok) return alert('Delete failed');
+    alert('Deleted successfully!');
+    fetchTable('/admin/stdxpenses', 'stdData', stdExpenseRowRender);
+  });
 }
 
 // Helper for rendering rows (so you can reuse in fetchTable)
@@ -293,14 +295,14 @@ function stdExpenseRowRender(row) {
   `;
 }
 
-    // Logout
-    function adminLogout() {
-      localStorage.removeItem('adminToken');
-      window.location.href = '/adminlog.html';
-    }
+// Logout
+function adminLogout() {
+  localStorage.removeItem('adminToken');
+  window.location.href = '/adminlog.html';
+}
 
-    // Init
-    window.addEventListener('DOMContentLoaded', loadAdmins);
+// Init
+window.addEventListener('DOMContentLoaded', loadAdmins);
 
     // Create New Member (Screen G)
 document.getElementById('createMemberForm')?.addEventListener('submit', async (e) => {
@@ -625,6 +627,25 @@ async function saveMemberChanges() {
   }
 }
 
+async function deleteMember(phone) {
+  if (!confirm('Are you sure you want to delete this member?')) return;
+  try {
+    const res = await fetch(`/admin/member/${phone}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+    });
+    const result = await res.json();
+    if (res.ok) {
+      alert('Member deleted successfully');
+      // Optionally reload the member list or remove the row from the table
+      location.reload();
+    } else {
+      alert(result.message || 'Failed to delete member');
+    }
+  } catch (err) {
+    alert('Server error');
+  }
+}
 
 //Load phone numbers
 async function loadPhoneNumbers() {
@@ -889,12 +910,12 @@ document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => 
 
 //  Render Results 
 function renderEnquiryResults(data, type, mode) {
+  const summary = Array.isArray(data.summary) ? data.summary : [];
+  const detail = Array.isArray(data.detail) ? data.detail : [];
+
   const wrapper = document.getElementById('enquiryTableWrapper');
   const container = document.getElementById('enquiryResults');
   container.classList.remove('hidden');
-
-  const summary = Array.isArray(data.summary) ? data.summary : [];
-  const detail = Array.isArray(data.detail) ? data.detail : [];
 
   // --- SUMMARY TABLE ---
 let summaryHtml = '';
@@ -960,7 +981,6 @@ if (type === 'member') {
 }
 
 // --- DETAIL TABLE ---
-// --- DETAIL TABLE ---
 let detailHtml = '';
 if (mode === 'detail') {
   if (type === 'member') {
@@ -1007,7 +1027,7 @@ if (mode === 'detail') {
             </tr>
           </thead>
           <tbody>
-            ${w.members.map(m => `
+            ${(Array.isArray(w.members) ? w.members : []).map(m => `
               <tr>
                 <td class="border border-gray-400 px-4 py-2 text-center">${m.phoneno}</td>
                 <td class="border border-gray-400 px-4 py-2 text-center">${m.fullname}</td>
@@ -1038,7 +1058,7 @@ if (mode === 'detail') {
                 </tr>
               </thead>
               <tbody>
-                ${w.members.map(m => `
+                ${(Array.isArray(w.members) ? w.members : []).map(m => `
                   <tr>
                     <td class="border border-gray-400 px-4 py-2 text-center">${m.phoneno}</td>
                     <td class="border border-gray-400 px-4 py-2 text-center">${m.fullname}</td>
@@ -1050,17 +1070,20 @@ if (mode === 'detail') {
               </tbody>
             </table>
           </div>
-        `).join('')}
-      </div>
+          `).join('')}
+        </div>
     `).join('');
   }
 }
 
   wrapper.innerHTML = `
-    <div>
-      <h3 class="font-bold mb-2">Summary</h3>
-      ${summaryHtml}
-      ${mode === 'detail' ? `<h3 class="font-bold mb-2">Details</h3>${detailHtml}` : ''}
+  <div class="flex flex-col lg:flex-row gap-6 items-start">
+      <div class="w-full lg:w-1/2">
+        ${summaryHtml}
+      </div>
+      <div class="w-full lg:w-1/2">
+        ${detailHtml}
+      </div>
     </div>
   `;
 
@@ -1252,7 +1275,7 @@ async function addStaticValue(type) {
 function editRow(type, key1, key2, btn) {
   const row = btn.closest('tr');
   const fields = row.querySelectorAll('[data-field]');
-  const editing = btn.textContent === '✅';
+  const editing = btn.textContent === 'Save';
 
   if (editing) {
     // Save changes
@@ -1276,6 +1299,7 @@ function editRow(type, key1, key2, btn) {
       body: JSON.stringify(body)
     }).then(res => {
       if (!res.ok) return alert('Update failed');
+      alert('Saved successfully!');
       btn.textContent = 'Edit';
       fields.forEach(f => f.setAttribute('contenteditable', 'false'));
       loadStaticTable(type);
@@ -1285,7 +1309,8 @@ function editRow(type, key1, key2, btn) {
   } else {
     // Enable editing
     fields.forEach(f => f.setAttribute('contenteditable', 'true'));
-    btn.textContent = '✅';
+    btn.textContent = 'Save';
+    alert('Editing is enabled. You can now modify the fields.');
   }
 }
 
@@ -1307,6 +1332,7 @@ function deleteRow(type, key1, key2) {
   fetch(url + params, { method: 'DELETE' })
     .then(res => {
       if (!res.ok) return alert('Delete failed');
+      alert('Deleted successfully!');
       loadStaticTable(type);
     })
     .catch(err => console.error('Delete error:', err));
@@ -1341,8 +1367,3 @@ window.addEventListener('DOMContentLoaded', () => {
     addStaticValue('titles');
   });
 });
-
-
-
-
-  

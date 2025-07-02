@@ -523,7 +523,7 @@
 
         <!--  Result View -->
        
-        <div id="enquiryResults" class="mt-6 hidden">
+        <div id="enquiryResults" class="mt-6 hidden min-h-screen flex flex-col">
           <div class="flex justify-between items-center mb-2">
             <strong>Enquiry Results</strong>
             <div class="space-x-2">
@@ -537,7 +537,7 @@
           <div id="enquiryTableWrapper" class="flex flex-col lg:flex-row flex-wrap gap-4 mb-4 w-full">
             
             <!-- Summary Section -->
-            <div id="summaryWrapper" class="w-full lg:w-full">
+            <div id="summaryWrapper" class="w-full lg:w-1/2  h-[calc(100vh-200px)] overflow-auto">
               <h3 class="font-semibold text-lg mb-2">Summary</h3>
               <div class="bg-white border rounded p-2 overflow-x-auto" id="summaryTableBox">
                 <!-- JS will inject summary table here -->
@@ -545,13 +545,14 @@
             </div>
 
             <!-- Detail Section -->
-            <div id="detailWrapper" class="w-full lg:w-full">
+            <div id="detailWrapper" class="w-full lg:w-1/2  h-[calc(100vh-200px)] overflow-auto">
               <h3 class="font-semibold text-lg mb-2">Details</h3>
               <div class="bg-white border rounded p-2 overflow-x-auto" id="detailTableBox">
                 <!-- JS will inject detail table here -->
               </div>
             </div>
           </div>
+
 
 
           <!--  Hidden Export Table -->
