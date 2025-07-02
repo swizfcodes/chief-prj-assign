@@ -12,8 +12,6 @@ const adminRoutes = require('./routes/admin');
 const config = require('./dbconfig'); 
 const PORT = 5500;
 
-
-
 app.use(cors({
   origin: 'http://localhost:5500',  // ✅ your frontend
   credentials: true                 // ✅ allow cookies
@@ -488,11 +486,6 @@ app.get('/api/enquiry/:type/:value', async (req, res) => {
     res.status(500).json({ message: 'Server error during enquiry' });
   }
 });
-
-
-
-
-
 
 
 app.post('/logout', (req, res) => {

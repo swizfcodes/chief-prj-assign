@@ -252,7 +252,24 @@ router.post('/generate-summary', verifyToken, async (req, res) => {
   try {
     const { year, month } = req.body;
     const paddedMonth = month.padStart(2, '0');
-    const period = `${year}${paddedMonth}`; // 🔒 trim to 6-char format
+    const period = `${year}${paddedMonth}`; 
+
+    // Get today's date and calculate last month
+    const now = new Date();
+    const thisMonth = now.getMonth() + 1; // 
+    const thisYear = now.getFullYear();
+    let lastMonth = thisMonth - 1;
+    let lastMonthYear = thisYear;
+    if (lastMonth === 0) {
+      lastMonth = 12;
+      lastMonthYear = thisYear - 1;
+    }
+    const lastPeriod = `${lastMonthYear}${String(lastMonth).padStart(2, '0')}`; // e.g. 202406
+
+    // Only allow if period <= lastPeriod (not current/future), and not already done
+    if (parseInt(period) > parseInt(lastPeriod)) {
+      return res.status(400).json({ message: 'You can only generate summary for the previous or earlier months.' });
+    }
 
     const pool = await poolPromise;
 
@@ -279,31 +296,37 @@ router.post('/generate-summary', verifyToken, async (req, res) => {
     ).recordset;
 
     // Get previous net balance
-    const [{ prevNet = 0 }] = (await pool.request()
+    const prevResult = await pool.request()
       .query(`SELECT TOP 1 Netbalance AS prevNet
               FROM monthlysummary 
               WHERE period < '${period}' 
-              ORDER BY period DESC`)
-    ).recordset;
+              ORDER BY period DESC`);
+    const prevNet = prevResult.recordset.length > 0 ? prevResult.recordset[0].prevNet : 0;
 
     const Netbalance = prevNet + totalCredit - totalDebit;
 
     await pool.request()
       .input('period', sql.VarChar(6), period)
       .input('openbalance', sql.Decimal(18, 2), prevNet)
-      .input('Debitbalance', sql.Decimal(18, 2), totalDebit)
-      .input('Creditbalance', sql.Decimal(18, 2), totalCredit)
+      .input('Debitbalance', sql.Decimal(18, 2), totalCredit)      // <-- swapped
+      .input('Creditbalance', sql.Decimal(18, 2), totalDebit)      // <-- swapped
       .input('Netbalance', sql.Decimal(18, 2), Netbalance)
       .query(`INSERT INTO monthlysummary (period, openbalance, Debitbalance, Creditbalance, Netbalance)
-              VALUES (@period, @openbalance, @Debitbalance, @Creditbalance, @Netbalance)`);
+      VALUES (@period, @openbalance, @Debitbalance, @Creditbalance, @Netbalance)`);
 
-    res.status(201).json({ message: 'Monthly summary saved' });
+    const newSummary = await pool.request()
+    .input('period', sql.VarChar(6), period)
+    .query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary WHERE period = @period');
+
+    res.status(201).json({
+      message: 'Monthly summary saved',
+      summary: newSummary.recordset[0]
+    });
   } catch (err) {
     console.error('Monthly Summary Error:', err);
     res.status(500).json({ message: 'Failed to generate summary' });
   }
 });
-
 
 
 router.get('/monthlysummary', verifyToken, async (req, res) => {
@@ -317,8 +340,6 @@ router.get('/monthlysummary', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch monthly summary' });
   }
 });
-
-
 
 //show list of members
 router.get('/members', verifyToken, async (req, res) => {

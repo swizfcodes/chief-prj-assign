@@ -132,6 +132,16 @@ function setupAdminTab() {
         // Only call setupAdminTab when admin tab is clicked
         if (tabId === 'create-admin') setupAdminTab();
         if (tabId === 'member-list') loadMembers();
+        if (tabId === 'ledger-entry') {
+          fetchTable('/admin/memberledger', 'ledgerData', row => `
+            <tr class="border-t">
+              <td class="p-2">${row.phoneno}</td>
+              <td class="p-2">${formatDate(row.transdate)}</td>
+              <td class="p-2">${formatAmount(row.amount)}</td>
+              <td class="p-2">${row.remark}</td>
+            </tr>
+          `);
+        }
         // ...other tab-specific loaders
       });
     });
@@ -189,14 +199,26 @@ fetchTable('/admin/memberledger', 'ledgerData', row => `
 
 // Fetch and render Monthly Summary
 fetchTable('/admin/monthlysummary', 'summaryData', row => `
-  <tr class="border-t">
-    <td class="p-2">${row.period}</td>
-    <td class="p-2">${formatAmount(row.openbalance)}</td>
-    <td class="p-2">${formatAmount(row.Debitbalance)}</td>
-    <td class="p-2">${formatAmount(row.Creditbalance)}</td>
-    <td class="p-2">${formatAmount(row.Netbalance)}</td>
-  </tr>
-`);
+    <tr class="border-t">
+      <td class="p-2">${row.period}</td>
+      <td class="p-2">${formatAmount(row.openbalance)}</td>
+      <td class="p-2">${formatAmount(row.Debitbalance)}</td>
+      <td class="p-2">${formatAmount(row.Creditbalance)}</td>
+      <td class="p-2">${formatAmount(row.Netbalance)}</td>
+    </tr>
+  `);
+
+function loadMonthlySummary() {
+  fetchTable('/admin/monthlysummary', 'summaryData', row => `
+    <tr class="border-t">
+      <td class="p-2">${row.period}</td>
+      <td class="p-2">${formatAmount(row.openbalance)}</td>
+      <td class="p-2">${formatAmount(row.Debitbalance)}</td>
+      <td class="p-2">${formatAmount(row.Creditbalance)}</td>
+      <td class="p-2">${formatAmount(row.Netbalance)}</td>
+    </tr>
+  `);
+}
 
 // Fetch and render OCDA Expenses
 fetchTable('/admin/ocdaexpenses', 'expensesData', row => `
@@ -698,6 +720,27 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
     console.error('Ledger Error:', err.message || err);
     alert('Server error');
   }
+});
+
+// Add member ledger to (Screen D)
+document.querySelectorAll('.tab-button').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+    const tabId = btn.getAttribute('data-tab');
+    if (tabId) {
+      document.getElementById(tabId).classList.remove('hidden');
+      if (tabId === 'ledger-entry') {
+        fetchTable('/admin/memberledger', 'ledgerData', row => `
+          <tr class="border-t">
+            <td class="p-2">${row.phoneno}</td>
+            <td class="p-2">${formatDate(row.transdate)}</td>
+            <td class="p-2">${formatAmount(row.amount)}</td>
+            <td class="p-2">${row.remark}</td>
+          </tr>
+        `);
+      }
+    }
+  });
 });
 
 

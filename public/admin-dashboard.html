@@ -62,7 +62,7 @@
         <div id="adminTable" class="bg-white p-4 rounded shadow text-sm">Loading...</div>
       </section>
 
-      <!-- Member Ledger -->
+      <!-- Member Ledger 
       <section id="ledger" class="tab-content">
         <h2 class="text-2xl font-semibold mb-4">Member Ledger</h2>
         <div class="overflow-auto rounded shadow bg-white">
@@ -78,7 +78,7 @@
             <tbody id="ledgerData"></tbody>
           </table>
         </div>
-      </section>
+      </section>-->
 
       <!-- Unified Monthly Summary Section (Screen F) -->
       <section id="summary" class="tab-content hidden">
@@ -418,7 +418,25 @@
           <input name="remark" placeholder="Remark" class="w-full p-3 border rounded" />
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
         </form>
-      </section>
+
+        <div id="ledger" style="margin-top: 3%;">
+          <h2 class="text-2xl font-semibold mb-4">Recent Member Ledger</h2>
+          <div class="overflow-auto rounded shadow bg-white">
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                  <th class="p-3">Phone No</th>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Amount</th>
+                  <th class="p-3">Remark</th>
+                </tr>
+              </thead>
+              <tbody id="ledgerData"></tbody>
+            </table>
+          </div>
+        </div>
+       </section>
+
 
       <!-- OCDA Expense Entry -->
       <section id="ocda-expense" class="tab-content hidden">
