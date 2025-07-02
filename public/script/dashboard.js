@@ -63,7 +63,7 @@
     const phone = localStorage.getItem('loggedInPhone');
 
     try {
-      const user = await fetchAPI('/api/profile', 'POST', { phoneNumber: phone });
+      const user = await fetchAPI('https://ocdaonline-backend.onrender.com/api/profile', 'POST', { phoneNumber: phone });
       currentUser = user;
       document.getElementById('username').textContent = `${user.othernames || ''} ${user.surname || ''}`;
       document.getElementById('phone').textContent = user.phoneNumber || '';
