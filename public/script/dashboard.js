@@ -1,20 +1,22 @@
 const BASE_URL = 'https://ocdaonline-backend.onrender.com';
 
+async function fetchAPI(url, method = 'GET', data = null) {
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include'
+  };
+  if (data) options.body = JSON.stringify(data);
+
+  // Always use absolute URL for backend API
+  const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
+  const res = await fetch(fullUrl, options);
+  return res.ok ? res.json() : Promise.reject(await res.json());
+}
+
   const phone = localStorage.getItem('loggedInPhone');
   if (!phone) window.location.href = '/';
 
-  async function fetchAPI(url, method = 'GET', data = null) {
-    const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    };
-    if (data) options.body = JSON.stringify(data);
-
-    const fullURL = url.startsWitth('http') ? url : BASE_URL + url
-    const res = await fetch(fullURL, options);
-    return res.ok ? res.json() : Promise.reject(await res.json());
-  }
 
 
   function toggleSidebar() {
