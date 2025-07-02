@@ -29,7 +29,12 @@ app.use('/admin', require('./routes/admin'));
 // Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.use('/public', serveIndex(path.join(__dirname, 'public'), { icons: true }));
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
 
 app.use(session({
   secret: 'super-secret',
