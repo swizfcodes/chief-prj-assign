@@ -1,3 +1,4 @@
+const BASE_URL = 'https://ocdaonline-backend.onrender.com';
 
   const phone = localStorage.getItem('loggedInPhone');
   if (!phone) window.location.href = '/';
@@ -9,7 +10,9 @@
       credentials: 'include'
     };
     if (data) options.body = JSON.stringify(data);
-    const res = await fetch(url, options);
+
+    const fullURL = url.startsWitth('http') ? url : BASE_URL + url
+    const res = await fetch(fullURL, options);
     return res.ok ? res.json() : Promise.reject(await res.json());
   }
 
@@ -63,7 +66,7 @@
     const phone = localStorage.getItem('loggedInPhone');
 
     try {
-      const user = await fetchAPI('https://ocdaonline-backend.onrender.com/api/profile', 'POST', { phoneNumber: phone });
+      const user = await fetchAPI('/api/profile', 'POST', { phoneNumber: phone });
       currentUser = user;
       document.getElementById('username').textContent = `${user.othernames || ''} ${user.surname || ''}`;
       document.getElementById('phone').textContent = user.phoneNumber || '';
