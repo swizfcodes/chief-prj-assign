@@ -3,6 +3,9 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
   e.preventDefault();
   clearAllErrors();
 
+const isLocal = window.location.hostname === 'localhost';
+const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
+
   let isValid = true;
   const identifier = document.getElementById('loginPhone').value.trim(); // ID or Phone
   const password = document.getElementById('loginPassword').value;
@@ -19,7 +22,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 
   if (isValid) {
       try {
-          const res = await fetch('http://localhost:5500/login', {
+            const res = await fetch(`${BASE_URL}/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
