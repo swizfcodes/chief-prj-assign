@@ -16,8 +16,9 @@ app.use(cors({
   origin: [
     'http://localhost:5500',        // local frontend
     'http://127.0.0.1:5500',
-    'https://ocdaonline.net',       // production frontend
-    'https://fullweb.onrender.com'
+    'https://ocdaonline.net',       
+    // production
+    'https://chief-prj-assign.onrender.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true

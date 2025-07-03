@@ -1,5 +1,5 @@
 const isLocal = window.location.hostname === 'localhost';
-const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://ocdaonline.net';
+const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
 
 
 async function fetchAPI(endpoint, method = 'GET', data = null) {
