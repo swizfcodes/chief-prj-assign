@@ -1,17 +1,30 @@
-const BASE_URL = 'https://ocdaonline-backend.onrender.com';
+const isLocal = window.location.hostname === 'localhost';
+const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://ocdaonline.net';
 
-async function fetchAPI(url, method = 'GET', data = null) {
+
+async function fetchAPI(endpoint, method = 'GET', data = null) {
   const options = {
     method,
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include'
+    headers: {
+      'Content-Type': 'application/json'
+    }
   };
-  if (data) options.body = JSON.stringify(data);
 
-  // Always use absolute URL for backend API
-  const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
-  const res = await fetch(fullUrl, options);
-  return res.ok ? res.json() : Promise.reject(await res.json());
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  const fullUrl = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
+
+  try {
+    const res = await fetch(fullUrl, options);
+    const result = await res.json();
+    if (!res.ok) throw result;
+    return result;
+  } catch (err) {
+    console.error('API error:', err);
+    throw err;
+  }
 }
 
   const phone = localStorage.getItem('loggedInPhone');

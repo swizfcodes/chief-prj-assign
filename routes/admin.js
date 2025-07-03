@@ -91,6 +91,13 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.get('/login', (req, res) => {
+  res.status(405).json({ message: 'Use POST to log in.' });
+});
+
+
+
+
 //  List Admins
 router.get('/list', verifyToken, async (req, res) => {
   try {

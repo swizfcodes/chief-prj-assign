@@ -1,24 +1,26 @@
 // db.js
 const sql = require('mssql');
 
-const config = {
-  user: 'sa',
-  password: 'H1cadServer',
-  server: 'DESKTOP-NIL5C6H\\SQL2022',
-  database: 'ocdadatabase',
-  port: 1433,
-  options: {
-    trustServerCertificate: true,
-  }
-};
+require('dotenv').config();
 
+const config = require('./dbconfig');
+
+// Create one shared pool connection (singleton)
 const pool = new sql.ConnectionPool(config);
-const poolConnect = pool.connect();
+
+// Connect the pool once and export it
 const poolPromise = pool.connect();
+const poolConnect = pool.connect();
+
+poolConnect.then(() => {
+  console.log('✅ Azure SQL connected successfully.');
+}).catch(err => {
+  console.error('❌ Azure SQL connection failed:', err);
+});
 
 module.exports = {
   sql,
   pool,
-  poolConnect,
-  poolPromise
+  poolPromise,
+  poolConnect
 };

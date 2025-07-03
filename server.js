@@ -10,20 +10,21 @@ const app = express();
 const router = express.Router();
 const adminRoutes = require('./routes/admin');
 const config = require('./dbconfig'); 
-const PORT = 5500;
+const PORT = process.env.PORT || 5500;
 
 app.use(cors({
   origin: [
-    'https://ocdaonline-backend.onrender.com', // your backend domain
-    'https://ocdaonline.net',                  // your frontend domain (if you have one)
-    'http://localhost:5500'                    // for local testing
+    'http://localhost:5500',        // local frontend
+    'http://127.0.0.1:5500',
+    'https://ocdaonline.net',       // production frontend
+    'https://fullweb.onrender.com'
   ],
-  credentials: true // if you use cookies or authentication
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
 }));
 
 app.use(express.json());
 app.use('/admin', adminRoutes);
-app.use('/admin', require('./routes/admin'));
 
 
 // Middleware
@@ -226,9 +227,6 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Login failed, server error' });
   }
 });
-
-
-
 
 // dashboard Endpoint//
 
