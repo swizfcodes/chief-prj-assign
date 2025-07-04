@@ -96,6 +96,9 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
       document.getElementById('honTitle').textContent = user.honTitle || 'None';
       document.getElementById('exitDate').textContent = user.exitDate || 'N/A';
       document.getElementById('qualifications').textContent = user.qualifications || 'None';
+
+      // Show landing section,
+      showLandingSection();
     } catch (e) {
       alert('Profile load failed.');
       window.location.href = '/';
@@ -103,13 +106,26 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
   }
 
 
-  function showSection(id) {
-    document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
+  function showLandingSection() {
+    document.getElementById('landingSection').classList.remove('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
+    document.getElementById('receiptSection').classList.add('hidden');
+    document.getElementById('enquirySection').classList.add('hidden');
   }
 
+  function showSection(sectionId) {
+    // Hide all main sections
+    document.getElementById('landingSection').classList.add('hidden');
+    document.getElementById('profileSection').classList.add('hidden');
+    document.getElementById('receiptSection').classList.add('hidden');
+    document.getElementById('enquirySection').classList.add('hidden');
+    // Show the requested section
+    document.getElementById(sectionId).classList.remove('hidden');
+  }
+
+
   //user edit enable
-  
+
   function toggleEdit() {
     const profileDisplay = document.getElementById('profileDisplay');
     const profileEditForm = document.getElementById('profileEditForm');
@@ -288,7 +304,7 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
     document.getElementById('receiptTable').innerHTML = '';
     document.getElementById('fromDate').value = '';
     document.getElementById('toDate').value = '';
-    showSection('profileSection');
+    showSection('landingSection');
   }
 
   // Export filtered receipts as CSV
@@ -538,7 +554,7 @@ function printReceiptsPDF() {
     }
   }
 
-  // ✅ Bind event listeners AFTER fetchEnquiry is defined
+  //  Bind event listeners AFTER fetchEnquiry is defined
   document.getElementById('wardSelect').addEventListener('change', function () {
     const value = this.value;
     if (value && value !== 'Select Ward') {

@@ -1,3 +1,6 @@
+const isLocal = window.location.hostname === 'localhost';
+const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
+
 function verifyToken(req, res, next) {
   const token = req.headers['authorization'];
   if (!token) return res.status(401).json({ message: 'Missing token' });
@@ -21,7 +24,7 @@ async function loadAdmins() {
   if (!token) return document.getElementById('adminTable').innerText = 'Unauthorized – No token found.';
 
   try {
-    const res = await fetch('http://localhost:5500/admin/list', {
+      const res = await fetch(`${BASE_URL}/admin/list`, {
       headers: { 'Authorization': token }
     });
 
@@ -77,7 +80,8 @@ function setupAdminTab() {
       };
 
       try {
-        const res = await fetch('http://localhost:5500/admin/create', {
+        
+      const res = await fetch(`${BASE_URL}/admin/create`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,3 +1,6 @@
+const isLocal = window.location.hostname === 'localhost';
+const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
+
 function showForm(formType) {
     const signupForm = document.getElementById('signupForm');
     const loginForm = document.getElementById('loginForm');
@@ -185,7 +188,7 @@ if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
   if (isValid) {
      console.log('Passed validation. Sending data...', userData);
       try {
-          const res = await fetch('http://localhost:5500/signup', {
+            const res = await fetch(`${BASE_URL}/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(userData)

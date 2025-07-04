@@ -13,7 +13,7 @@
 
   <!-- Dark Mode Toggle -->
   <div class="top-bar">
-    <img src="/photos/OCDA-Logo.jpg" alt="OCDA">
+    <img src="/photos/OCDA-Logo3.png" alt="OCDA">
     <button class="toggle-btn" onclick="toggleSidebar()">
       <i class="fas fa-bars"></i>
     </button>
@@ -41,7 +41,14 @@
   </div>
 
   <div class="main">
-    <section id="profileSection">
+
+    <!-- Display after signing in -->
+    <section id="landingSection" class="landing-section" style="margin-top: 12%;">
+      <img src="/photos/OCDA-Logo3.png" alt="OCDA">
+    </section>
+
+
+    <section id="profileSection"  class="hidden">
       <h1>Welcome, <span id="username"></span></h1>
       <h2>My Profile</h2>
 
@@ -58,7 +65,7 @@
         <p><strong>Title:</strong> <span id="title"></span></p>
         <p><strong>Honorary Title:</strong> <span id="honTitle"></span></p>
         <p><strong>Qualifications:</strong> <span id="qualifications"></span></p>
-        <p><strong>Exit Date:</strong> <span id="exitDate"></span></p>
+        <!--<p><strong>Exit Date:</strong> <span id="exitDate"></span></p>-->
         <button onclick="toggleEdit(true)">Edit Profile</button>
       </div>
 
@@ -68,7 +75,7 @@
         <div class="form-row">
           <div class="form-group">
               <label for="phoneNumber">Phone Number</label>
-              <input type="tel" id="phone" name="phoneNumber">
+              <input type="tel" id="phone" name="phoneNumber" disabled>
           </div>
           <div class="form-group">
               <label for="phoneNo2">Secondary Phone</label>
