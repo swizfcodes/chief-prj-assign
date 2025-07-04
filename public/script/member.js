@@ -155,10 +155,23 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.o
         eyeClosed.style.display = isPassword ? "inline" : "none";
     });
 
+    function handleForgotPasswordClick() {
+    // Get the phone number from login form
+    const loginPhoneNumber = document.getElementById('loginPhone')?.value.trim() || '';
+    
+    // Store phone number in sessionStorage for the next page
+    if (loginPhoneNumber) {
+        sessionStorage.setItem('prefillPhoneNumber', loginPhoneNumber);
+    }
+    
+    // Navigate to forgot password page
+    window.location.href = 'forgotpassword.html';
+    }
+
 // In-memory storage for demonstration (replace with actual database calls)
 let users = [];
 
-function saveUserData(userData, type) {
+    function saveUserData(userData, type) {
     if (type === 'signup') {
         users.push(userData);
         console.log('User saved:', userData);

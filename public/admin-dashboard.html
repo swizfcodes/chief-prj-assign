@@ -417,7 +417,7 @@
         <form id="ledgerForm" class="bg-white p-6 rounded shadow-md space-y-4 max-w-md">
           <input list="phonenoList" id="phoneno" name="phoneno" class="w-full p-3 border rounded" placeholder="Search phone number..." required>
           <datalist id="phonenoList"></datalist>
-          <input name="transdate" type="date" placeholder="Date" required class="w-full p-3 border rounded" />
+          <input name="transdate" id="transdate" type="date" placeholder="Date" required class="w-full p-3 border rounded" />
           <input name="amount" placeholder="Amount (use negative for reversal)" required class="w-full p-3 border rounded" />
           <input name="remark" placeholder="Remark" class="w-full p-3 border rounded" />
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
@@ -430,9 +430,10 @@
               <thead class="bg-gray-200 text-gray-700">
                 <tr>
                   <th class="p-3">Phone No</th>
-                  <th class="p-3">Date</th>
+                  <th class="p-3">Trans. Date</th>
                   <th class="p-3">Amount</th>
                   <th class="p-3">Remark</th>
+                  <th class="p-3">Record Date</th>
                 </tr>
               </thead>
               <tbody id="ledgerData"></tbody>
@@ -631,12 +632,6 @@
                 <th class="p-3">Sex</th>
                 <th class="p-3">Quarter</th>
                 <th class="p-3">Ward</th>
-                <th class="p-3">State</th>
-                <th class="p-3">Town</th>
-                <th class="p-3">DOB</th>
-                <th class="p-3">Profession</th>
-                <th class="p-3">Qualification</th>
-                <th class="p-3">Email</th>
                 <th class="p-3">Actions</th>
               </tr>
             </thead>

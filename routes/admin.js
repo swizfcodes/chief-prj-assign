@@ -500,22 +500,23 @@ router.put('/member/:phone', verifyToken, async (req, res) => {
 
 // POST: Add Ledger Entry
 router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
-  const { amount, remark } = req.body;
-  const phoneno = req.params.phoneno;
+  const { phoneno } = req.params;
+  const { transdate, amount, remark } = req.body;
 
   try {
     const pool = await sql.connect(config);
     await pool.request()
       .input('phoneno', sql.VarChar, phoneno)
+      .input('transdate', sql.Date, transdate)  //  From admin input
       .input('amount', sql.Decimal(18, 2), amount)
       .input('remark', sql.VarChar, remark)
-      .query(`INSERT INTO memberledger (phoneno, amount, remark, transdate)
-              VALUES (@phoneno, @amount, @remark, GETDATE())`);
-              
-    res.send({ success: true, message: 'Ledger entry added' });
+      .query(`INSERT INTO memberledger (phoneno, transdate, amount, remark, paydate)
+              VALUES (@phoneno, @transdate, @amount, @remark, CAST(GETDATE() AS DATE))`);
+
+    res.status(200).json({ message: 'Ledger entry recorded successfully' });
   } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Failed to save ledger entry' });
+    console.error('Ledger insert error:', err);
+    res.status(500).json({ message: 'Failed to record ledger entry' });
   }
 });
 
@@ -525,9 +526,15 @@ router.get('/api/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   try {
     const pool = await sql.connect(config);
     const result = await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .query(`SELECT amount, remark, FORMAT(transdate, 'yyyy-MM-dd') AS transdate
-              FROM memberledger WHERE phoneno = @phoneno ORDER BY transdate DESC`);
+    .input('phoneno', sql.VarChar, phoneno)
+    .query(`SELECT 
+              amount, 
+              remark, 
+              FORMAT(transdate, 'yyyy-MM-dd') AS transdate,
+              FORMAT(paydate, 'yyyy-MM-dd') AS paydate
+            FROM memberledger 
+            WHERE phoneno = @phoneno 
+            ORDER BY transdate DESC`);;
     res.send(result.recordset);
   } catch (err) {
     console.error(err);

@@ -66,7 +66,7 @@ sql.connect(config).then(pool => {
   // GET /admin/memberledger
   router.get('/memberledger', async (req, res) => {
     try {
-      const result = await pool.request().query('SELECT phoneno, transdate, amount, remark FROM memberledger');
+      const result = await pool.request().query('SELECT phoneno, transdate, amount, remark, paydate FROM memberledger');
       res.json(result.recordset);
     } catch (err) {
       console.error('Error fetching member ledger:', err);

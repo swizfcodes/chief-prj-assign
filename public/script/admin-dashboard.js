@@ -80,7 +80,7 @@ function setupAdminTab() {
       };
 
       try {
-        
+
       const res = await fetch(`${BASE_URL}/admin/create`, {
           method: 'POST',
           headers: {
@@ -136,16 +136,7 @@ function setupAdminTab() {
         // Only call setupAdminTab when admin tab is clicked
         if (tabId === 'create-admin') setupAdminTab();
         if (tabId === 'member-list') loadMembers();
-        if (tabId === 'ledger-entry') {
-          fetchTable('/admin/memberledger', 'ledgerData', row => `
-            <tr class="border-t">
-              <td class="p-2">${row.phoneno}</td>
-              <td class="p-2">${formatDate(row.transdate)}</td>
-              <td class="p-2">${formatAmount(row.amount)}</td>
-              <td class="p-2">${row.remark}</td>
-            </tr>
-          `);
-        }
+        if (tabId === 'ledger-entry') loadMemberLedger();
         // ...other tab-specific loaders
       });
     });
@@ -190,16 +181,6 @@ function setupAdminTab() {
       }
     });
 }
-
-// Fetch and render Member Ledger
-fetchTable('/admin/memberledger', 'ledgerData', row => `
-  <tr class="border-t">
-    <td class="p-2">${row.phoneno}</td>
-    <td class="p-2">${formatDate(row.transdate)}</td>
-    <td class="p-2">${formatAmount(row.amount)}</td>
-    <td class="p-2">${row.remark}</td>
-  </tr>
-`);
 
 // Fetch and render Monthly Summary
 fetchTable('/admin/monthlysummary', 'summaryData', row => `
@@ -393,12 +374,6 @@ table.innerHTML = paginated.map(m => `
     <td class="p-3">${m.Sex}</td>
     <td class="p-3">${m.Quarters}</td>
     <td class="p-3">${m.Ward}</td>
-    <td class="p-3">${m.State}</td>
-    <td class="p-3">${m.Town}</td>
-    <td class="p-3">${m.DOB?.split('T')[0] || ''}</td>
-    <td class="p-3">${m.Profession}</td>
-    <td class="p-3">${m.Qualifications}</td>
-    <td class="p-3">${m.email}</td>
     <td class="p-3 flex flex-col gap-2">
       <button onclick="viewMember('${m.PhoneNumber}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">View</button>
       <button onclick="editMember('${m.PhoneNumber}')" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">Edit</button>
@@ -702,7 +677,7 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
     phoneno: form.phoneno.value,
     transdate: form.transdate.value,
     amount: parseFloat(form.amount.value),
-    remark: form.remark.value
+    remark: form.remark.value,
   };
 
   console.log('Submitting ledger entry for:', data);
@@ -720,6 +695,7 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
     const result = await res.json();
     alert(res.ok ? 'Ledger entry recorded!' : (result.message || 'Error submitting ledger entry.'));
     if (res.ok) form.reset();
+    loadMemberLedger();
   } catch (err) {
     console.error('Ledger Error:', err.message || err);
     alert('Server error');
@@ -727,25 +703,29 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
 });
 
 // Add member ledger to (Screen D)
-document.querySelectorAll('.tab-button').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-    const tabId = btn.getAttribute('data-tab');
-    if (tabId) {
-      document.getElementById(tabId).classList.remove('hidden');
-      if (tabId === 'ledger-entry') {
-        fetchTable('/admin/memberledger', 'ledgerData', row => `
-          <tr class="border-t">
-            <td class="p-2">${row.phoneno}</td>
-            <td class="p-2">${formatDate(row.transdate)}</td>
-            <td class="p-2">${formatAmount(row.amount)}</td>
-            <td class="p-2">${row.remark}</td>
-          </tr>
-        `);
+async function loadMemberLedger() {
+  try {
+    const res = await fetch('/admin/memberledger', {
+      headers: {
+        'Authorization': localStorage.getItem('adminToken') || ''
       }
-    }
-  });
-});
+    });
+    const data = await res.json();
+    const body = document.getElementById('ledgerData');
+    body.innerHTML = data.map(row =>`
+        <tr class="border-t">
+          <td class="p-2">${row.phoneno}</td>
+          <td class="p-2">${formatDate(row.transdate)}</td>
+          <td class="p-2">${formatAmount(row.amount)}</td>
+          <td class="p-2">${row.remark}</td>
+          <td class="p-2">${formatDate(row.paydate)}</td>
+        </tr>
+        `).join('');
+  } catch (err) {
+    console.error('Load memberLedger Error:', err);
+  }
+}
+
 
 
 // Add OCDA Expense (Screen E)
@@ -1194,6 +1174,7 @@ function showAccountSummary() {
       <td class="p-2">${formatDate(row.transdate)}</td>
       <td class="p-2">${formatAmount(row.amount)}</td>
       <td class="p-2">${row.remark}</td>
+      <td class="p-2">${formatDate(row.paydate)}</td>     
     </tr>
   `);
 }

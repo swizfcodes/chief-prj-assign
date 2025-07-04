@@ -1,7 +1,7 @@
 const isLocal = window.location.hostname === 'localhost';
 const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
 
-function showForm(formType) {
+  function showForm(formType) {
     const signupForm = document.getElementById('signupForm');
     const loginForm = document.getElementById('loginForm');
     const toggleBtns = document.querySelectorAll('.toggle-btn');
@@ -107,7 +107,7 @@ function showForm(formType) {
   if (!userData.surname) {
     showError('surname', 'Surname is required');
     isValid = false;
-}
+    }
 
   if (!userData.sex) {
     showError('sex', 'Please select your sex');
@@ -163,7 +163,7 @@ function showForm(formType) {
     }
 
 
-if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
+  if (userData.phoneNo2 && !validatePhone(userData.phoneNo2)) {
     showError('phoneNo2', 'Enter a valid Nigerian phone number');
     isValid = false;
     }
