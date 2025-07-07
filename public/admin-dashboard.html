@@ -31,7 +31,10 @@
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="enquiry">Enquiry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="std">Standard Expenses</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="income">Income Classifications</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="static-tables">Static Tables</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expenses-analysis">OCDA Expenses Analysis</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-income-analysis">OCDA Income Analysis</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="change-PhoneNumber">Change PhoneNumber</button>
         
       <button onclick="adminLogout()" class="bg-red-500 w-full px-4 py-2 text-left rounded tab-button">Logout</button>
@@ -41,8 +44,15 @@
 
     <!-- Main Content -->
     <main class="flex-1 p-6 space-y-10">
-      <section id="landingSection" class="landing-section tab-content" style="margin-top: 12%;">
-        <img src="/photos/OCDA-Logo3.png" alt="OCDA">
+      
+      <section id="landingSections" class="landings-section tab-content">
+
+        <!-- Card + Table Container -->
+        <div class="overflow-x-auto rounded shadow bg-white p-4 space-y-6">
+          <div id="membersSummaryTableBox">
+            <!-- JS will inject summary cards and table here -->
+          </div>
+        </div>
       </section>
 
       <!-- Create Admin Section -->
@@ -66,23 +76,28 @@
         <div id="adminTable" class="bg-white p-4 rounded shadow text-sm">Loading...</div>
       </section>
 
-      <!-- Member Ledger 
-      <section id="ledger" class="tab-content">
-        <h2 class="text-2xl font-semibold mb-4">Member Ledger</h2>
+      <!-- Income Classifications -->
+      <section id="income" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">Income Classifications</h2>
         <div class="overflow-auto rounded shadow bg-white">
+          <form id="addIncomeClassForm" class="flex gap-2 mb-2">
+            <input type="text" id="newIncomecode" placeholder="Code..." required class="border rounded px-2 py-1">
+            <input type="text" id="newIncomedesc" placeholder="Description..." required class="border rounded px-2 py-1">
+            <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded">Add</button>
+          </form>
           <table class="min-w-full text-sm text-left">
             <thead class="bg-gray-200 text-gray-700">
               <tr>
-                <th class="p-3">Phone No</th>
-                <th class="p-3">Date</th>
-                <th class="p-3">Amount</th>
-                <th class="p-3">Remark</th>
+                <th>Code</th>
+                <th>Description</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="ledgerData"></tbody>
+            <tbody id="incomeData"></tbody>
           </table>
         </div>
-      </section>-->
+      </section>
+
 
       <!-- Unified Monthly Summary Section (Screen F) -->
       <section id="summary" class="tab-content hidden">
@@ -127,7 +142,80 @@
         </div>
       </section>
 
+      <!-- OCDA Expenses Analysis Section -->
+      <section id="ocda-expenses-analysis" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">OCDA Expenses Analysis</h2>
 
+        <!-- Filter Form -->
+        <form id="ocdaExpensesAnalysisForm" class="bg-white p-4 rounded shadow mb-4 flex flex-wrap gap-4 items-end">
+          <div>
+            <label class="block font-medium mb-1">Mode</label>
+            <select name="mode" class="p-2 border rounded">
+              <option value="summary">Summary</option>
+              <option value="detail">Detail</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium mb-1">Start Date</label>
+            <input type="date" name="start" class="p-2 border rounded" />
+          </div>
+          <div>
+            <label class="block font-medium mb-1">End Date</label>
+            <input type="date" name="end" class="p-2 border rounded" />
+          </div>
+          <div>
+            <label class="block font-medium mb-1">Specific Code or ALL</label>
+            <input type="text" name="code" class="p-2 border rounded" placeholder="e.g. 1010 or ALL" />
+          </div>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Report</button>
+          <button onclick="exportOCDAReportToPDF()" class="bg-green-600 text-white px-4 py-2 rounded">Export PDF</button>
+        </form>
+
+        <!-- Results Container -->
+        <div id="ocdaExpensesAnalysisTable" class="overflow-auto rounded shadow bg-white p-4 space-y-8">
+          <!-- Dynamic report content will be inserted here -->
+        </div>
+      </section>
+
+
+      <!-- OCDA Income Analysis Section -->
+      <section id="ocda-income-analysis" class="tab-content hidden">
+        <h2 class="text-2xl font-semibold mb-4">OCDA Income Analysis</h2>
+        <form id="ocdaIncomeAnalysisForm" class="bg-white p-4 rounded shadow mb-4 flex flex-wrap gap-4 items-end">
+          <div>
+            <label class="block font-medium mb-1">Mode</label>
+            <select name="mode" class="p-2 border rounded">
+              <option value="summary">Summary</option>
+              <option value="detail">Detail</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium mb-1">Start Date</label>
+            <input type="date" name="start" class="p-2 border rounded" />
+          </div>
+          <div>
+            <label class="block font-medium mb-1">End Date</label>
+            <input type="date" name="end" class="p-2 border rounded" />
+          </div>
+          <div>
+            <label class="block font-medium mb-1">Specific Code or ALL</label>
+            <input type="text" name="code" class="p-2 border rounded" placeholder="e.g. I002 or ALL" />
+          </div>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Report</button>
+        </form>
+        <div class="overflow-auto rounded shadow bg-white">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-200 text-gray-700">
+              <tr>
+                <th class="p-2">Code/Date</th>
+                <th class="p-2">Description/Remark</th>
+                <th class="p-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="ocdaIncomeAnalysisTable"></tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- OCDA Expenses -->
       <section id="expenses" class="tab-content hidden">
@@ -419,7 +507,10 @@
           <datalist id="phonenoList"></datalist>
           <input name="transdate" id="transdate" type="date" placeholder="Date" required class="w-full p-3 border rounded" />
           <input name="amount" placeholder="Amount (use negative for reversal)" required class="w-full p-3 border rounded" />
-          <input name="remark" placeholder="Remark" class="w-full p-3 border rounded" />
+          <select name="remark" id="remarkDropdown" class="w-full p-3 border rounded" required>
+            <option value="">-- Select Income Classification --</option>
+            <!-- Options will be populated by JS -->
+          </select>
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
         </form>
 
@@ -440,10 +531,9 @@
             </table>
           </div>
         </div>
-       </section>
+      </section>
 
-
-      <!-- OCDA Expense Entry -->
+            <!-- OCDA Expense Entry -->
       <section id="ocda-expense" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Record OCDA Expense</h2>
           <!-- Screen C: OCDA Cheque Input + Other Charges -->
@@ -478,7 +568,7 @@
           </div>
         </form>
 
-        <h3 class="text-lg font-semibold mt-8 mb-2">Recent OCDA Expenses</h3>
+      <h3 class="text-lg font-semibold mt-8 mb-2">Recent OCDA Expenses</h3>
         <div class="overflow-auto bg-white rounded shadow">
           <table class="min-w-full text-sm text-left">
             <thead class="bg-gray-200">
@@ -491,7 +581,9 @@
             </thead>
             <tbody id="ocdaTableBody"></tbody>
           </table>
+        </div>
       </section>
+
 
       <!-- Enquiry Section -->
       <section id="enquiry" class="tab-content hidden">
@@ -654,7 +746,7 @@
           <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="form-group">
               <label for="PhoneNumber">Phone Number</label>
-              <input name="PhoneNumber" id="PhoneNumber" type="tel" class="p-3 border rounded w-full" disabled/>
+              <input name="PhoneNumber" id="PhoneNumber" type="tel" class="p-3 border rounded w-full" readonly/>
             </div>
             <div class="form-group">
               <label for="phoneno2">Secondary Phone</label>
@@ -986,6 +1078,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </body>
 <script src="script/admin-dashboard.js"></script>
 </html>

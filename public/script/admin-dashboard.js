@@ -302,6 +302,90 @@ function stdExpenseRowRender(row) {
   `;
 }
 
+// Fetch and render Income Classifications
+fetchTable('/admin/incomeclass', 'incomeData', incomeClassRowRender);
+
+// Handle form submission
+document.getElementById('addIncomeClassForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const code = document.getElementById('newIncomecode').value.trim();
+  const desc = document.getElementById('newIncomedesc').value.trim();
+  if (!code || !desc) return alert('Enter both code and description');
+  
+  try {
+    const res = await fetch('/admin/incomeclass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ incomecode: code, incomedesc: desc })
+    });
+    if (res.ok) {
+      document.getElementById('newIncomecode').value = '';
+      document.getElementById('newIncomedesc').value = '';
+      fetchTable('/admin/incomeclass', 'incomeData', incomeClassRowRender);
+    } else {
+      const result = await res.json();
+      alert(result.error || 'Insert failed');
+    }
+  } catch (err) {
+    console.error('Failed to add income classification:', err);
+  }
+});
+
+function editIncomeClass(code, btn) {
+  const row = btn.closest('tr');
+  const fields = row.querySelectorAll('[data-field]');
+  const editing = btn.textContent === 'Save';
+
+  if (editing) {
+    const body = {};
+    fields.forEach(f => body[f.dataset.field] = f.textContent.trim());
+
+    // Only send incomedesc in body for update, as incomecode is used as query param
+    fetch(`/admin/incomeclass?incomecode=${encodeURIComponent(code)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ incomedesc: body.incomedesc })
+    }).then(res => {
+      if (!res.ok) return alert('Update failed');
+      alert('Saved successfully!');
+      btn.textContent = 'Edit';
+      fields.forEach(f => f.setAttribute('contenteditable', 'false'));
+      fetchTable('/admin/incomeclass', 'incomeData', incomeClassRowRender);
+    });
+  } else {
+    fields.forEach(f => f.setAttribute('contenteditable', 'true'));
+    btn.textContent = 'Save';
+    alert('Editing is enabled. You can now modify the fields.');
+  }
+}
+
+function deleteIncomeClass(code) {
+  if (!confirm('Delete this income class?')) return;
+  fetch(`/admin/incomeclass?incomecode=${encodeURIComponent(code)}`, { method: 'DELETE' })
+    .then(res => {
+      if (!res.ok) return alert('Delete failed');
+      alert('Deleted successfully!');
+      fetchTable('/admin/incomeclass', 'incomeData', incomeClassRowRender);
+    });
+}
+
+// Table row renderer
+function incomeClassRowRender(row) {
+  return `
+    <tr class="border-t">
+      <td data-field="incomecode" contenteditable="false" class="p-2">${row.incomecode}</td>
+      <td data-field="incomedesc" contenteditable="false" class="p-2">${row.incomedesc}</td>
+      <td class="p-2">
+        <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editIncomeClass('${row.incomecode}', this)">Edit</button>
+        <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteIncomeClass('${row.incomecode}')">Delete</button>
+      </td>
+    </tr>
+  `;
+}
+
+
+
+
 // Logout
 function adminLogout() {
   localStorage.removeItem('adminToken');
@@ -435,6 +519,102 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// Fetch and render Members Summary Table (Quarters x Wards)
+async function loadMembersSummaryTable(targetBoxId = 'summaryTableBox') {
+  const token = localStorage.getItem('adminToken');
+  const box = document.getElementById(targetBoxId);
+  if (!token || !box) return;
+  box.innerHTML = '<div class="text-gray-500">Loading summary...</div>';
+
+  try {
+    const res = await fetch(`${BASE_URL}/admin/members-summary`, {
+      headers: { 'Authorization': token }
+    });
+    if (!res.ok) throw new Error('Failed to fetch summary');
+    const { wards, quarters, data, wardTotals, quarterTotals, grandTotal } = await res.json();
+
+    if (!wards?.length || !quarters?.length) {
+      box.innerHTML = '<div class="text-gray-500">No data found.</div>';
+      return;
+    }
+
+    // Create a mapping of quarters to their specific wards
+    const groupedByQuarter = {};
+    const members = Object.keys(data);
+    members.forEach(ward => {
+      quarters.forEach(quarter => {
+        if ((data[ward]?.[quarter] ?? 0) > 0) {
+          if (!groupedByQuarter[quarter]) groupedByQuarter[quarter] = [];
+          groupedByQuarter[quarter].push(ward);
+        }
+      });
+    });
+
+    let html = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">';
+
+    // Render all ward cards individually
+    wards.forEach(ward => {
+      if (wardTotals?.[ward] !== undefined) {
+        html += `
+          <div class="bg-white border border-blue-300 shadow-lg rounded-lg p-5 transform transition duration-500 hover:scale-105 hover:shadow-2xl">
+            <div class="flex items-center space-x-4">
+              <div class="bg-blue-100 text-blue-700 rounded-full p-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2h5" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a4 4 0 100-8 4 4 0 000 8z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-blue-900">${ward}</h3>
+                <p class="text-sm text-blue-600"> <span class="font-bold">${wardTotals[ward]}</span></p>
+              </div>
+            </div>
+          </div>`;
+      }
+    });
+    html += '</div>';
+
+    // Render each quarter card with its wards
+    /*html += '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">';
+    Object.entries(groupedByQuarter).forEach(([quarter, wardList]) => {
+      html += `
+        <div class="bg-white border-l-4 border-blue-500 shadow-md rounded-lg p-4 transition-transform duration-500 hover:scale-105">
+          <h3 class="text-xl font-bold text-blue-800 mb-3">${quarter}</h3>
+          <div class="space-y-2">`;
+      wardList.forEach(ward => {
+        html += `
+            <div class="flex justify-between text-sm text-gray-700 border-b pb-1">
+              <span class="font-medium">${ward}</span>
+              <span class="font-semibold text-green-700">${data?.[ward]?.[quarter] ?? 0}</span>
+            </div>`;
+      });
+      html += `
+            <div class="flex justify-between font-bold border-t pt-2 mt-3 text-blue-900">
+              <span>Quarter Total</span>
+              <span>${quarterTotals?.[quarter] ?? 0}</span>
+            </div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';*/
+
+    html += `<div class="mt-10 text-right font-extrabold text-3xl text-gray-700 animate-pulse">Grand Total: ${grandTotal ?? 0}</div>`;
+    box.innerHTML = html;
+
+  } catch (err) {
+    box.innerHTML = `<div class="text-red-500">Error loading summary table</div>`;
+    console.error('Members Summary Table Error:', err);
+  }
+}
+// Ensure summary table loads on login and on refresh 
+window.addEventListener('DOMContentLoaded', function () {
+  if (document.getElementById('membersSummaryTableBox')) {
+    loadMembersSummaryTable('membersSummaryTableBox');
+  } else if (document.getElementById('summaryTableBox')) {
+    loadMembersSummaryTable('summaryTableBox');
+  }
+});
+
 // Export to Excel or PDF
 function exportMembers(type) {
   const table = document.getElementById('memberTableExport');
@@ -561,7 +741,6 @@ function closeMemberDetails() {
   document.getElementById('updateMemberBtn')?.classList.add('hidden');
 }
 
-
 // Save changes
 async function saveMemberChanges() {
   const form = document.getElementById('memberEditForm');
@@ -669,6 +848,33 @@ window.addEventListener('DOMContentLoaded', () => {
   loadPhoneNumbers();
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+  // Populate Income Classification dropdown for ledger entry
+  const remarkDropdown = document.getElementById('remarkDropdown');
+  if (remarkDropdown) {
+    fetch('/admin/incomeclass')
+      .then(res => res.json())
+      .then(data => {
+        // Remove all except the first option
+        while (remarkDropdown.options.length > 1) {
+          remarkDropdown.remove(1);
+        }
+        if (Array.isArray(data)) {
+          data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = `${item.incomedesc} (${item.incomecode})`;
+            option.textContent = `${item.incomedesc} (${item.incomecode})`;
+            remarkDropdown.appendChild(option);
+          });
+        }
+      })
+      .catch(err => {
+        // Optionally show error to user
+        console.error('Failed to load income classifications:', err);
+      });
+  }
+});
+
 //  Add Payment to Member Ledger (Screen D)
 document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -681,6 +887,12 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
   };
 
   console.log('Submitting ledger entry for:', data);
+
+  const today = new Date().toISOString().split('T')[0];
+  if (data.transdate > today) {
+    alert("Transaction date cannot be in the future.");
+    return;
+  }
 
 
   try {
@@ -712,14 +924,14 @@ async function loadMemberLedger() {
     });
     const data = await res.json();
     const body = document.getElementById('ledgerData');
+    console.log("Received ledger entries:", data);
     body.innerHTML = data.map(row =>`
         <tr class="border-t">
           <td class="p-2">${row.phoneno}</td>
           <td class="p-2">${formatDate(row.transdate)}</td>
           <td class="p-2">${formatAmount(row.amount)}</td>
           <td class="p-2">${row.remark}</td>
-          <td class="p-2">${formatDate(row.paydate)}</td>
-        </tr>
+          <td class="p-2">${row.paydate || '—'}</td>
         `).join('');
   } catch (err) {
     console.error('Load memberLedger Error:', err);
@@ -1159,6 +1371,169 @@ function printEnquiry() {
   win.document.close();
   win.print();
 }
+
+
+async function loadOCDAExpensesAnalysis({ start = '', end = '', code = 'ALL', mode = 'summary' } = {}) {
+  try {
+    const params = new URLSearchParams({ start, end, code, mode });
+    const res = await fetch(`/admin/ocda-expenses-analysis?${params.toString()}`, {
+      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+    });
+    const data = await res.json();
+    renderOCDAExpensesAnalysis(data, mode);
+  } catch (err) {
+    console.error('Failed to load OCDA Expenses Analysis:', err);
+    document.getElementById('ocdaExpensesAnalysisTable').innerHTML = '<tr><td colspan="5">Failed to load data</td></tr>';
+  }
+}
+
+
+function renderOCDAExpensesAnalysis(data, mode) {
+  const table = document.getElementById('ocdaExpensesAnalysisTable');
+  if (!Array.isArray(data) || data.length === 0) {
+    table.innerHTML = '<div>No data found</div>';
+    return;
+  }
+
+  if (mode === 'summary') {
+    table.innerHTML = `
+      <table class="min-w-full border border-gray-300">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">Code</th>
+            <th class="p-2 border">Description</th>
+            <th class="p-2 border">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(row => `
+            <tr>
+              <td class="p-2 border text-center">${row.code}</td>
+              <td class="p-2 border text-center">${row.description}</td>
+              <td class="p-2 border text-center">${formatAmount(row.amount)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;}else {
+    // Detail: Grouped table with expand/collapse
+    const grouped = {};
+    data.forEach(row => {
+      const key = `${row.description} (${row.code})`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(row);
+    });
+
+    table.innerHTML = Object.entries(grouped).map(([heading, rows], index) => `
+      <div class="mb-4 border rounded overflow-hidden shadow">
+        <button class="w-full text-left px-4 py-2 bg-gray-100 font-bold" onclick="toggleGroup(${index})">
+          ${heading}
+        </button>
+        <div id="group-${index}" class="hidden px-4 py-2">
+          <table class="w-full border border-gray-400" style="border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th class="border px-2 py-1 text-center bg-gray-200">Date</th>
+                <th class="border px-2 py-1 text-center bg-gray-200">Remark</th>
+                <th class="border px-2 py-1 text-center bg-gray-200">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td class="border px-2 py-1 text-center">${formatDate(row.date)}</td>
+                  <td class="border px-2 py-1 text-center">${row.remark || ''}</td>
+                  <td class="border px-2 py-1 text-center">${formatAmount(row.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ✅ Add this outside the render function
+function toggleGroup(index) {
+  const section = document.getElementById(`group-${index}`);
+  if (section) section.classList.toggle('hidden');
+}
+
+//export to pdf
+function exportOCDAReportToPDF() {
+  const element = document.getElementById('ocdaExpensesAnalysisTable');
+  html2pdf().set({
+    margin: 0.5,
+    filename: 'OCDA_Expenses_Analysis.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+  }).from(element).save();
+}
+
+
+
+document.getElementById('ocdaExpensesAnalysisForm')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const mode = form.mode.value;
+  const start = form.start.value;
+  const end = form.end.value;
+  const code = form.code.value || 'ALL';
+  loadOCDAExpensesAnalysis({ start, end, code, mode });
+});
+
+// ===== OCDA Income Analysis Report (Screen J) =====
+async function loadOCDAIncomeAnalysis({ start = '', end = '', code = 'ALL', mode = 'summary' } = {}) {
+  try {
+    const params = new URLSearchParams({ start, end, code, mode });
+    const res = await fetch(`/admin/ocda-income-analysis?${params.toString()}`, {
+      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+    });
+    const data = await res.json();
+    renderOCDAIncomeAnalysis(data, mode);
+  } catch (err) {
+    console.error('Failed to load OCDA Income Analysis:', err);
+    document.getElementById('ocdaIncomeAnalysisTable').innerHTML = '<tr><td colspan="5">Failed to load data</td></tr>';
+  }
+}
+
+function renderOCDAIncomeAnalysis(data, mode) {
+  const table = document.getElementById('ocdaIncomeAnalysisTable');
+  if (!Array.isArray(data) || data.length === 0) {
+    table.innerHTML = '<tr><td colspan="5">No data found</td></tr>';
+    return;
+  }
+  if (mode === 'summary') {
+    table.innerHTML = data.map(row => `
+      <tr class="border-t">
+        <td class="p-2">${row.code}</td>
+        <td class="p-2">${row.description}</td>
+        <td class="p-2">${formatAmount(row.amount)}</td>
+      </tr>
+    `).join('');
+  } else {
+    table.innerHTML = data.map(row => `
+      <tr class="border-t">
+        <td class="p-2">${formatDate(row.date)}</td>
+        <td class="p-2">${row.remark}</td>
+        <td class="p-2">${formatAmount(row.amount)}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+document.getElementById('ocdaIncomeAnalysisForm')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const mode = form.mode.value;
+  const start = form.start.value;
+  const end = form.end.value;
+  const code = form.code.value || 'ALL';
+  loadOCDAIncomeAnalysis({ start, end, code, mode });
+});
+
 
 // Account Summary (View Member Ledger)
 

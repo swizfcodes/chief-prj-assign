@@ -161,7 +161,16 @@ sql.connect(config).then(pool => {
   // GET /admin/memberledger
   router.get('/memberledger', async (req, res) => {
     try {
-      const result = await pool.request().query('SELECT phoneno, transdate, amount, remark FROM memberledger');
+      const result = await pool.request().query(`
+      SELECT 
+        phoneno, 
+        FORMAT(transdate, 'yyyy-MM-dd') AS transdate,
+        amount, 
+        remark, 
+        FORMAT(paydate, 'yyyy-MM-dd') AS paydate
+      FROM memberledger
+      ORDER BY transdate DESC
+      `);
       res.json(result.recordset);
     } catch (err) {
       console.error('Error fetching member ledger:', err);
@@ -201,6 +210,17 @@ sql.connect(config).then(pool => {
       res.status(500).json({ error: 'Failed to fetch standard expenses' });
     }
   });
+
+// GET /admin/incomeclassifications
+router.get('/incomeclass', async (req, res) => {
+  try {
+    const result = await pool.request().query('SELECT incomecode, incomedesc FROM IncomeClassification');
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error fetching income classifications:', err);
+    res.status(500).json({ error: 'Failed to fetch income classifications' });
+  }
+});
 
 }).catch(err => {
   console.error('Database connection failed:', err);
@@ -507,7 +527,7 @@ router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
     const pool = await sql.connect(config);
     await pool.request()
       .input('phoneno', sql.VarChar, phoneno)
-      .input('transdate', sql.Date, transdate)  //  From admin input
+      .input('transdate', sql.Date, transdate) 
       .input('amount', sql.Decimal(18, 2), amount)
       .input('remark', sql.VarChar, remark)
       .query(`INSERT INTO memberledger (phoneno, transdate, amount, remark, paydate)
@@ -529,8 +549,9 @@ router.get('/api/ledger-entry/:phoneno', verifyToken, async (req, res) => {
     .input('phoneno', sql.VarChar, phoneno)
     .query(`SELECT 
               amount, 
-              remark, 
               FORMAT(transdate, 'yyyy-MM-dd') AS transdate,
+              amount, 
+              remark, 
               FORMAT(paydate, 'yyyy-MM-dd') AS paydate
             FROM memberledger 
             WHERE phoneno = @phoneno 
@@ -1066,6 +1087,190 @@ router.delete('/stdxpenses', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+
+// POST income class
+router.post('/incomeclass', async (req, res) => {
+  const { incomecode, incomedesc } = req.body;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('incomecode', incomecode)
+      .input('incomedesc', incomedesc)
+      .query('INSERT INTO IncomeClassification (incomecode, incomedesc) VALUES (@incomecode, @incomedesc)');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Insert failed' });
+  }
+});
+
+// PUT
+router.put('/incomeclass', async (req, res) => {
+  const { incomecode } = req.query;
+  const { incomedesc } = req.body;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('incomecode', incomecode)
+      .input('incomedesc', incomedesc)
+      .query('UPDATE IncomeClassification SET incomedesc = @incomedesc WHERE incomecode = @incomecode');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+// DELETE
+router.delete('/incomeclass', async (req, res) => {
+  const { incomecode } = req.query;
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('incomecode', incomecode)
+      .query('DELETE FROM IncomeClassification WHERE incomecode = @incomecode');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+// ===== OCDA Expenses Analysis API (MSSQL version) =====
+router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
+  try {
+    const { start, end, code = 'ALL', mode = 'summary' } = req.query;
+    const pool = await poolPromise;
+    let where = [];
+    if (start) where.push(`docdate >= @start`);
+    if (end) where.push(`docdate <= @end`);
+    if (code && code !== 'ALL') where.push(`e.project = @code`);
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const request = pool.request();
+    if (start) request.input('start', sql.Date, start);
+    if (end) request.input('end', sql.Date, end);
+    if (code && code !== 'ALL') request.input('code', sql.VarChar, code);
+
+    if (mode === 'summary') {
+      const result = await request.query(`
+        SELECT 
+          e.project AS code, 
+          s.expsdesc AS description, 
+          SUM(e.amount) AS amount
+        FROM ocdaexpenses e
+        LEFT JOIN stdxpenses s ON e.project = s.expscode
+        ${whereClause}
+        GROUP BY e.project, s.expsdesc
+        ORDER BY e.project
+      `);
+      res.json(result.recordset);
+    } else {
+      const result = await request.query(`
+        SELECT 
+          e.project AS code,
+          s.expsdesc AS description,
+          FORMAT(e.docdate, 'yyyy-MM-dd') AS date, 
+          e.remarks AS remark, 
+          e.amount
+        FROM ocdaexpenses e
+        LEFT JOIN stdxpenses s ON e.project = s.expscode
+        ${whereClause}
+        ORDER BY e.project, e.docdate
+      `);
+      res.json(result.recordset);
+    }
+  } catch (err) {
+    console.error('OCDA Expenses Analysis error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== OCDA Income Analysis API (MSSQL version) =====
+router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
+  try {
+    const { start, end, code = 'ALL', mode = 'summary' } = req.query;
+    const pool = await poolPromise;
+    let where = [];
+    if (start) where.push(`transdate >= @start`);
+    if (end) where.push(`transdate <= @end`);
+    if (code && code !== 'ALL') where.push(`remark LIKE @code`);
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+    if (mode === 'summary') {
+      // Group by remark (income code/desc)
+      const result = await pool.request()
+        .input('start', sql.Date, start || null)
+        .input('end', sql.Date, end || null)
+        .input('code', sql.VarChar, code !== 'ALL' ? `%${code}%` : null)
+        .query(`SELECT remark as code, MAX(remark) as description, SUM(amount) as amount FROM memberledger ${whereClause} GROUP BY remark`);
+      res.json(result.recordset);
+    } else {
+      // Detail: list all matching income entries
+      const result = await pool.request()
+        .input('start', sql.Date, start || null)
+        .input('end', sql.Date, end || null)
+        .input('code', sql.VarChar, code !== 'ALL' ? `%${code}%` : null)
+        .query(`SELECT FORMAT(transdate, 'yyyy-MM-dd') as date, remark, amount FROM memberledger ${whereClause} ORDER BY transdate`);
+      res.json(result.recordset);
+    }
+  } catch (err) {
+    console.error('OCDA Income Analysis error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /admin/members-summary
+router.get('/members-summary', verifyToken, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    // Fetch all members with quarters and wards
+    const result = await pool.request().query(`
+      SELECT Quarters, Ward
+      FROM Members
+      WHERE Quarters IS NOT NULL AND Quarters <> ''
+        AND Ward IS NOT NULL AND Ward <> ''
+    `);
+    const members = result.recordset;
+
+    // Get unique quarters and wards
+    const quartersSet = new Set();
+    const wardsSet = new Set();
+    members.forEach(m => {
+      quartersSet.add(m.Quarters);
+      wardsSet.add(m.Ward);
+    });
+    const quarters = Array.from(quartersSet).sort();
+    const wards = Array.from(wardsSet).sort();
+
+    // Build summary data: { [ward]: { [quarter]: count } }
+    const data = {};
+    wards.forEach(ward => {
+      data[ward] = {};
+      quarters.forEach(quarter => {
+        data[ward][quarter] = 0;
+      });
+    });
+    members.forEach(m => {
+      if (data[m.Ward] && data[m.Ward][m.Quarters] !== undefined) {
+        data[m.Ward][m.Quarters] += 1;
+      }
+    });
+
+    // Optionally, add totals per ward and per quarter
+    const wardTotals = {};
+    wards.forEach(ward => {
+      wardTotals[ward] = quarters.reduce((sum, q) => sum + data[ward][q], 0);
+    });
+    const quarterTotals = {};
+    quarters.forEach(quarter => {
+      quarterTotals[quarter] = wards.reduce((sum, w) => sum + data[w][quarter], 0);
+    });
+    const grandTotal = members.length;
+
+    res.json({ wards, quarters, data, wardTotals, quarterTotals, grandTotal });
+  } catch (err) {
+    console.error('Fetch Members Summary Error:', err);
+    res.status(500).json({ message: 'Failed to fetch members summary' });
   }
 });
 

@@ -188,7 +188,7 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.o
   if (isValid) {
      console.log('Passed validation. Sending data...', userData);
       try {
-            const res = await fetch(`${BASE_URL}/login`, {
+            const res = await fetch(`${BASE_URL}/signup`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(userData)

@@ -469,7 +469,7 @@ ul li:hover {
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: var(--text-color);
+    color: #1a1a1a;
     font-size: 14px;
   }
 
