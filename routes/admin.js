@@ -1399,4 +1399,65 @@ router.get('/notices', async (req, res) => {
   }
 });
 
+//Change PhoneNumber
+router.put('/change-phone', verifyToken, async (req, res) => {
+  const { oldPhone, newPhone } = req.body;
+
+  if (!oldPhone || !newPhone) {
+    return res.status(400).json({ message: 'Both old and new phone numbers are required.' });
+  }
+
+  try {
+    const pool = await poolPromise;
+
+    // Check if old phone exists
+    const oldResult = await pool.request()
+      .input('oldPhone', sql.VarChar, oldPhone)
+      .query('SELECT * FROM Members WHERE PhoneNumber = @oldPhone');
+
+    if (oldResult.recordset.length === 0) {
+      return res.status(404).json({ message: 'Old phone number not found.' });
+    }
+
+    // Check if new phone already exists
+    const newResult = await pool.request()
+      .input('newPhone', sql.VarChar, newPhone)
+      .query('SELECT * FROM Members WHERE PhoneNumber = @newPhone');
+
+    if (newResult.recordset.length > 0) {
+      return res.status(409).json({ message: 'New phone number already exists.' });
+    }
+
+    // Begin transaction
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    try {
+      // Update Members table
+      await transaction.request()
+        .input('oldPhone', sql.VarChar, oldPhone)
+        .input('newPhone', sql.VarChar, newPhone)
+        .query(`UPDATE Members SET PhoneNumber = @newPhone WHERE PhoneNumber = @oldPhone`);
+
+      // Update memberledger table
+      await transaction.request()
+        .input('oldPhone', sql.VarChar, oldPhone)
+        .input('newPhone', sql.VarChar, newPhone)
+        .query(`UPDATE memberledger SET phoneno = @newPhone WHERE phoneno = @oldPhone`);
+
+      await transaction.commit();
+      res.status(200).json({ message: 'Phone number updated successfully in all records.' });
+    } catch (err) {
+      await transaction.rollback();
+      console.error('Transaction error:', err);
+      res.status(500).json({ message: 'Failed to update phone numbers.' });
+    }
+
+  } catch (err) {
+    console.error('Server error:', err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+
 module.exports = router;

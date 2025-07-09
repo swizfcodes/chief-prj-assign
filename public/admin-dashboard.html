@@ -21,7 +21,7 @@
 <body class="bg-gray-100 min-h-screen">
 
   <!-- Header / Topbar -->
-  <header class="flex items-center justify-between p-4 bg-gray-100 shadow-md lg:hidden">
+  <header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between p-4 bg-gray-100 shadow-md lg:hidden">
     <div class="text-xl font-bold text-gray-800">OCDA Admin</div>
     
     <!-- Hamburger Menu Button -->
@@ -64,9 +64,8 @@
     <!-- Main Content -->
     <main class="flex-1 p-6 space-y-10">
       
-      <section id="landingSections" class="landings-section tab-content">
-
         <!-- Card + Table Container -->
+      <section id="landingSections" class="landings-section tab-content">
         <div class="overflow-x-auto rounded shadow bg-white p-4 space-y-6">
           <div id="membersSummaryTableBox">
             <!-- JS will inject summary cards and table here -->
@@ -1093,7 +1092,7 @@
         </div>
       </section>
 
-      <!-- Place this in your admin-dashboard.html -->
+      <!-- notices -->
       <section id="notices-section" class="tab-content hidden">
         <h2 class="text-xl font-semibold mb-4">Post Notice/Event</h2>
         <form id="noticeForm" class="bg-white p-4 rounded shadow space-y-4 max-w-md">
@@ -1106,6 +1105,28 @@
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Post</button>
         </form>
         <div id="noticesList" class="mt-8"></div>
+      </section>
+
+      <section id="change-PhoneNumber" class="tab-content hidden">
+        <form id="phoneNumberEditForm" class="space-y-6">
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div class="form-group">
+              <label for="oldphoneno">Old PhoneNumber</label>
+              <input name="oldphoneno" id="oldphoneno" type="tel" class="p-3 border rounded w-full" />
+            </div>
+            
+            <div class="form-group">
+              <label for="PhoneNumber">New PhoneNumber</label>
+              <input name="PhoneNumber" id="PhoneNumber" type="tel" class="p-3 border rounded w-full"/>
+            </div>
+
+            <div class="mt-4 space-x-2">
+              <button id="updatePhoneNumberBtn" onclick="savePhoneNumber(event)" class="bg-green-600 text-white px-4 py-2 rounded">
+                Save
+              </button>
+            </div>
+          </div>
+        </form>
       </section>
     </main>
   </div>

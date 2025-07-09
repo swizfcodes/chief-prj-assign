@@ -947,6 +947,68 @@ async function saveMemberChanges() {
   }
 }
 
+//change phone number
+async function savePhoneNumber(e) {
+  e.preventDefault();
+
+  const form = document.getElementById('phoneNumberEditForm');
+  const formData = Object.fromEntries(new FormData(form));
+  const oldPhone = formData.oldphoneno.trim();
+  const newPhone = formData.PhoneNumber.trim();
+
+  if (!oldPhone || !newPhone) {
+    return alert('Both phone numbers are required.');
+  }
+
+  if (oldPhone === newPhone) {
+    return alert('New phone number must be different.');
+  }
+
+  const token = `Bearer ${localStorage.getItem('adminToken')}`;
+
+  // Check if old phone exists
+  const oldExists = await fetch(`/admin/member/${oldPhone}`, {
+    headers: { Authorization: token }
+  });
+
+  if (!oldExists.ok) {
+    return alert(`Old phone number not found.`);
+  }
+
+  // Check if new phone already exists
+  const newExists = await fetch(`/admin/member/${newPhone}`, {
+    headers: { Authorization: token }
+  });
+
+  if (newExists.ok) {
+    return alert(`New phone number already exists.`);
+  }
+
+  // Proceed to update both tables
+  try {
+    const res = await fetch(`/admin/change-phone`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ oldPhone, newPhone })
+    });
+
+    const result = await res.json();
+    alert(result.message || (res.ok ? 'Phone number updated.' : 'Update failed'));
+
+    if (res.ok) {
+      form.reset();
+      loadMembers?.(); // optional if function is defined
+    }
+
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Server error');
+  }
+}
+
 async function deleteMember(phone) {
   if (!confirm('Are you sure you want to delete this member?')) return;
   try {
