@@ -19,13 +19,28 @@
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
+
+  <!-- Header / Topbar -->
+  <header class="flex items-center justify-between p-4 bg-gray-100 shadow-md lg:hidden">
+    <div class="text-xl font-bold text-gray-800">OCDA Admin</div>
+    
+    <!-- Hamburger Menu Button -->
+    <button id="menuToggle" class="p-2 text-gray-800 focus:outline-none">
+      <!-- Hamburger Icon -->
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  </header>
+
   <div class="flex flex-col lg:flex-row">
     <!-- Sidebar -->
-    <aside class="bg-white w-full lg:w-64 shadow-md">
+    <aside id="sidebar" class="bg-white w-64 fixed top-0 left-0 h-full shadow-md transform -translate-x-full transition-transform duration-300 z-50 lg:relative lg:translate-x-0 lg:h-auto lg:block hidden">
       <div class="p-6 text-xl font-bold text-gray-800 border-b">OCDA Admin</div>
       <nav class="p-4 space-y-3">
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="member-list">OCDA Members</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="create-admin">Administrators</button>
+        <button id="adminTabBtn" class="w-full px-4 py-2 text-left rounded tab-button" data-tab="create-admin">Administrators</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ledger-entry">Ledger Entry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expense">OCDA Expense</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
@@ -35,12 +50,16 @@
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="static-tables">Static Tables</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expenses-analysis">OCDA Expenses Analysis</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-income-analysis">OCDA Income Analysis</button>
+        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="notices-section">Notices / Events</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="change-PhoneNumber">Change PhoneNumber</button>
-        
-      <button onclick="adminLogout()" class="bg-red-500 w-full px-4 py-2 text-left rounded tab-button">Logout</button>
-
+        <button id="menuToggle" class="lg:hidden p-4 text-gray-800 focus:outline-none"></button>
+        <button onclick="adminLogout()" class="bg-red-500 w-full px-4 py-2 text-left rounded tab-button">Logout</button>
       </nav>
     </aside>
+
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 lg:hidden"></div>
+
+
 
     <!-- Main Content -->
     <main class="flex-1 p-6 space-y-10">
@@ -74,6 +93,36 @@
         <!-- Admin List -->
         <h2 class="text-xl font-semibold mb-4">Admin List</h2>
         <div id="adminTable" class="bg-white p-4 rounded shadow text-sm">Loading...</div>
+
+        <!-- Edit Admin Modal -->
+        <div id="editAdminModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+          <div class="bg-white p-6 rounded shadow-md w-full max-w-md relative">
+            <button onclick="document.getElementById('editAdminModal').classList.add('hidden')" class="absolute top-2 right-2 text-gray-500">&times;</button>
+            <h2 class="text-lg font-bold mb-4">Edit Admin</h2>
+            <form id="editAdminForm" class="space-y-4">
+              <input type="hidden" name="id" id="editAdminId">
+              <div>
+                <label class="block mb-1">Full Name</label>
+                <input type="text" name="fullname" id="editAdminFullname" required class="w-full p-2 border rounded">
+              </div>
+              <div>
+                <label class="block mb-1">Email</label>
+                <input type="email" name="email" id="editAdminEmail" required class="w-full p-2 border rounded">
+              </div>
+              <div>
+                <label class="block mb-1">Role</label>
+                <select name="role" id="editAdminRole" class="w-full p-2 border rounded">
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+              <div class="flex gap-2 mt-4">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Save Changes</button>
+                <button type="button" onclick="document.getElementById('editAdminModal').classList.add('hidden')" class="bg-gray-400 text-white px-4 py-2 rounded">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
       </section>
 
       <!-- Income Classifications -->
@@ -632,7 +681,7 @@
 
           <div class="flex items-center gap-4 mt-4">
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
-            <button type="button" class="bg-purple-600 text-white px-4 py-2 rounded" onclick="showAccountSummary()">Account Summary</button>
+            <button type="button" class="bg-purple-600 text-white px-4 py-2 rounded" onclick="showAccountSummary()">
           </div>
         </form>
 
@@ -1043,6 +1092,21 @@
           </div>
         </div>
       </section>
+
+      <!-- Place this in your admin-dashboard.html -->
+      <section id="notices-section" class="tab-content hidden">
+        <h2 class="text-xl font-semibold mb-4">Post Notice/Event</h2>
+        <form id="noticeForm" class="bg-white p-4 rounded shadow space-y-4 max-w-md">
+          <input type="text" id="noticeTitle" placeholder="Title" required class="w-full p-2 border rounded">
+          <select id="noticeType" class="w-full p-2 border rounded">
+            <option value="notice">Notice</option>
+            <option value="event">Event</option>
+          </select>
+          <textarea id="noticeContent" placeholder="Content" required class="w-full p-2 border rounded"></textarea>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Post</button>
+        </form>
+        <div id="noticesList" class="mt-8"></div>
+      </section>
     </main>
   </div>
 
@@ -1073,8 +1137,6 @@
     <!-- JS injects rows here -->
   </tbody>
 </table>
-
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>

@@ -1,6 +1,52 @@
 const isLocal = window.location.hostname === 'localhost';
 const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
 
+  document.addEventListener('DOMContentLoaded', function () {
+    const role = localStorage.getItem('adminRole');
+    // Hide the admin tab for normal admins
+    if (role !== 'superadmin') {
+      const adminTab = document.getElementById('adminTabBtn');
+      if (adminTab) adminTab.style.display = 'none';
+    }
+  });
+
+const token =  `Bearer ${localStorage.getItem('adminToken')}`;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const tabButtons = document.querySelectorAll('.tab-button');
+
+  // Defensive checks
+  if (!menuToggle || !sidebar || !overlay || tabButtons.length === 0) return;
+
+  // Toggle sidebar on hamburger click
+  menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('-translate-x-full');
+    sidebar.classList.toggle('hidden');
+    overlay.classList.toggle('hidden');
+  });
+
+  // Hide sidebar when clicking outside (on overlay)
+  overlay.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+    sidebar.classList.add('hidden');
+    overlay.classList.add('hidden');
+  });
+
+  // Close sidebar on tab click (mobile only)
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      if (window.innerWidth < 1024) {
+        sidebar.classList.add('-translate-x-full');
+        sidebar.classList.add('hidden');
+        overlay.classList.add('hidden');
+      }
+    });
+  });
+});
+
 function verifyToken(req, res, next) {
   const token = req.headers['authorization'];
   if (!token) return res.status(401).json({ message: 'Missing token' });
@@ -24,8 +70,8 @@ async function loadAdmins() {
   if (!token) return document.getElementById('adminTable').innerText = 'Unauthorized – No token found.';
 
   try {
-      const res = await fetch(`${BASE_URL}/admin/list`, {
-      headers: { 'Authorization': token }
+    const res = await fetch(`${BASE_URL}/admin/list`, {
+      headers: { 'Authorization':  `Bearer ${localStorage.getItem('adminToken')}` }
     });
 
     const admins = await res.json();
@@ -42,9 +88,11 @@ async function loadAdmins() {
         <thead>
           <tr class="bg-gray-200">
             <th class="p-2 border">#</th>
-            <th class="p-2 border">Username</th>
+            <th class="p-2 border">Full Name</th>
             <th class="p-2 border">Email</th>
             <th class="p-2 border">Role</th>
+            <th class="p-2 border">Status</th>
+            <th class="p-2 border">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -54,6 +102,20 @@ async function loadAdmins() {
               <td class="p-2 border">${admin.fullname}</td>
               <td class="p-2 border">${admin.email}</td>
               <td class="p-2 border">${admin.role}</td>
+              <td class="p-2 border">${admin.active == 1 || admin.active === '1' ? 'Active' : 'Inactive'}</td>
+              <td class="p-2 border">
+                <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})" class="px-2 py-1 rounded ${admin.active ? 'bg-yellow-500' : 'bg-green-500'} text-white text-xs">
+                  ${admin.active ? 'Deactivate' : 'Activate'}
+                </button>
+                <button class="px-2 py-1 bg-blue-600 text-white rounded text-xs edit-admin-btn"
+                  data-id="${admin.Id}"
+                  data-fullname="${admin.fullname}"
+                  data-email="${admin.email}"
+                  data-role="${admin.role}">
+                  Edit
+                </button>
+                <button onclick="deleteAdmin('${admin.Id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
@@ -62,6 +124,82 @@ async function loadAdmins() {
   } catch (err) {
     console.error('Admin Load Error:', err);
     document.getElementById('adminTable').innerText = 'Error loading admins.';
+  }
+}
+
+// Open Edit Modal and fill form
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('edit-admin-btn')) {
+    const btn = e.target;
+    document.getElementById('editAdminId').value = btn.getAttribute('data-id');
+    document.getElementById('editAdminFullname').value = btn.getAttribute('data-fullname');
+    document.getElementById('editAdminEmail').value = btn.getAttribute('data-email');
+    document.getElementById('editAdminRole').value = btn.getAttribute('data-role');
+    document.getElementById('editAdminModal').classList.remove('hidden');
+  }
+});
+
+// Handle Edit Admin form submission
+document.getElementById('editAdminForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const token = `Bearer ${localStorage.getItem('adminToken')}`;
+  const id = document.getElementById('editAdminId').value;
+  const fullname = document.getElementById('editAdminFullname').value;
+  const email = document.getElementById('editAdminEmail').value;
+  const role = document.getElementById('editAdminRole').value;
+
+  try {
+    const res = await fetch(`${BASE_URL}/admin/update/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ fullname, email, role })
+    });
+    const result = await res.json();
+    alert(res.ok ? 'Admin updated successfully!' : (result.message || 'Update failed'));
+    if (res.ok) {
+      document.getElementById('editAdminModal').classList.add('hidden');
+      loadAdmins();
+    }
+  } catch (err) {
+    alert('Server error');
+  }
+});
+
+// Toggle admin status (activate/deactivate)
+async function toggleAdminStatus(adminId, isActive) {
+  const token = `Bearer ${localStorage.getItem('adminToken')}`;
+  const action = isActive ? 'deactivate' : 'activate';
+  if (!confirm(`Are you sure you want to ${action} this admin?`)) return;
+  try {
+    const res = await fetch(`${BASE_URL}/admin/${action}/${adminId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': token}
+    });
+    const result = await res.json();
+    alert(res.ok ? `Admin ${action}d successfully!` : (result.message || 'Action failed'));
+    if (res.ok) loadAdmins();
+  } catch (err) {
+    alert('Server error');
+  }
+}
+
+// Delete admin
+async function deleteAdmin(adminId) {
+  const token = `Bearer ${localStorage.getItem('adminToken')}` ;
+  if (!confirm('Are you sure you want to delete this admin?')) return;
+  try {
+    const res = await fetch(`${BASE_URL}/admin/delete/${adminId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': token }
+    });
+    const result = await res.json();
+    alert(res.ok ? 'Admin deleted successfully!' : (result.message || 'Delete failed'));
+    if (res.ok) loadAdmins();
+  } catch (err) {
+    alert('Server error');
   }
 }
 
@@ -145,7 +283,7 @@ function setupAdminTab() {
  function fetchTable(endpoint, targetId, renderFn) {
   fetch(endpoint, {
     headers: {
-      'Authorization': localStorage.getItem('adminToken') || ''
+      'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
     }
   })
     .then(async res => {
@@ -315,7 +453,9 @@ document.getElementById('addIncomeClassForm')?.addEventListener('submit', async 
   try {
     const res = await fetch('/admin/incomeclass', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 
+      'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
+       },
       body: JSON.stringify({ incomecode: code, incomedesc: desc })
     });
     if (res.ok) {
@@ -425,13 +565,13 @@ document.getElementById('createMemberForm')?.addEventListener('submit', async (e
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('adminToken') || ''
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       },
       body: JSON.stringify(data)
     });
     const result = await res.json();
     alert(res.ok ? 'Member created successfully!' : (result.message || 'Error creating member.'));
-    if (res.ok) form.reset();
+    if (res.ok) form.reset(); loadMembers(); // Refresh member list after creation
   } catch (err) {
     console.error('Create Member Error:', err);
     alert('Server error');
@@ -500,7 +640,7 @@ document.getElementById('memberSearch').addEventListener('input', (e) => {
 
 async function loadMembers() {
   try {
-    const token = localStorage.getItem('adminToken');
+    const token =  `Bearer ${localStorage.getItem('adminToken')}`
     const res = await fetch('/admin/members', {
       headers: { 'Authorization': token }
     });
@@ -528,7 +668,7 @@ async function loadMembersSummaryTable(targetBoxId = 'summaryTableBox') {
 
   try {
     const res = await fetch(`${BASE_URL}/admin/members-summary`, {
-      headers: { 'Authorization': token }
+      headers: { 'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`}
     });
     if (!res.ok) throw new Error('Failed to fetch summary');
     const { wards, quarters, data, wardTotals, quarterTotals, grandTotal } = await res.json();
@@ -635,7 +775,7 @@ async function viewMember(phone) {
   try {
     const res = await fetch(`/admin/member/${phone}`, {
       headers: {
-        'Authorization': localStorage.getItem('adminToken')
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       }
     });
 
@@ -690,7 +830,7 @@ async function editMember(phone) {
   try {
     const res = await fetch(`/admin/member/${phone}`, {
       headers: {
-        'Authorization': localStorage.getItem('adminToken')
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       }
     });
 
@@ -790,7 +930,7 @@ async function saveMemberChanges() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('adminToken')
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       },
       body: JSON.stringify(changedData)
     });
@@ -812,7 +952,7 @@ async function deleteMember(phone) {
   try {
     const res = await fetch(`/admin/member/${phone}`, {
       method: 'DELETE',
-      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
     });
     const result = await res.json();
     if (res.ok) {
@@ -830,9 +970,8 @@ async function deleteMember(phone) {
 //Load phone numbers
 async function loadPhoneNumbers() {
   try {
-    const token = localStorage.getItem('adminToken');
     const res = await fetch('/admin/members', {
-      headers: { 'Authorization': token }
+      headers: { 'Authorization':  `Bearer ${localStorage.getItem('adminToken')}` }
     });
     const members = await res.json();
     const datalist = document.getElementById('phonenoList');
@@ -852,26 +991,30 @@ document.addEventListener('DOMContentLoaded', function() {
   // Populate Income Classification dropdown for ledger entry
   const remarkDropdown = document.getElementById('remarkDropdown');
   if (remarkDropdown) {
-    fetch('/admin/incomeclass')
-      .then(res => res.json())
-      .then(data => {
-        // Remove all except the first option
-        while (remarkDropdown.options.length > 1) {
-          remarkDropdown.remove(1);
-        }
-        if (Array.isArray(data)) {
-          data.forEach(item => {
-            const option = document.createElement('option');
-            option.value = `${item.incomedesc} (${item.incomecode})`;
-            option.textContent = `${item.incomedesc} (${item.incomecode})`;
-            remarkDropdown.appendChild(option);
-          });
-        }
-      })
-      .catch(err => {
-        // Optionally show error to user
-        console.error('Failed to load income classifications:', err);
-      });
+    fetch('/admin/incomeclass', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      // Clear existing options except first
+      while (remarkDropdown.options.length > 1) {
+        remarkDropdown.remove(1);
+      }
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          const option = document.createElement('option');
+          option.value = `${item.incomedesc} (${item.incomecode})`;
+          option.textContent = `${item.incomedesc} (${item.incomecode})`;
+          remarkDropdown.appendChild(option);
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Failed to load income classifications:', err);
+    });
   }
 });
 
@@ -900,7 +1043,7 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('adminToken') || ''
+        'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
       },
       body: JSON.stringify(data)
     });
@@ -919,12 +1062,12 @@ async function loadMemberLedger() {
   try {
     const res = await fetch('/admin/memberledger', {
       headers: {
-        'Authorization': localStorage.getItem('adminToken') || ''
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+
       }
     });
     const data = await res.json();
     const body = document.getElementById('ledgerData');
-    console.log("Received ledger entries:", data);
     body.innerHTML = data.map(row =>`
         <tr class="border-t">
           <td class="p-2">${row.phoneno}</td>
@@ -956,7 +1099,7 @@ document.getElementById('ocdaForm')?.addEventListener('submit', async (e) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('adminToken') || ''
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       },
       body: JSON.stringify(data)
     });
@@ -994,7 +1137,7 @@ async function loadOCDAExpenses() {
   try {
     const res = await fetch('/admin/ocdaexpenses', {
       headers: {
-        'Authorization': localStorage.getItem('adminToken') || ''
+        'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
       }
     });
     const data = await res.json();
@@ -1033,7 +1176,7 @@ document.getElementById('summaryForm')?.addEventListener('submit', async (e) => 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('adminToken') || ''
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       },
       body: JSON.stringify(data)
     });
@@ -1056,9 +1199,8 @@ document.getElementById('summaryForm')?.addEventListener('submit', async (e) => 
 //enquiry dropdown
 async function loadEnquiryDropdowns() {
   try {
-    const token = localStorage.getItem('adminToken');
     const res = await fetch('/admin/enquiry/options', {
-      headers: { 'Authorization': token }
+      headers: { 'Authorization':  `Bearer ${localStorage.getItem('adminToken')}` }
     });
     const result = await res.json();
 
@@ -1133,7 +1275,8 @@ document.getElementById('enquiryForm')?.addEventListener('submit', async (e) => 
 
   try {
     const res = await fetch(`/admin/enquiry?${params.toString()}`, {
-      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+ }
     });
     const result = await res.json();
 
@@ -1377,7 +1520,8 @@ async function loadOCDAExpensesAnalysis({ start = '', end = '', code = 'ALL', mo
   try {
     const params = new URLSearchParams({ start, end, code, mode });
     const res = await fetch(`/admin/ocda-expenses-analysis?${params.toString()}`, {
-      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+  }
     });
     const data = await res.json();
     renderOCDAExpensesAnalysis(data, mode);
@@ -1489,7 +1633,8 @@ async function loadOCDAIncomeAnalysis({ start = '', end = '', code = 'ALL', mode
   try {
     const params = new URLSearchParams({ start, end, code, mode });
     const res = await fetch(`/admin/ocda-income-analysis?${params.toString()}`, {
-      headers: { 'Authorization': localStorage.getItem('adminToken') || '' }
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+ }
     });
     const data = await res.json();
     renderOCDAIncomeAnalysis(data, mode);
@@ -1747,6 +1892,70 @@ function capitalize(str) {
 
 window.addEventListener('DOMContentLoaded', () => {
   staticTypes.forEach(loadStaticTable);
+});
+
+// Submit notice/event
+document.getElementById('noticeForm')?.addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const token = localStorage.getItem('adminToken');
+  const adminId = localStorage.getItem('adminId'); // ✅ fetch adminId
+  const title = document.getElementById('noticeTitle').value;
+  const content = document.getElementById('noticeContent').value;
+  const type = document.getElementById('noticeType').value;
+
+  if (!adminId) {
+    alert('Admin ID missing. Please log in again.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/admin/notices`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({title, content, type }) // ✅ include adminId
+    });
+
+    const result = await res.json();
+    alert(result.message);
+
+    if (res.ok) {
+      this.reset();
+      loadNotices();
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Failed to post notice/event');
+  }
+});
+
+
+// Load and display notices/events
+async function loadNotices() {
+  try {
+    const res = await fetch(`${BASE_URL}/admin/notices`);
+    const notices = await res.json();
+    const list = document.getElementById('noticesList');
+    list.innerHTML = notices.map(n => `
+      <div class="mb-4 p-4 border rounded shadow">
+        <div class="font-bold">${n.title} <span class="text-xs text-gray-500">[${n.type}]</span></div>
+        <div class="text-gray-700">${n.content}</div>
+        <div class="text-xs text-gray-400">${new Date(n.created_at).toLocaleString()}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    document.getElementById('noticesList').innerText = 'Failed to load notices/events';
+  }
+}
+
+// Call loadNotices() when the notices tab is shown
+document.querySelectorAll('.tab-button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'notices-section') loadNotices();
+  });
 });
 
 window.addEventListener('DOMContentLoaded', () => {

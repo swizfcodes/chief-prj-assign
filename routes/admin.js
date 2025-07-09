@@ -9,11 +9,20 @@ const SECRET = 'your_jwt_secret';
 // Middleware to parse JSON bodies
 // Token verification middleware
 const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization'];
-  if (!token) return res.status(403).json({ message: 'No token provided' });
+  const bearerHeader = req.headers['authorization'];
+
+  if (!bearerHeader) {
+    return res.status(403).json({ message: 'No token provided' });
+  }
+
+  const token = bearerHeader.split(' ')[1]; // Removes "Bearer " part
+
   jwt.verify(token, SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Failed to authenticate token' });
-    req.adminId = decoded.id;
+    if (err) {
+      return res.status(401).json({ message: 'Failed to authenticate token' });
+    }
+
+    req.adminId = decoded.id; // ✅ Attach to request
     next();
   });
 };
@@ -60,6 +69,48 @@ router.post('/create', async (req, res) => {
   }
 });
 
+// Activate admin
+router.patch('/activate/:id', verifyToken, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('UPDATE Admins SET active = 1 WHERE id = @id');
+    if (result.rowsAffected[0] === 0) return res.status(404).json({ message: 'Admin not found' });
+    res.json({ message: 'Admin activated' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Deactivate admin
+router.patch('/deactivate/:id', verifyToken, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('UPDATE Admins SET active = 0 WHERE id = @id');
+    if (result.rowsAffected[0] === 0) return res.status(404).json({ message: 'Admin not found' });
+    res.json({ message: 'Admin deactivated' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete admin
+router.delete('/delete/:id', verifyToken, async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('id', sql.Int, req.params.id)
+      .query('DELETE FROM Admins WHERE id = @id');
+    if (result.rowsAffected[0] === 0) return res.status(404).json({ message: 'Admin not found' });
+    res.json({ message: 'Admin deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 //  Login (no password hashing)
 router.post('/login', async (req, res) => {
   try {
@@ -78,12 +129,15 @@ router.post('/login', async (req, res) => {
     if (password !== admin.Password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    if (admin.active === 0 || admin.active === false || admin.active === '0') {
+      return res.status(403).json({ message: 'Account is deactivated. Please contact a superadmin.' });
+    }
 
-    const token = jwt.sign({ id: admin.id }, SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: admin.Id }, SECRET, { expiresIn: '1d' });
     res.status(200).json({
       message: 'Login successful',
       token,
-      admin: { id: admin.id, fullname: admin.fullname, role: admin.role }
+      admin: { id: admin.Id, fullname: admin.fullname, role: admin.role }
     });
   } catch (err) {
     console.error('Login Error:', err);
@@ -102,7 +156,7 @@ router.get('/login', (req, res) => {
 router.get('/list', verifyToken, async (req, res) => {
   try {
     const pool = await poolPromise;
-    const result = await pool.request().query('SELECT id, fullname, email, role FROM Admins');
+    const result = await pool.request().query('SELECT Id, fullname, email, role, active FROM Admins');
     res.json(result.recordset);
   } catch (err) {
     console.error('List Admin Error:', err);
@@ -159,7 +213,7 @@ router.get('/dashboard', verifyToken, async (req, res) => {
 sql.connect(config).then(pool => {
 
   // GET /admin/memberledger
-  router.get('/memberledger', async (req, res) => {
+  router.get('/memberledger', verifyToken, async (req, res) => {
     try {
       const result = await pool.request().query(`
       SELECT 
@@ -179,7 +233,7 @@ sql.connect(config).then(pool => {
   });
 
   // GET /admin/monthlysummary
-  router.get('/monthlysummary', async (req, res) => {
+  router.get('/monthlysummary', verifyToken, async (req, res) => {
     try {
       const result = await pool.request().query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary');
       res.json(result.recordset);
@@ -190,7 +244,7 @@ sql.connect(config).then(pool => {
   });
 
   // GET /admin/ocdaexpenses
-  router.get('/ocdaexpenses', async (req, res) => {
+  router.get('/ocdaexpenses', verifyToken, async (req, res) => {
     try {
       const result = await pool.request().query('SELECT docdate, project, remarks, amount FROM ocdaexpenses');
       res.json(result.recordset);
@@ -201,7 +255,7 @@ sql.connect(config).then(pool => {
   });
 
   // GET /admin/stdxpenses
-  router.get('/stdxpenses', async (req, res) => {
+  router.get('/stdxpenses', verifyToken, async (req, res) => {
     try {
       const result = await pool.request().query('SELECT expscode, expsdesc FROM Stdxpenses');
       res.json(result.recordset);
@@ -212,7 +266,7 @@ sql.connect(config).then(pool => {
   });
 
 // GET /admin/incomeclassifications
-router.get('/incomeclass', async (req, res) => {
+router.get('/incomeclass', verifyToken, async (req, res) => {
   try {
     const result = await pool.request().query('SELECT incomecode, incomedesc FROM IncomeClassification');
     res.json(result.recordset);
@@ -221,6 +275,39 @@ router.get('/incomeclass', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch income classifications' });
   }
 });
+
+ // GET /admin/monthlysummary
+  router.get('/monthlysummary', verifyToken, async (req, res) => {
+    try {
+      const result = await pool.request().query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary');
+      res.json(result.recordset);
+    } catch (err) {
+      console.error('Error fetching monthly summary:', err);
+      res.status(500).json({ error: 'Failed to fetch monthly summary' });
+    }
+  });
+
+  // GET /admin/ocdaexpenses
+  router.get('/ocdaexpenses', verifyToken, async (req, res) => {
+    try {
+      const result = await pool.request().query('SELECT docdate, project, remarks, amount FROM ocdaexpenses');
+      res.json(result.recordset);
+    } catch (err) {
+      console.error('Error fetching OCDA expenses:', err);
+      res.status(500).json({ error: 'Failed to fetch OCDA expenses' });
+    }
+  });
+
+  // GET /admin/stdxpenses
+  router.get('/stdxpenses', verifyToken, async (req, res) => {
+    try {
+      const result = await pool.request().query('SELECT expscode, expsdesc FROM Stdxpenses');
+      res.json(result.recordset);
+    } catch (err) {
+      console.error('Error fetching standard expenses:', err);
+      res.status(500).json({ error: 'Failed to fetch standard expenses' });
+    }
+  });
 
 }).catch(err => {
   console.error('Database connection failed:', err);
@@ -1271,6 +1358,44 @@ router.get('/members-summary', verifyToken, async (req, res) => {
   } catch (err) {
     console.error('Fetch Members Summary Error:', err);
     res.status(500).json({ message: 'Failed to fetch members summary' });
+  }
+});
+
+// POST: Create notice/event
+router.post('/notices', verifyToken, async (req, res) => {
+  const { title, content, type } = req.body;
+  const created_by = req.adminId;
+  console.log('adminId:', created_by, 'payload:', req.body);
+  if (!title || !content || !type) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+  if (!created_by) {
+    return res.status(401).json({ message: 'Invalid or missing admin token.' });
+  }
+  try {
+    const pool = await poolPromise;
+    await pool.request()
+      .input('title', sql.NVarChar, title)
+      .input('content', sql.NVarChar, content)
+      .input('type', sql.NVarChar, type)
+      .input('created_by', sql.Int, created_by)
+      .query('INSERT INTO Notices (title, content, type, created_by) VALUES (@title, @content, @type, @created_by)');
+    res.json({ success: true, message: 'Notice/Event posted' });
+  } catch (err) {
+    console.error('Error posting notice:', err);
+    res.status(500).json({ message: 'Failed to post notice/event', error: err.message });
+  }
+});
+
+// GET: All notices/events (for both admin and member dashboards)
+router.get('/notices', async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .query('SELECT id, title, content, type, created_at FROM Notices ORDER BY created_at DESC');
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch notices/events' });
   }
 });
 

@@ -62,40 +62,6 @@ const verifyToken = (req, res, next) => {
 };
 
 sql.connect(config).then(pool => {
-  
-  // GET /admin/monthlysummary
-  router.get('/monthlysummary', async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching monthly summary:', err);
-      res.status(500).json({ error: 'Failed to fetch monthly summary' });
-    }
-  });
-
-  // GET /admin/ocdaexpenses
-  router.get('/ocdaexpenses', async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT docdate, project, remarks, amount FROM ocdaexpenses');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching OCDA expenses:', err);
-      res.status(500).json({ error: 'Failed to fetch OCDA expenses' });
-    }
-  });
-
-  // GET /admin/stdxpenses
-  router.get('/stdxpenses', async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT expscode, expsdesc FROM Stdxpenses');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching standard expenses:', err);
-      res.status(500).json({ error: 'Failed to fetch standard expenses' });
-    }
-  });
-
 }).catch(err => {
   console.error('Database connection failed:', err);
 });

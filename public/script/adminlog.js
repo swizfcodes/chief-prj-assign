@@ -25,6 +25,17 @@
 
     if (res.ok) {
       localStorage.setItem('adminToken', result.token);
+
+      if (result.admin) {
+        // ✅ Store adminId
+        localStorage.setItem('adminId', result.admin.Id);
+
+        // ✅ Optionally store role
+        if (result.admin.role) {
+          localStorage.setItem('adminRole', result.admin.role);
+        }
+      }
+
       alert('Login successful!');
       window.location.href = '/admin-dashboard.html';
     } else {
