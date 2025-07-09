@@ -11,11 +11,28 @@
     body { font-family: 'Inter', sans-serif; }
     .active-tab { background-color: #1f2937; color: white; }
 
-    @media (max-width: 4000px) and (min-width: 1700px) {
+  @media (max-width: 4000px) and (min-width: 1700px) {
     html {
       font-size: 100% !important;
+    } 
+  }
+
+  @media (max-width: 768px) {
+    html {
+      font-size: 85% !important;
     }
   }
+
+  @media (max-width: 600px) {
+  html {
+    font-size: 70% !important;
+  }
+
+.p-6 {
+    padding: 0.5rem !important;
+    padding-top: 15% !important;
+}
+}
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -943,7 +960,7 @@
           <!-- Qualification + Profession -->
           <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="form-group">
-              <label for="Qualifications">Qualification</label>
+              <label style="color: blue !important;" for="Qualifications">Qualification</label>
               <select name="Qualifications" id="Qualifications" class="p-3 border rounded w-full">
                 <option value="">Select Qualification</option>
                 <option>BSC</option>

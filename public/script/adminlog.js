@@ -1,5 +1,5 @@
 // admin logih form handler
-     document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+  document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
   const data = {
@@ -46,3 +46,13 @@
     alert('An error occurred: ' + err.message);
   }
   });
+
+function handleForgotPasswordClick() {
+  const loginEmail = document.getElementById('loginEmail')?.value.trim() || '';
+
+  if (loginEmail) {
+    sessionStorage.setItem('prefillEmail', loginEmail);
+  }
+
+  window.location.href = 'adminforgotpassword.html';
+}
