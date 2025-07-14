@@ -126,7 +126,7 @@ router.post('/login', async (req, res) => {
     }
 
     const admin = result.recordset[0];
-    if (password !== admin.Password) {
+    if (password !== admin.password) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     if (admin.active === 0 || admin.active === false || admin.active === '0') {
@@ -236,7 +236,7 @@ router.get('/dashboard', verifyToken, async (req, res) => {
 // Connect to MSSQL once and reuse the connection
 sql.connect(config).then(pool => {
 
-  // GET /admin/memberledger
+  // GET /admin/memberledger for reports
   router.get('/memberledger', verifyToken, async (req, res) => {
     try {
       const result = await pool.request().query(`
@@ -255,6 +255,28 @@ sql.connect(config).then(pool => {
       res.status(500).json({ error: 'Failed to fetch member ledger' });
     }
   });
+
+  //for screen D
+  router.get('/member-recordledger', verifyToken, async (req, res) => {
+  const { from, to } = req.query;
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('from', sql.Date, from)
+      .input('to', sql.Date, to)
+      .query(`
+        SELECT phoneno, transdate, amount, remark, paydate 
+        FROM MemberLedger 
+        WHERE transdate BETWEEN @from AND @to
+        ORDER BY transdate DESC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Member Ledger fetch error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
   // GET /admin/monthlysummary
   router.get('/monthlysummary', verifyToken, async (req, res) => {
@@ -1420,6 +1442,60 @@ router.get('/notices', async (req, res) => {
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch notices/events' });
+  }
+});
+
+//Edit Notice/Event
+router.put('/notices/:id', verifyToken, async (req, res) => {
+  const { title, content, type } = req.body;
+  const noticeId = req.params.id;
+
+  if (!title || !content || !type) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('id', sql.Int, noticeId)
+      .input('title', sql.NVarChar, title)
+      .input('content', sql.NVarChar, content)
+      .input('type', sql.NVarChar, type)
+      .query(`
+        UPDATE Notices 
+        SET title = @title, content = @content, type = @type
+        WHERE id = @id
+      `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: 'Notice not found.' });
+    }
+
+    res.json({ success: true, message: 'Notice updated successfully.' });
+  } catch (err) {
+    console.error('Error updating notice:', err);
+    res.status(500).json({ message: 'Failed to update notice' });
+  }
+});
+
+//delete Notice/Event
+router.delete('/notices/:id', verifyToken, async (req, res) => {
+  const noticeId = req.params.id;
+
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input('id', sql.Int, noticeId)
+      .query('DELETE FROM Notices WHERE id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: 'Notice not found.' });
+    }
+
+    res.json({ success: true, message: 'Notice deleted successfully.' });
+  } catch (err) {
+    console.error('Error deleting notice:', err);
+    res.status(500).json({ message: 'Failed to delete notice' });
   }
 });
 

@@ -13,9 +13,9 @@ const poolPromise = pool.connect();
 const poolConnect = pool.connect();
 
 poolConnect.then(() => {
-  console.log('✅ Azure SQL connected successfully.');
+  console.log('✅ DB connected successfully.');
 }).catch(err => {
-  console.error('❌ Azure SQL connection failed:', err);
+  console.error('❌ DB connection failed:', err);
 });
 
 module.exports = {

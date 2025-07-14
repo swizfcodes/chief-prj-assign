@@ -60,13 +60,42 @@
         <button id="adminTabBtn" class="w-full px-4 py-2 text-left rounded tab-button" data-tab="create-admin">Administrators</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ledger-entry">Ledger Entry</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expense">OCDA Expense</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="summary">Monthly Summary</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="enquiry">Enquiry</button>
+        <!-- Receipt Main Tab -->
+        <div class="relative"   id="receiptTabWrapper">
+          <button id="receiptTabBtn"
+            class="w-full px-4 py-2 text-left rounded text-white flex justify-between items-center">
+            <span><i data-lucide="file-text" class="w-4 h-4 inline-block mr-2"></i> Reports</span>
+            <i data-lucide="chevron-down" class="w-4 h-4 ml-auto"></i>
+          </button>
+
+          <!-- SUBTABS -->
+          <div id="receiptDropdown"
+              class="hidden left-0 mt-1 bg-white shadow-md rounded z-10 w-full border">
+            <button class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center tab-sub-button"
+                    data-tab="enquiry">
+              <i data-lucide="search" class="w-4 h-4 mr-2"></i> Enquiry
+            </button>
+            <button class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center tab-sub-button"
+                    data-tab="memberledger">
+              <i data-lucide="book-open" class="w-4 h-4 mr-2"></i> Member Ledger
+            </button>
+            <button class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center tab-sub-button"
+                    data-tab="ocda-expenses-analysis">
+              <i data-lucide="file-minus" class="w-4 h-4 mr-2"></i> OCDA Expenses Analysis
+            </button>
+            <button class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center tab-sub-button"
+              data-tab="ocda-income-analysis">
+              <i data-lucide="file-plus" class="w-4 h-4 mr-2"></i> OCDA Income Analysis
+            </button>
+            <button class="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center tab-sub-button"
+             data-tab="summary">
+              <i data-lucide="bar-chart" class="w-4 h-4 mr-2"></i>Monthly Summary
+            </button>
+          </div>
+        </div>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="std">Standard Expenses</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="income">Income Classifications</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="static-tables">Static Tables</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-expenses-analysis">OCDA Expenses Analysis</button>
-        <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="ocda-income-analysis">OCDA Income Analysis</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="notices-section">Notices / Events</button>
         <button class="w-full px-4 py-2 text-left rounded tab-button" data-tab="change-PhoneNumber">Change PhoneNumber</button>
         <button id="menuToggle" class="lg:hidden p-4 text-gray-800 focus:outline-none"></button>
@@ -598,6 +627,24 @@
         </div>
       </section>
 
+      <section id="memberledger" class="tab-content hidden">
+          <h2 class="text-2xl font-semibold mb-4">All Member Ledger</h2>
+          <div class="overflow-auto rounded shadow bg-white">
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                  <th class="p-3">Phone No</th>
+                  <th class="p-3">Trans. Date</th>
+                  <th class="p-3">Amount</th>
+                  <th class="p-3">Remark</th>
+                  <th class="p-3">Record Date</th>
+                </tr>
+              </thead>
+              <tbody id="ledgerDataTable"></tbody>
+            </table>
+          </div>
+      </section>
+
             <!-- OCDA Expense Entry -->
       <section id="ocda-expense" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Record OCDA Expense</h2>
@@ -605,24 +652,24 @@
         <form id="ocdaForm" class="bg-white p-6 rounded shadow max-w-xl space-y-4">
           <h2 class="text-xl font-semibold">OCDA Cheque Input + Other Charges</h2>
 
-          <label class="block">
+          <label class="block text-black">
             Date
             <input name="docdate" type="date" required class="w-full p-2 border rounded" />
           </label>
 
-          <label class="block">
+          <label class="block text-black">
             Project
             <select name="project" required class="w-full p-2 border rounded" id="projectDropdown">
               <!-- Populated dynamically -->
             </select>
           </label>
 
-          <label class="block">
+          <label class="blocktext-black">
             Amount <span class="text-sm text-gray-500">(use negative for reversal)</span>
             <input name="amount" type="number" step="0.01" required class="w-full p-2 border rounded" />
           </label>
 
-          <label class="block">
+          <label class="block text-black">
             Remarks
             <input name="remarks" type="text" required class="w-full p-2 border rounded" />
           </label>
@@ -657,14 +704,14 @@
         <!--  Option Selection -->
         <form id="enquiryForm" class="bg-white p-4 rounded shadow space-y-4">
           <div class="flex gap-6 flex-wrap">
-            <label><input type="radio" name="enquiryType" value="member" checked /> Member</label>
-            <label><input type="radio" name="enquiryType" value="ward" /> Ward</label>
-            <label><input type="radio" name="enquiryType" value="quarter" /> Quarter</label>
+            <label class="text-black"><input type="radio" name="enquiryType" value="member" checked /> Member</label>
+            <label class="text-black"><input type="radio" name="enquiryType" value="ward" /> Ward</label>
+            <label class="text-black"><input type="radio" name="enquiryType" value="quarter" /> Quarter</label>
           </div>
 
           <!-- Member -->
           <div id="memberSelectGroup">
-            <label class="block mt-2 font-medium">Member GSMNO</label>
+            <label class="block mt-2 font-medium  text-black">Member GSMNO</label>
             <select name="queryParam" id="enquiry-member" class="w-full p-2 border rounded">
               <option value="ALL">ALL</option>
             </select>
@@ -672,7 +719,7 @@
 
           <!-- Ward -->
           <div id="wardSelectGroup" class="hidden">
-            <label class="block mt-2 font-medium">Select Ward</label>
+            <label class="block mt-2 font-medium text-black">Select Ward</label>
             <select name="queryParam" id="enquiry-ward" class="w-full p-2 border rounded">
               <option value="ALL">ALL</option>
             </select>
@@ -680,7 +727,7 @@
 
           <!--  Quarter -->
           <div id="quarterSelectGroup" class="hidden">
-            <label class="block mt-2 font-medium">Select Quarter</label>
+            <label class="block mt-2 font-medium text-black">Select Quarter</label>
             <select name="queryParam" id="enquiry-quarter" class="w-full p-2 border rounded">
               <option value="ALL">ALL</option>
             </select>
@@ -692,12 +739,13 @@
             <input type="date" name="end" class="p-2 border rounded" />
           </div>
 
-          <!--  Mode -->
-          <label style="display: inline-block;"><input type="checkbox" name="detail" id="detailCheck" /> Show All Details</label>
+          <label for="detailCheck" class="flex items-center gap-2 text-base cursor-pointer select-none text-black">
+            <input type="checkbox" id="detailCheck" name="detail" class="w-4 h-4 accent-blue-600" />
+            Show All Details
+          </label>
 
           <div class="flex items-center gap-4 mt-4">
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
-            <button type="button" class="bg-purple-600 text-white px-4 py-2 rounded" onclick="showAccountSummary()">
           </div>
         </form>
 
@@ -960,7 +1008,7 @@
           <!-- Qualification + Profession -->
           <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="form-group">
-              <label style="color: blue !important;" for="Qualifications">Qualification</label>
+              <label for="Qualifications">Qualification</label>
               <select name="Qualifications" id="Qualifications" class="p-3 border rounded w-full">
                 <option value="">Select Qualification</option>
                 <option>BSC</option>
@@ -1179,6 +1227,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  lucide.createIcons();
+</script>
 </body>
 <script src="script/admin-dashboard.js"></script>
 </html>

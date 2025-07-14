@@ -47,6 +47,20 @@
   }
   });
 
+    const passwordInput = document.getElementById("loginPassword");
+    const togglePassword = document.getElementById("togglePassword");
+    const eyeOpen = document.getElementById("eyeOpen");
+    const eyeClosed = document.getElementById("eyeClosed");
+
+    togglePassword.addEventListener("click", () => {
+        const isPassword = passwordInput.type === "password";
+        passwordInput.type = isPassword ? "text" : "password";
+        
+        // Toggle SVG display
+        eyeOpen.style.display = isPassword ? "none" : "inline";
+        eyeClosed.style.display = isPassword ? "inline" : "none";
+    });
+
 function handleForgotPasswordClick() {
   const loginEmail = document.getElementById('loginEmail')?.value.trim() || '';
 

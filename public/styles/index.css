@@ -33,12 +33,19 @@
 }
 
 /* Logo */
-.hicad-logo {
+.ocda-logoIdentity {
   font-size: 2rem;
   font-weight: 700;
   color: var(--main-color);
   transition: color 0.3s ease;
   letter-spacing: 2px;
+  width: 40%;
+  height: 40%;
+  font-size: 1rem;
+}
+
+.hicad-logo{
+  width: 10rem;
 }
 
 .hicad-logo:hover {
@@ -256,6 +263,7 @@
 h2 {
   color: #1a1a1a;
   margin-bottom: 15px;
+  margin-top: 2%;
 }
 
 p {
@@ -801,6 +809,11 @@ transform: scale(1.05);
   .glass-form button{
     font-size: 120%;
   }
+
+  .ocda-logoIdentity {
+    width: 27%;
+    height: 27%;
+  }
 }
 
 
@@ -952,5 +965,10 @@ transform: scale(1.05);
   
   .section-title {
       font-size: 2rem;
+  }
+
+  .ocda-logoIdentity {
+    width: 30%;
+    height: 30%;
   }
 }

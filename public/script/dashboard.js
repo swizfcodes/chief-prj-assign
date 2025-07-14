@@ -1,6 +1,9 @@
 const isLocal = window.location.hostname === 'localhost';
 const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com';
 
+function formatDate(date) {
+  return date.split('T')[0];
+}
 
 async function fetchAPI(endpoint, method = 'GET', data = null) {
   const options = {

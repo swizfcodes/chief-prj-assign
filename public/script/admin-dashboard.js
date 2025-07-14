@@ -12,39 +12,148 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.o
 
 const token =  `Bearer ${localStorage.getItem('adminToken')}`;
 
+document.addEventListener('DOMContentLoaded', () => {
+  const receiptBtn = document.getElementById('receiptTabBtn');
+  const dropdown = document.getElementById('receiptDropdown');
+
+  // Toggle dropdown on click
+  receiptBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // prevent window click from closing it instantly
+    dropdown.classList.toggle('hidden');
+  });
+
+  // Handle subtab click
+  document.querySelectorAll('.tab-sub-button').forEach(button => {
+    button.addEventListener('click', () => {
+      const tabId = button.getAttribute('data-tab');
+
+      // Show only the selected subtab's content
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+      const section = document.getElementById(tabId);
+      if (section) section.classList.remove('hidden');
+
+      // Highlight active subtab
+      document.querySelectorAll('.tab-sub-button').forEach(btn => btn.classList.remove('bg-gray-200'));
+      button.classList.add('bg-gray-200');
+
+      // Close dropdown
+      dropdown.classList.add('hidden');
+    });
+  });
+
+  // Close dropdown if clicked outside
+  window.addEventListener('click', (e) => {
+    if (!document.getElementById('receiptTabWrapper').contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  });
+
+  // Render Lucide icons
+  lucide.createIcons();
+});
+
 window.addEventListener('DOMContentLoaded', () => {
   const menuToggle = document.getElementById('menuToggle');
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
-  const tabButtons = document.querySelectorAll('.tab-button');
+  const receiptTabBtn = document.getElementById('receiptTabBtn');
+  const receiptDropdown = document.getElementById('receiptDropdown');
+  const tabButtons = document.querySelectorAll('.tab-button, .tab-sub-button');
 
-  // Defensive checks
-  if (!menuToggle || !sidebar || !overlay || tabButtons.length === 0) return;
+  let activeTab = null;
 
-  // Toggle sidebar on hamburger click
-  menuToggle.addEventListener('click', () => {
-    sidebar.classList.toggle('-translate-x-full');
-    sidebar.classList.toggle('hidden');
-    overlay.classList.toggle('hidden');
-  });
+  const isSubtab = (tab) => [
+    'enquiry',
+    'memberledger',
+    'ocda-expenses-analysis',
+    'ocda-income-analysis',
+    'summary'
+  ].includes(tab);
 
-  // Hide sidebar when clicking outside (on overlay)
-  overlay.addEventListener('click', () => {
-    sidebar.classList.add('-translate-x-full');
-    sidebar.classList.add('hidden');
-    overlay.classList.add('hidden');
-  });
+  // Toggle sidebar
+  if (menuToggle && sidebar && overlay) {
+    menuToggle.addEventListener('click', () => {
+      const wasHidden = sidebar.classList.contains('hidden');
 
-  // Close sidebar on tab click (mobile only)
+      sidebar.classList.toggle('-translate-x-full');
+      sidebar.classList.toggle('hidden');
+      overlay.classList.toggle('hidden');
+
+      // Auto-show dropdown if last active was a subtab
+      if (receiptDropdown) {
+        if (wasHidden && isSubtab(activeTab)) {
+          receiptDropdown.classList.remove('hidden');
+        } else if (wasHidden) {
+          receiptDropdown.classList.add('hidden');
+        }
+      }
+    });
+
+    // Hide sidebar when clicking overlay
+    overlay.addEventListener('click', () => {
+      sidebar.classList.add('-translate-x-full', 'hidden');
+      overlay.classList.add('hidden');
+    });
+  }
+
+  // Track tab clicks
   tabButtons.forEach(button => {
     button.addEventListener('click', () => {
-      if (window.innerWidth < 1024) {
-        sidebar.classList.add('-translate-x-full');
-        sidebar.classList.add('hidden');
+      const tab = button.dataset.tab;
+      activeTab = tab;
+
+      // Hide dropdown if normal tab is clicked
+      if (receiptDropdown && !isSubtab(tab)) {
+        receiptDropdown.classList.add('hidden');
+      }
+
+      // Close sidebar on mobile
+      if (window.innerWidth < 1024 && sidebar && overlay) {
+        sidebar.classList.add('-translate-x-full', 'hidden');
         overlay.classList.add('hidden');
+        
+        // Also hide dropdown on mobile when any tab (including subtabs) is clicked
+        if (receiptDropdown) {
+          receiptDropdown.classList.add('hidden');
+        }
       }
     });
   });
+
+  // Manual dropdown toggle for receipt tab
+  if (receiptTabBtn && receiptDropdown) {
+    // Force initialize dropdown as hidden using inline style
+    receiptDropdown.style.display = 'none';
+    console.log('Dropdown initialized as hidden');
+    
+    receiptTabBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('Receipt tab clicked');
+      
+      const isHidden = receiptDropdown.style.display === 'none';
+      console.log('Is dropdown hidden?', isHidden);
+      
+      if (isHidden) {
+        receiptDropdown.style.display = 'block';
+        console.log('Dropdown shown');
+      } else {
+        receiptDropdown.style.display = 'none';
+        console.log('Dropdown hidden');
+      }
+    });
+  }
+
+  // Close dropdown only when menuwrapper is clicked
+  const menuWrapper = document.querySelector('.menu-wrapper, #menuWrapper, [data-menu-wrapper]'); // Try multiple selectors
+  if (menuWrapper && receiptDropdown) {
+    menuWrapper.addEventListener('click', (e) => {
+      // Only hide if the click is directly on the menu wrapper, not on its children
+      if (e.target === menuWrapper) {
+        receiptDropdown.classList.add('hidden');
+      }
+    });
+  }
 });
 
 function verifyToken(req, res, next) {
@@ -104,17 +213,42 @@ async function loadAdmins() {
               <td class="p-2 border">${admin.role}</td>
               <td class="p-2 border">${admin.active == 1 || admin.active === '1' ? 'Active' : 'Inactive'}</td>
               <td class="p-2 border">
-                <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})" class="px-2 py-1 rounded ${admin.active ? 'bg-yellow-500' : 'bg-green-500'} text-white text-xs">
-                  ${admin.active ? 'Deactivate' : 'Activate'}
-                </button>
-                <button class="px-2 py-1 bg-blue-600 text-white rounded text-xs edit-admin-btn"
-                  data-id="${admin.Id}"
-                  data-fullname="${admin.fullname}"
-                  data-email="${admin.email}"
-                  data-role="${admin.role}">
-                  Edit
-                </button>
-                <button onclick="deleteAdmin('${admin.Id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+                <!-- Desktop Buttons (≥ md) -->
+                <div class="hidden md:flex gap-1">
+                  <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})" class="px-2 py-1 rounded ${admin.active ? 'bg-yellow-500' : 'bg-green-500'} text-white text-xs">
+                    ${admin.active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button class="px-2 py-1 bg-blue-600 text-white rounded text-xs edit-admin-btn"
+                    data-id="${admin.Id}"
+                    data-fullname="${admin.fullname}"
+                    data-email="${admin.email}"
+                    data-role="${admin.role}">
+                    Edit
+                  </button>
+                  <button onclick="deleteAdmin('${admin.Id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
+                </div>
+
+                <!-- Mobile 3-dot menu (< md) -->
+                <div class="relative inline-block md:hidden">
+                  <button onclick="toggleMenu(this)" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none">
+                    <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M6 10a2 2 0 114.001-.001A2 2 0 016 10zm4 0a2 2 0 114.001-.001A2 2 0 0110 10zm4 0a2 2 0 114.001-.001A2 2 0 0114 10z" />
+                    </svg>
+                  </button>
+                  <div class="hidden absolute right-0 z-10 mt-2 w-36 bg-white border rounded-lg shadow-md">
+                    <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})" class="w-full text-left px-4 py-2 text-sm ${admin.active ? 'bg-yellow-500' : 'bg-green-500'}  hover:bg-gray-100">
+                      ${admin.active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button class="w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-gray-100 edit-admin-btn"
+                      data-id="${admin.Id}"
+                      data-fullname="${admin.fullname}"
+                      data-email="${admin.email}"
+                      data-role="${admin.role}">
+                      Edit
+                    </button>
+                    <button onclick="deleteAdmin('${admin.Id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100">Delete</button>
+                  </div>
+                </div>
               </td>
             </tr>
           `).join('')}
@@ -126,6 +260,23 @@ async function loadAdmins() {
     document.getElementById('adminTable').innerText = 'Error loading admins.';
   }
 }
+
+function toggleMenu(btn) {
+  const menu = btn.nextElementSibling;
+  // Close all other menus
+  document.querySelectorAll('.relative .absolute').forEach(m => {
+    if (m !== menu) m.classList.add('hidden');
+  });
+  // Toggle this one
+  menu.classList.toggle('hidden');
+}
+
+// Optional: Close dropdown when clicking outside
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.relative')) {
+    document.querySelectorAll('.relative .absolute').forEach(m => m.classList.add('hidden'));
+  }
+});
 
 // Open Edit Modal and fill form
 document.addEventListener('click', function(e) {
@@ -280,44 +431,44 @@ function setupAdminTab() {
     });
 
     // Fetch Data Sections
- function fetchTable(endpoint, targetId, renderFn) {
-  fetch(endpoint, {
-    headers: {
-      'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
+function fetchTable(endpoint, targetId, renderFn) {
+fetch(endpoint, {
+  headers: {
+    'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
+  }
+})
+  .then(async res => {
+    let data;
+    try {
+      data = await res.json();
+    } catch (err) {
+      throw new Error(`Invalid JSON from ${endpoint}`);
     }
+
+    if (!res.ok) {
+      throw new Error(data.message || `Request failed: ${res.status}`);
+    }
+
+    if (!Array.isArray(data)) {
+      console.error(`Expected array but got:`, data);
+      return;
+    }
+
+    const tableBody = document.getElementById(targetId);
+    if (!tableBody) {
+      console.error(`Target element #${targetId} not found.`);
+      return;
+    }
+
+    tableBody.innerHTML = data.map(renderFn).join('');
   })
-    .then(async res => {
-      let data;
-      try {
-        data = await res.json();
-      } catch (err) {
-        throw new Error(`Invalid JSON from ${endpoint}`);
-      }
-
-      if (!res.ok) {
-        throw new Error(data.message || `Request failed: ${res.status}`);
-      }
-
-      if (!Array.isArray(data)) {
-        console.error(`Expected array but got:`, data);
-        return;
-      }
-
-      const tableBody = document.getElementById(targetId);
-      if (!tableBody) {
-        console.error(`Target element #${targetId} not found.`);
-        return;
-      }
-
-      tableBody.innerHTML = data.map(renderFn).join('');
-    })
-    .catch(err => {
-      console.error(`Error loading ${endpoint}:`, err.message || err);
-      const tableBody = document.getElementById(targetId);
-      if (tableBody) {
-        tableBody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500">${err.message}</td></tr>`;
-      }
-    });
+  .catch(err => {
+    console.error(`Error loading ${endpoint}:`, err.message || err);
+    const tableBody = document.getElementById(targetId);
+    if (tableBody) {
+      tableBody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500">${err.message}</td></tr>`;
+    }
+  });
 }
 
 // Fetch and render Monthly Summary
@@ -502,11 +653,11 @@ function editIncomeClass(code, btn) {
 function deleteIncomeClass(code) {
   if (!confirm('Delete this income class?')) return;
   fetch(`/admin/incomeclass?incomecode=${encodeURIComponent(code)}`, { method: 'DELETE' })
-    .then(res => {
-      if (!res.ok) return alert('Delete failed');
-      alert('Deleted successfully!');
-      fetchTable('/admin/incomeclass', 'incomeData', incomeClassRowRender);
-    });
+  .then(res => {
+    if (!res.ok) return alert('Delete failed');
+    alert('Deleted successfully!');
+    fetchTable('/admin/incomeclass', 'incomeData', incomeClassRowRender);
+  });
 }
 
 // Table row renderer
@@ -522,8 +673,6 @@ function incomeClassRowRender(row) {
     </tr>
   `;
 }
-
-
 
 
 // Logout
@@ -746,6 +895,7 @@ async function loadMembersSummaryTable(targetBoxId = 'summaryTableBox') {
     console.error('Members Summary Table Error:', err);
   }
 }
+
 // Ensure summary table loads on login and on refresh 
 window.addEventListener('DOMContentLoaded', function () {
   if (document.getElementById('membersSummaryTableBox')) {
@@ -1061,15 +1211,15 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .then(res => res.json())
     .then(data => {
-      // Clear existing options except first
+      // Clear existing options except the first (default)
       while (remarkDropdown.options.length > 1) {
         remarkDropdown.remove(1);
       }
       if (Array.isArray(data)) {
         data.forEach(item => {
           const option = document.createElement('option');
-          option.value = `${item.incomedesc} (${item.incomecode})`;
-          option.textContent = `${item.incomedesc} (${item.incomecode})`;
+          option.value = item.incomecode;
+          option.textContent = item.incomecode;
           remarkDropdown.appendChild(option);
         });
       }
@@ -1079,6 +1229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
 
 //  Add Payment to Member Ledger (Screen D)
 document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
@@ -1122,27 +1273,60 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
 // Add member ledger to (Screen D)
 async function loadMemberLedger() {
   try {
-    const res = await fetch('/admin/memberledger', {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+
+    const firstDay = `${year}-${month}-01`;
+    const lastDay = new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0]; // last day of month
+
+    const res = await fetch(`/admin/member-recordledger?from=${firstDay}&to=${lastDay}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-
       }
     });
+
     const data = await res.json();
     const body = document.getElementById('ledgerData');
-    body.innerHTML = data.map(row =>`
-        <tr class="border-t">
-          <td class="p-2">${row.phoneno}</td>
-          <td class="p-2">${formatDate(row.transdate)}</td>
-          <td class="p-2">${formatAmount(row.amount)}</td>
-          <td class="p-2">${row.remark}</td>
-          <td class="p-2">${row.paydate || '—'}</td>
-        `).join('');
+
+    body.innerHTML = data.map(row => `
+      <tr class="border-t">
+        <td class="p-2">${row.phoneno}</td>
+        <td class="p-2">${formatDate(row.transdate)}</td>
+        <td class="p-2">${formatAmount(row.amount)}</td>
+        <td class="p-2">${row.remark}</td>
+        <td class="p-2">${formatDate(row.paydate || '—')}</td>
+      </tr>
+    `).join('');
   } catch (err) {
     console.error('Load memberLedger Error:', err);
   }
 }
 
+async function loadAllMemberLedger() {
+  try {
+    const res = await fetch('/admin/memberledger', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      }
+    });
+
+    const data = await res.json();
+    const body = document.getElementById('ledgerDataTable');
+
+    body.innerHTML = data.map(row => `
+      <tr class="border-t">
+        <td class="p-2">${row.phoneno}</td>
+        <td class="p-2">${formatDate(row.transdate)}</td>
+        <td class="p-2">${formatAmount(row.amount)}</td>
+        <td class="p-2">${row.remark}</td>
+        <td class="p-2">${row.paydate ? formatDate(row.paydate) : '—'}</td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Load memberLedger Error:', err);
+  }
+}
 
 
 // Add OCDA Expense (Screen E)
@@ -1176,6 +1360,9 @@ document.getElementById('ocdaForm')?.addEventListener('submit', async (e) => {
     console.error('OCDA Submit Error:', err.message || err);
     alert('Server error');
   }
+});
+window.addEventListener('DOMContentLoaded', () => {
+  loadAllMemberLedger();
 });
 
 async function loadProjectDropdown() {

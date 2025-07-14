@@ -14,7 +14,7 @@
   <!--- header design -->
   <header class="hicad-header">
     <a href="index.html" class="hicad-logo">
-      OCDA
+      <img src="/photos/OCDA-Logo3.png" alt="ocda-logo" class="ocda-logoIdentity">
     </a>
 
     <nav class="hicad-navbar" id="navbar">
@@ -32,23 +32,42 @@
   </div>
 </header>
 
-    <div class="form-wrapper">
-      <div class="container-form">
-       <form id="adminLoginForm" class="form active">
-        <h2 class= "title">OCDA Admin Login</h2>
+  <div class="form-wrapper">
+    <div class="container-form">
+      <form id="adminLoginForm" class="form active">
+      <h2 class= "title">OCDA Admin Login</h2>
 
-        <div class="form-group">
-          <input type="email" id="loginEmail" name="email" placeholder="Email" required class="w-full p-3 border rounded" />
-          <input type="password" name="password" placeholder="Password" required class="w-full p-3 border rounded" />
-          <button type="submit" class="submit-btn">Login</button>
-          <p class="text-sm text-center text-gray-500 mt-4" style="margin-top: 3%;">Only authorized admins are allowed.</p>
+      <div class="form-group">
+        <label for="loginEmail">Email<span class="required">*</span></label>
+        <input type="email" id="loginEmail" name="email" placeholder="Email" required class="w-full p-3 border rounded" />
+      </div>
+
+      <div class="form-group" style="position: relative;">
+        <label for="loginPassword">Password<span class="required">*</span></label>
+        <input type="password" id="loginPassword" name="password" placeholder="Password" required class="w-full p-3 border rounded" />
+          <span id="togglePassword" style="position: absolute; top: 36px; right: 10px; cursor: pointer;">
+          <!-- Eye Open SVG -->
+          <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <!-- Eye Closed SVG -->
+          <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+          <path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a21.7 21.7 0 014.6-5.94M1 1l22 22"/>
+          <path d="M9.5 9.5a3 3 0 004 4"/>
+          </svg>
+        </span>
+      </div>
+      
+        <button type="submit" class="submit-btn">Login</button>
+        <p class="text-sm text-center text-gray-500 mt-4" style="margin-top: 3%;">Only authorized admins are allowed.</p>
+
+        <div style="text-align: right; margin-bottom: 2%;">
+          <a href="#" onclick="handleForgotPasswordClick()">Forgot Password?</a>
         </div>
       </form>
-      
-      <div>
-        <a href="#" onclick="handleForgotPasswordClick()">Forgot Password?</a>
-      </div>
     </div>
+  </div>
 
 </body>
 <script src="script/index.js"></script>
