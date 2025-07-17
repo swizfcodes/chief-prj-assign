@@ -4,6 +4,20 @@
   }
 }
 
+/* Hamburger only on < 520px */
+@media (min-width: 768px) {
+  #hoverTrigger,
+  #menuToggle {
+    display: none !important;
+  }
+
+  .sidebar {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
 :root {
   --bg: #0f2027;
   --bg-light: #2c5364;
@@ -81,9 +95,47 @@ body.dark {
   z-index: 1000;
 }
 
+/* Show sidebar */
+.sidebar.show {
+  transform: translateX(0);
+}
+
+/* Hover preview state */
+#hoverTrigger:hover + .sidebar.collapsed {
+  transform: translateX(0);
+}
+
+/* Content wrapper pushed when sidebar is visible */
+.content-wrapper {
+  transition: margin-left 0.3s ease;
+  margin-left: 220px;
+}
+
+/* When sidebar is collapsed */
+.sidebar.collapsed ~ .content-wrapper {
+  margin-left: 0;
+}
+
+.sidebar.collapsed + .main-content {
+  margin-left: 60px;
+}
+
+/* Hover zone */
+#hoverTrigger {
+  position: fixed;
+  top: 80px;
+  left: 0;
+  width: 10px;
+  height: calc(100vh - 80px);
+  z-index: 999;
+  cursor: pointer;
+}
+
 /* Collapsed version */
 .sidebar.collapsed {
   width: 60px;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
 }
 
 .sidebar-buttons {
@@ -126,15 +178,16 @@ body.dark {
 }
 
 .main {
-    flex: 1;
-    padding: 2rem;
+  flex: 1;
+  transition: margin-left 0.3s ease;
+  padding: 10rem;
+  padding-left: 50px; /* match collapsed sidebar */
 }
 
 /* Main Profile Section Container */
 #profileSection {
   max-width: 900px;
-  margin: 50px auto;
-  padding: 40px 30px;
+  padding: 40px 90px;
   background: linear-gradient(to bottom right, #ffffff, #f7fbff);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
   border-radius: 18px;
@@ -229,7 +282,7 @@ body.dark {
 
 @media (max-width: 600px) {
   #profileDisplay {
-    grid-template-columns: 1fr, 1fr;
+    grid-template-columns:1fr;
     gap: 15px;
   }
 
@@ -239,7 +292,7 @@ body.dark {
 
   #profileSection {
    width: 100%;
-   margin-left: 1%;
+   padding: 2%;
   }
 }
 
@@ -320,7 +373,7 @@ body.dark {
 #receiptSection {
   max-width: 800px;
   margin: 50px auto;
-  padding: 2%;
+  padding: 20%;
   border-radius: 16px;
   background: linear-gradient(135deg, #f5fbff, #e3f2ff);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);

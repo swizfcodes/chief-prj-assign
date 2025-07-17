@@ -13,6 +13,105 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.o
 const token =  `Bearer ${localStorage.getItem('adminToken')}`;
 
 document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('memberEditForm');
+  if (!form) return;
+
+  const titleSelect = form.querySelector('#Title');
+  const honTitleSelect = form.querySelector('#HonTitle');
+  const qualificationSelect = form.querySelector('#Qualifications');
+
+  const loadDropdown = async (endpoint, selectElement, valueKey) => {
+    try {
+      const res = await fetch(`/admin/static/${endpoint}`);
+      const data = await res.json();
+
+      if (!Array.isArray(data)) throw new Error(`Invalid data: ${JSON.stringify(data)}`);
+
+      data.forEach(item => {
+        const val = item[valueKey];
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        selectElement.appendChild(option);
+      });
+    } catch (err) {
+      console.error(`Error loading ${endpoint}:`, err);
+    }
+  };
+
+  // Load dropdowns
+  loadDropdown('titles', titleSelect, 'title');
+  loadDropdown('hontitles', honTitleSelect, 'Htitle');
+  loadDropdown('qualifications', qualificationSelect, 'qualification');
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const stateSelect = document.getElementById('State');
+
+  fetch('/admin/static/states')
+    .then(res => res.json())
+    .then(states => {
+      if (!Array.isArray(states)) throw new Error('Invalid states response');
+
+      states.forEach(state => {
+        const option = document.createElement('option');
+        option.value = state.statecode; 
+        option.textContent = state.statename; 
+        stateSelect.appendChild(option);
+      });
+    })
+    .catch(err => {
+      console.error('Error loading states:', err);
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const form = document.getElementById('memberEditForm');
+  if (!form) return;
+
+  const quarterDropdown = document.getElementById('Quarters');
+  const wardDropdown = document.getElementById('Ward');
+
+  let wardData = [];
+
+  try {
+    const res = await fetch('/admin/static/wards');
+    wardData = await res.json();
+
+    // Populate quarter dropdown (unique quarters only)
+    const uniqueQuarters = [...new Set(wardData.map(item => item.Quarter))];
+
+    uniqueQuarters.forEach(quarter => {
+      const option = document.createElement('option');
+      option.value = quarter;
+      option.textContent = quarter;
+      quarterDropdown.appendChild(option);
+    });
+
+    // Filter and populate wards when a quarter is selected
+    quarterDropdown.addEventListener('change', () => {
+      const selectedQuarter = quarterDropdown.value;
+
+      // Clear existing ward options except default
+      wardDropdown.innerHTML = '<option value="">Select Ward</option>';
+
+      const filteredWards = wardData.filter(item => item.Quarter === selectedQuarter);
+      filteredWards.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.ward;
+        option.textContent = item.ward;
+        wardDropdown.appendChild(option);
+      });
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch wards:', err);
+  }
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
   const receiptBtn = document.getElementById('receiptTabBtn');
   const dropdown = document.getElementById('receiptDropdown');
 
@@ -688,6 +787,21 @@ window.addEventListener('DOMContentLoaded', loadAdmins);
 document.getElementById('createMemberForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
+
+  // Get raw values
+  const password = form.Password.value;
+  const retypePassword = form.retypePassword.value;
+
+  // Password validation first
+  if (!retypePassword) {
+    showError('retypePassword', 'Please retype your password');
+    return;
+  }
+  if (password !== retypePassword) {
+    showError('retypePassword', 'Passwords do not match');
+    return;
+  }
+
   const data = {
     PhoneNumber: form.PhoneNumber.value,
     phoneno2: form.phoneno2.value,
@@ -704,9 +818,8 @@ document.getElementById('createMemberForm')?.addEventListener('submit', async (e
     Qualifications: form.Qualifications.value,
     Profession: form.Profession.value,
     exitdate: form.exitdate.value,
-    Password: form.Password.value,
+    Password: password,
     email: form.email.value
-    // `CreatedAt` and `createdby` are set on backend
   };
 
   try {
@@ -718,12 +831,53 @@ document.getElementById('createMemberForm')?.addEventListener('submit', async (e
       },
       body: JSON.stringify(data)
     });
+
     const result = await res.json();
     alert(res.ok ? 'Member created successfully!' : (result.message || 'Error creating member.'));
-    if (res.ok) form.reset(); loadMembers(); // Refresh member list after creation
+
+    if (res.ok) {
+      form.reset();
+      loadMembers();
+      setTimeout(() => {
+        document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+        document.getElementById('member-list')?.classList.remove('hidden');
+      }, 1500);
+    }
   } catch (err) {
     console.error('Create Member Error:', err);
     alert('Server error');
+  }
+});
+
+function showError(fieldId, message) {
+  const errorElement = document.getElementById(fieldId + 'Error');
+  const inputElement = document.getElementById(fieldId);
+  
+  if (errorElement) {
+      errorElement.textContent = message;
+      errorElement.style.display = 'block';
+      inputElement.style.borderColor = '#e74c3c';
+  }
+}
+
+function clearError(fieldId) {
+  const errorElement = document.getElementById(fieldId + 'Error');
+  const inputElement = document.getElementById(fieldId);
+  
+  if (errorElement) {
+      errorElement.style.display = 'none';
+      inputElement.style.borderColor = '#e1e5e9';
+  }
+}
+
+document.getElementById('retypePassword').addEventListener('input', function() {
+  const password = document.getElementById('password').value;
+  const retypePassword = this.value;
+  
+  if (retypePassword && password !== retypePassword) {
+      showError('retypePassword', 'Passwords do not match');
+  } else if (retypePassword) {
+      clearError('retypePassword');
   }
 });
 
@@ -738,22 +892,22 @@ function displayMembers(data) {
   const end = start + rowsPerPage;
   const paginated = data.slice(start, end);
 
-table.innerHTML = paginated.map(m => `
-  <tr class="border-t">
-    <td class="p-3">${m.PhoneNumber}</td>
-    <td class="p-3">${m.Surname}</td>
-    <td class="p-3">${m.othernames}</td>
-    <td class="p-3">${m.Title}</td>
-    <td class="p-3">${m.Sex}</td>
-    <td class="p-3">${m.Quarters}</td>
-    <td class="p-3">${m.Ward}</td>
-    <td class="p-3 flex flex-col gap-2">
-      <button onclick="viewMember('${m.PhoneNumber}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">View</button>
-      <button onclick="editMember('${m.PhoneNumber}')" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">Edit</button>
-      <button onclick="deleteMember('${m.PhoneNumber}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
-    </td>
-  </tr>
-`).join('');
+  table.innerHTML = paginated.map(m => `
+    <tr class="border-t">
+      <td class="p-3">${m.PhoneNumber}</td>
+      <td class="p-3">${m.Surname}</td>
+      <td class="p-3">${m.othernames}</td>
+      <td class="p-3">${m.Title}</td>
+      <td class="p-3">${m.Sex}</td>
+      <td class="p-3">${m.Quarters}</td>
+      <td class="p-3">${m.Ward}</td>
+      <td class="p-3 flex flex-col gap-2">
+        <button onclick="viewMember('${m.PhoneNumber}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">View</button>
+        <button onclick="editMember('${m.PhoneNumber}')" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">Edit</button>
+        <button onclick="deleteMember('${m.PhoneNumber}')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Delete</button>
+      </td>
+    </tr>
+  `).join('');
   renderPagination(data.length);
 }
 
@@ -2227,4 +2381,117 @@ window.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     addStaticValue('titles');
   });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Populate Title
+  fetch('/admin/static/titles')
+    .then(res => res.json())
+    .then(data => {
+      const titleDropdown = document.getElementById('title');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.title;
+        option.textContent = item.title;
+        titleDropdown.appendChild(option);
+      });
+    });
+
+  // Populate HonTitle
+  fetch('/admin/static/hontitles')
+    .then(res => res.json())
+    .then(data => {
+      const honTitleDropdown = document.getElementById('honTitle');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.Htitle;
+        option.textContent = item.Htitle;
+        honTitleDropdown.appendChild(option);
+      });
+    });
+
+     // Populate qualifications
+  fetch('/admin/static/qualifications')
+    .then(res => res.json())
+    .then(data => {
+      const qualificationDropdown = document.getElementById('qualifications');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.qualification;
+        option.textContent = item.qualification;
+        qualificationDropdown.appendChild(option);
+      });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const quarterDropdown = document.getElementById('quarters');
+  const wardDropdown = document.getElementById('ward');
+
+  let wardData = [];
+
+  try {
+    const res = await fetch('/admin/static/wards');
+    wardData = await res.json();
+
+    // Populate quarter dropdown (unique quarters only)
+    const uniqueQuarters = [...new Set(wardData.map(item => item.Quarter))];
+
+    uniqueQuarters.forEach(quarter => {
+      const option = document.createElement('option');
+      option.value = quarter;
+      option.textContent = quarter;
+      quarterDropdown.appendChild(option);
+    });
+
+    // Filter and populate wards when a quarter is selected
+    quarterDropdown.addEventListener('change', () => {
+      const selectedQuarter = quarterDropdown.value;
+
+      // Clear existing ward options except default
+      wardDropdown.innerHTML = '<option value="">Select Ward</option>';
+
+      const filteredWards = wardData.filter(item => item.Quarter === selectedQuarter);
+      filteredWards.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.ward;
+        option.textContent = item.ward;
+        wardDropdown.appendChild(option);
+      });
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch wards:', err);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const stateDropdown = document.getElementById('state');
+
+  try {
+    const res = await fetch('/admin/static/states'); // Or correct path like /api/static/states
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error("Non-JSON response:", text);
+      return;
+    }
+
+    const states = await res.json();
+
+    if (!Array.isArray(states)) {
+      console.error("Expected array but got:", states);
+      return;
+    }
+
+    states.forEach(state => {
+      const option = document.createElement('option');
+      option.value = state.statecode;
+      option.textContent = state.statename;
+      stateDropdown.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading states:', err);
+  }
 });

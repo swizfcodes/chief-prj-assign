@@ -253,3 +253,118 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.o
       users = [];
       console.log('User data cleared');
   };
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Populate Title
+  fetch('/admin/static/titles')
+    .then(res => res.json())
+    .then(data => {
+      const titleDropdown = document.getElementById('title');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.title;
+        option.textContent = item.title;
+        titleDropdown.appendChild(option);
+      });
+    });
+
+  // Populate HonTitle
+  fetch('/admin/static/hontitles')
+    .then(res => res.json())
+    .then(data => {
+      const honTitleDropdown = document.getElementById('honTitle');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.Htitle;
+        option.textContent = item.Htitle;
+        honTitleDropdown.appendChild(option);
+      });
+    });
+
+     // Populate qualifications
+  fetch('/admin/static/qualifications')
+    .then(res => res.json())
+    .then(data => {
+      const qualificationDropdown = document.getElementById('qualifications');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.qualification;
+        option.textContent = item.qualification;
+        qualificationDropdown.appendChild(option);
+      });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const quarterDropdown = document.getElementById('quarters');
+  const wardDropdown = document.getElementById('ward');
+
+  let wardData = [];
+
+  try {
+    const res = await fetch('/admin/static/wards');
+    wardData = await res.json();
+
+    // Populate quarter dropdown (unique quarters only)
+    const uniqueQuarters = [...new Set(wardData.map(item => item.Quarter))];
+
+    uniqueQuarters.forEach(quarter => {
+      const option = document.createElement('option');
+      option.value = quarter;
+      option.textContent = quarter;
+      quarterDropdown.appendChild(option);
+    });
+
+    // Filter and populate wards when a quarter is selected
+    quarterDropdown.addEventListener('change', () => {
+      const selectedQuarter = quarterDropdown.value;
+
+      // Clear existing ward options except default
+      wardDropdown.innerHTML = '<option value="">Select Ward</option>';
+
+      const filteredWards = wardData.filter(item => item.Quarter === selectedQuarter);
+      filteredWards.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.ward;
+        option.textContent = item.ward;
+        wardDropdown.appendChild(option);
+      });
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch wards:', err);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const stateDropdown = document.getElementById('state');
+
+  try {
+    const res = await fetch('/admin/static/states');
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error("Non-JSON response:", text);
+      return;
+    }
+
+    const states = await res.json();
+
+    if (!Array.isArray(states)) {
+      console.error("Expected array but got:", states);
+      return;
+    }
+
+    states.forEach(state => {
+      const option = document.createElement('option');
+      option.value = state.statecode;
+      option.textContent = state.statename;
+      stateDropdown.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading states:', err);
+  }
+});
+
+
+

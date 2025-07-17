@@ -35,22 +35,24 @@
           </div>
         </div>
 
+        <!-- Phone Numbers -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="e.g., 08012345678">
+            </div>
+            <div class="form-group">
+                <label for="phoneNo2">Secondary Phone</label>
+                <input type="tel" id="phoneNo2" name="phoneNo2" placeholder="Optional">
+            </div>
+        </div>
+
         <!-- Row: Title + HonTitle -->
         <div class="form-row">
           <div class="form-group">
             <label for="title">Title</label>
             <select id="title" name="title"> 
               <option value="">Select Title</option>
-              <option value="Alhaji">Alhaji</option>
-              <option value="Brig/Gen">Brig/Gen</option>
-              <option value="Chief">Chief</option>
-              <option value="Dr">Dr</option>
-              <option value="Engr">Engr</option>
-              <option value="Mr">Mr</option>
-              <option value="Mrs">Mrs</option>
-              <option value="Miss">Miss</option>
-              <option value="Oba">Oba</option>
-              <option value="R/Adm">R/Adm</option>
             </select>
           </div>
 
@@ -58,23 +60,6 @@
             <label for="honTitle">Honorary Title</label>
             <select id="honTitle" name="honTitle"> 
               <option value="">Select Honorary Title</option>
-              <option value="AJAKA">AJAKA</option>
-              <option value="BALOGUN">BALOGUN</option>
-              <option value="Chief">Chief</option>
-              <option value="ELEBIRA">ELEBIRA</option>
-              <option value="ELEJOFI">ELEJOFI</option>
-              <option value="IGBEDI">IGBEDI</option>
-              <option value="KABIYESI">KABIYESI</option>              
-              <option value="Miss">Miss</option>
-              <option value="Mr">Mr</option>
-              <option value="Mrs">Mrs</option>
-              <option value="ODEMO">ODEMO</option>
-              <option value="ODOFIN">ODOFIN</option>
-              <option value="OJOMU">OJOMU</option>
-              <option value="OLORIEGBE">OLORIEGBE</option>
-              <option value="OLUGOTUN">OLUGOTUN</option>
-              <option value="OLUSA">OLUSA</option>
-              <option value="OSUNLA">OSUNLA</option>
             </select>
           </div>
         </div>
@@ -97,83 +82,36 @@
           </div>
         </div>
 
-        <!-- Quarters -->
+        <!-- Quarters + Ward-->
         <div class="form-row">
           <div class="form-group">
             <label for="quarters">Quarters<span class="required">*</span></label>
             <select id="quarters" name="quarters" required> 
               <option value="">Select Quaters</option>
-              <option value="Ogunna">Ogunna</option>
-              <option value="Ogosi">Ogosi</option>
-              <option value="Ogotun">Ogotun</option>
             </select>
             <div class="error" id="quartersError"></div>
           </div>
-                  <!-- State -->
-          <div class="form-group">
-            <label for="state">State <span class="required">*</span></label>
-            <select id="state" name="state" required> 
-              <option value="">Select State</option>
-              <option value="Abia">Abia</option>
-              <option value="Adamawa">Adamawa</option>
-              <option value="Akwa Ibom">Akwa Ibom</option>
-              <option value="Anambra">Anambra</option>
-              <option value="Bauchi">Bauchi</option>
-              <option value="Bayelsa">Bayelsa</option>
-              <option value="Benue">Benue</option>
-              <option value="Borno">Borno</option>
-              <option value="Cross River">Cross River</option>
-              <option value="Delta">Delta</option>
-              <option value="Ebonyi">Ebonyi</option>
-              <option value="Edo">Edo</option>
-              <option value="Ekiti">Ekiti</option>
-              <option value="Enugu">Enugu</option>
-              <option value="FCT">FCT</option>
-              <option value="Gombe">Gombe</option>
-              <option value="Imo">Imo</option>
-              <option value="Jigawa">Jigawa</option>
-              <option value="Kaduna">Kaduna</option>
-              <option value="Kano">Kano</option>
-              <option value="Katsina">Katsina</option>
-              <option value="Kebbi">Kebbi</option>
-              <option value="Kogi">Kogi</option>
-              <option value="Kwara">Kwara</option>
-              <option value="Lagos">Lagos</option>
-              <option value="Nasarawa">Nasarawa</option>
-              <option value="Niger">Niger</option>
-              <option value="Ogun">Ogun</option>
-              <option value="Ondo">Ondo</option>
-              <option value="Osun">Osun</option>
-              <option value="Oyo">Oyo</option>
-              <option value="Plateau">Plateau</option>
-              <option value="Rivers">Rivers</option>
-              <option value="Sokoto">Sokoto</option>
-              <option value="Taraba">Taraba</option>
-              <option value="Yobe">Yobe</option>
-              <option value="Zamfara">Zamfara</option>
-            </select>
-            <div class="error" id="stateError"></div>
-          </div>
-        </div>
-        
-        <!-- Row: Ward + Town -->
-        <div class="form-row">
+
           <div class="form-group">
             <label for="ward">Ward <span class="required">*</span></label>
             <select id="ward" name="ward" required> 
               <option value="">Select Ward</option>
-              <option value="Awanji">Awanji</option>
-              <option value="Ayagama">Ayagama</option>
-              <option value="Ayasu/Ayaya">Ayasu/Ayaya</option>
-              <option value="Igoho">Igoho</option>
-              <option value="Igonu">Igonu</option>
-              <option value="Igukan">Igukan</option>
-              <option value="IkanOlotu">IkanOlotu</option>
-              <option value="Okoko">Okoko</option>
-              <option value="Uhon">Uhon</option>
             </select>
             <div class="error" id="wardError"></div>
           </div>
+        </div>
+        
+        <!-- Row: State + Town -->
+        <div class="form-row">
+          <!-- State -->
+          <div class="form-group">
+            <label for="state">State <span class="required">*</span></label>
+            <select id="state" name="state" required> 
+              <option value="">Select State</option>
+            </select>
+            <div class="error" id="stateError"></div>
+          </div>
+
           <div class="form-group">
             <label for="town">Town <span class="required">*</span></label>
             <input type="text" id="town" name="town" required>
@@ -181,22 +119,12 @@
           </div>
         </div>
 
-
-
         <!-- Row: Qualifications + Profession -->
         <div class="form-row">
           <div class="form-group">
             <label for="qualifications">Qualification</label>
             <select id="qualifications" name="qualifications"> 
               <option value="">Select Qualification</option>
-              <option value="BSC">BSC</option>
-              <option value="Diploma">Diploma</option>
-              <option value="HND">HND</option>
-              <option value="MSC">MSC</option>
-              <option value="NCE">NCE</option>
-              <option value="OND">OND</option>
-              <option value="PHD">PHD</option>
-              <option value="SCert">SCert</option>
             </select>
           </div>
           <div class="form-group">
@@ -205,22 +133,12 @@
           </div>
         </div>
 
-            <!-- ✅ Email -->
+      <!-- Row: Email  + Exit Date-->
+       <!-- Email-->
+      <div class="form-row">
         <div class="form-group">
             <label for="email">Email Address</label>
             <input type="email" id="email" name="email" placeholder="example@domain.com">
-        </div>
-
-        <!-- ✅ Phone Numbers -->
-        <div class="form-row">
-            <div class="form-group">
-                <label for="phoneNumber">Phone Number <span class="required">*</span></label>
-                <input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="e.g., 08012345678">
-            </div>
-            <div class="form-group">
-                <label for="phoneNo2">Secondary Phone</label>
-                <input type="tel" id="phoneNo2" name="phoneNo2" placeholder="Optional">
-            </div>
         </div>
 
         <!-- Exit Date -->
@@ -228,6 +146,7 @@
           <label for="exitDate">Exit Date</label>
           <input type="date" id="exitDate" name="exitDate">
         </div>
+      </div>
 
         <!-- Row: Passwords -->
         <div class="form-row">

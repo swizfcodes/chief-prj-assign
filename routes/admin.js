@@ -1033,7 +1033,8 @@ router.get('/static/:type', async (req, res) => {
     titles: { table: 'Title', columns: ['title'] },
     qualifications: { table: 'Qualfication', columns: ['qualification'] },
     wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
-    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
+    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] },
+    states: { table: 'State', columns: ['statename', 'statecode'] }
   };
   const config = tableMap[type];
   if (!config) return res.status(400).json({ error: 'Invalid type' });
@@ -1048,6 +1049,19 @@ router.get('/static/:type', async (req, res) => {
     res.status(500).json({ error: `Failed to fetch ${type}` });
   }
 });
+
+router.get('/static/states', async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .query('SELECT statename, statecode FROM State');
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error fetching states:', err);
+    res.status(500).json({ error: 'Failed to fetch states' });
+  }
+});
+
 
 // --- POST (Add) ---
 router.post('/static/:type', async (req, res) => {

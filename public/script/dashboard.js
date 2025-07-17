@@ -5,6 +5,7 @@ function formatDate(date) {
   return date.split('T')[0];
 }
 
+
 async function fetchAPI(endpoint, method = 'GET', data = null) {
   const options = {
     method,
@@ -35,27 +36,154 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
 
 
 
-  function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('collapsed');
+  // On page load: collapse if screen is <= 1400px
+const sidebar = document.getElementById('sidebar');
+const mainContent = document.getElementById('mainContent');
+const screenWidth = () => window.innerWidth;
+
+function toggleSidebar() {
+  if (screenWidth() < 768) {
+    // Mobile: toggle visibility
+    if (sidebar.classList.contains('hidden')) {
+      // Show sidebar with text
+      sidebar.classList.remove('hidden');
+      sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+      sidebar.classList.add('w-60');
+      // Show text labels
+      sidebar.querySelectorAll('span').forEach(span => {
+        span.className = span.className.replace(/hidden|xl:inline/g, '');
+        span.classList.add('inline');
+      });
+    } else {
+      // Hide sidebar
+      sidebar.classList.add('hidden');
+    }
+  } else if (screenWidth() < 1200) {
+    // Tablet: toggle between collapsed and expanded
+    if (sidebar.classList.contains('w-11') || !sidebar.classList.contains('w-60')) {
+      // Expand
+      sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+      sidebar.classList.add('w-60');
+      mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+      mainContent.classList.add('md:pl-60');
+      // Show text labels
+      sidebar.querySelectorAll('span').forEach(span => {
+        span.className = span.className.replace(/hidden|xl:inline/g, '');
+        span.classList.add('inline');
+      });
+    } else {
+      // Collapse
+      sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+      sidebar.classList.add('w-11');
+      mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+      mainContent.classList.add('md:pl-11');
+      // Hide text labels
+      sidebar.querySelectorAll('span').forEach(span => {
+        span.className = span.className.replace(/inline|xl:inline/g, '');
+        span.classList.add('hidden');
+      });
+    }
+  } else {
+    // Desktop: toggle between collapsed and expanded
+    if (sidebar.classList.contains('w-11') || !sidebar.classList.contains('w-60')) {
+      // Expand
+      sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+      sidebar.classList.add('w-60');
+      mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+      mainContent.classList.add('xl:pl-60');
+      // Show text labels
+      sidebar.querySelectorAll('span').forEach(span => {
+        span.className = span.className.replace(/hidden|xl:inline/g, '');
+        span.classList.add('inline');
+      });
+    } else {
+      // Collapse
+      sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+      sidebar.classList.add('w-11');
+      mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+      mainContent.classList.add('xl:pl-11');
+      // Hide text labels
+      sidebar.querySelectorAll('span').forEach(span => {
+        span.className = span.className.replace(/inline|xl:inline/g, '');
+        span.classList.add('hidden');
+      });
+    }
+  }
+}
+
+function handleTabClick(sectionId) {
+  // Hide all sections
+  document.querySelectorAll('section').forEach(sec => sec.classList.add('hidden'));
+
+  // Show selected section
+  const targetSection = document.getElementById(sectionId);
+  if (targetSection) {
+    targetSection.classList.remove('hidden');
   }
 
-
-  // On page load: collapse if screen is <= 1400px
-  document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.getElementById('sidebar');
-    if (window.innerWidth <= 1400) {
-      sidebar.classList.add('collapsed');
-    } 
-      // Optional: re-collapse on resize
-    window.addEventListener('resize', () => {
-      if (window.innerWidth <= 1400) {
-        sidebar.classList.add('collapsed');
-      } else {
-        sidebar.classList.remove('collapsed');
-      }
+  // Auto-collapse/hide sidebar based on screen size
+  if (screenWidth() < 768) {
+    // Mobile: hide sidebar completely
+    sidebar.classList.add('hidden');
+  } else if (screenWidth() < 1200) {
+    // Tablet: collapse to narrow
+    sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+    sidebar.classList.add('w-11');
+    mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+    mainContent.classList.add('md:pl-11');
+    // Hide text labels
+    sidebar.querySelectorAll('span').forEach(span => {
+      span.className = span.className.replace(/inline|xl:inline/g, '');
+      span.classList.add('hidden');
     });
-  });
+  }
+  // For >1200 (desktop): do nothing - let user toggle manually
+}
+
+// Initialize sidebar state based on screen size
+function initializeSidebar() {
+  if (screenWidth() < 768) {
+    // Mobile: hidden by default
+    sidebar.classList.add('hidden');
+  } else if (screenWidth() < 1200) {
+    // Tablet: show collapsed
+    sidebar.classList.remove('hidden');
+    sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+    sidebar.classList.add('w-11');
+    mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+    mainContent.classList.add('md:pl-11');
+    // Hide text labels
+    sidebar.querySelectorAll('span').forEach(span => {
+      span.className = span.className.replace(/inline|xl:inline/g, '');
+      span.classList.add('hidden');
+    });
+  } else {
+    // Desktop: show expanded
+    sidebar.classList.remove('hidden');
+    sidebar.className = sidebar.className.replace(/w-\d+|md:w-\d+|xl:w-\d+/g, '');
+    sidebar.classList.add('w-60');
+    mainContent.className = mainContent.className.replace(/md:pl-\d+|xl:pl-\d+/g, '');
+    mainContent.classList.add('xl:pl-60');
+    // Show text labels
+    sidebar.querySelectorAll('span').forEach(span => {
+      span.className = span.className.replace(/hidden|xl:inline/g, '');
+      span.classList.add('inline');
+    });
+  }
+}
+
+// Handle window resize with debouncing
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    initializeSidebar();
+  }, 150);
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initializeSidebar);
+
 
   function toggleDropdown() {
   const type = document.querySelector('input[name="filterType"]:checked').value;
@@ -70,14 +198,6 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
     results.style.opacity = 1;
   }, 200);
 }
-
-
-  function toggleDarkMode() {
-    document.body.classList.toggle('dark');
-    const icon = document.querySelector('.dark-toggle i');
-    icon.classList.toggle('fa-moon');
-    icon.classList.toggle('fa-sun');
-  }
 
 
   async function loadUserProfile() {
@@ -142,6 +262,144 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
     }
   }
 
+  //load dropdowns
+  document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('profileEditForm');
+  if (!form) return;
+
+  const titleSelect = form.querySelector('#title');
+  const honTitleSelect = form.querySelector('#honTitle');
+  const qualificationSelect = form.querySelector('#qualifications');
+
+  const loadDropdown = async (endpoint, selectElement, valueKey) => {
+    try {
+      const res = await fetch(`/admin/static/${endpoint}`);
+      const data = await res.json();
+
+      if (!Array.isArray(data)) throw new Error(`Invalid data: ${JSON.stringify(data)}`);
+
+      data.forEach(item => {
+        const val = item[valueKey];
+        const option = document.createElement('option');
+        option.value = val;
+        option.textContent = val;
+        selectElement.appendChild(option);
+      });
+    } catch (err) {
+      console.error(`Error loading ${endpoint}:`, err);
+    }
+  };
+
+  // Load dropdowns
+  loadDropdown('titles', titleSelect, 'title');
+  loadDropdown('hontitles', honTitleSelect, 'Htitle');
+  loadDropdown('qualifications', qualificationSelect, 'qualification');
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('profileEditForm');
+  if (!form) return;
+  const stateSelect = document.getElementById('State');
+
+  fetch('/admin/static/states')
+    .then(res => res.json())
+    .then(states => {
+      if (!Array.isArray(states)) throw new Error('Invalid states response');
+
+      states.forEach(state => {
+        const option = document.createElement('option');
+        option.value = state.statecode; 
+        option.textContent = state.statename; 
+        stateSelect.appendChild(option);
+      });
+    })
+    .catch(err => {
+      console.error('Error loading states:', err);
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const form = document.getElementById('profileEditForm');
+  if (!form) return;
+
+  const quarterDropdown = document.getElementById('Quarters');
+  const wardDropdown = document.getElementById('Ward');
+
+  let wardData = [];
+
+  try {
+    const res = await fetch('/admin/static/wards');
+    wardData = await res.json();
+
+    // Populate quarter dropdown (unique quarters only)
+    const uniqueQuarters = [...new Set(wardData.map(item => item.Quarter))];
+
+    uniqueQuarters.forEach(quarter => {
+      const option = document.createElement('option');
+      option.value = quarter;
+      option.textContent = quarter;
+      quarterDropdown.appendChild(option);
+    });
+
+    // Filter and populate wards when a quarter is selected
+    quarterDropdown.addEventListener('change', () => {
+      const selectedQuarter = quarterDropdown.value;
+
+      // Clear existing ward options except default
+      wardDropdown.innerHTML = '<option value="">Select Ward</option>';
+
+      const filteredWards = wardData.filter(item => item.Quarter === selectedQuarter);
+      filteredWards.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.ward;
+        option.textContent = item.ward;
+        wardDropdown.appendChild(option);
+      });
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch wards:', err);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const form = document.getElementById('selectForm');
+  if (!form) return;
+
+  const quarterDropdown = document.getElementById('quartersSelect');
+  const wardDropdown = document.getElementById('wardSelect');
+
+  let wardData = [];
+
+  try {
+    const res = await fetch('/admin/static/wards');
+    wardData = await res.json();
+
+    // Populate quarter dropdown (unique quarters only)
+    const uniqueQuarters = [...new Set(wardData.map(item => item.Quarter))];
+    uniqueQuarters.forEach(quarter => {
+      const option = document.createElement('option');
+      option.value = quarter;
+      option.textContent = quarter;
+      quarterDropdown.appendChild(option);
+    });
+
+    // Populate ward dropdown (all wards regardless of quarter)
+    const uniqueWards = [...new Set(wardData.map(item => item.ward))];
+    uniqueWards.forEach(ward => {
+      const option = document.createElement('option');
+      option.value = ward;
+      option.textContent = ward;
+      wardDropdown.appendChild(option);
+    });
+
+  } catch (err) {
+    console.error('Failed to fetch wards:', err);
+  }
+});
+
+
 
   function enableEditMode() {
     document.querySelectorAll('#profileSection select, #profileSection input:not([id=phone]):not([id=age]):not([id=exitDate])')
@@ -183,8 +441,8 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
     // Compare form values to current data
     const updatedData = { oldPhoneNumber: oldPhone };
     const fields = [
-      'phone', 'phoneNo2', 'email', 'state', 'sex', 'title',
-      'honTitle', 'quarters', 'ward', 'town',
+      'phone', 'phoneNo2', 'email', 'State', 'sex', 'title',
+      'honTitle', 'Quarters', 'Ward', 'town',
       'qualifications', 'profession', 'exitDate'
     ];
 
@@ -252,30 +510,32 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
     }
 
     const table = `
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Date</th>
-            <th>Amount (₦)</th>
-            <th>Remark</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${receipts.map((r, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${new Date(r.transdate).toLocaleDateString()}</td>
-              <td>${Number(r.amount).toLocaleString()}</td>
-              <td>${r.remark}</td>
-              
+      <div id="receiptTable" class="bg-white rounded-xl p-5 font-sans text-[15px] text-gray-800 shadow-md max-h-[400px] overflow-y-auto transition-all duration-300 ease-in-out">
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="bg-blue-100 text-blue-900">
+              <th class="py-2 px-4 text-left">#</th>
+              <th class="py-2 px-4 text-left">Date</th>
+              <th class="py-2 px-4 text-left">Amount (₦)</th>
+              <th class="py-2 px-4 text-left">Remark</th>
             </tr>
-          `).join('')}
-           <th> Total Amount</th>
-            <td>Total Receipts: ${receipts.length}</td>
-          <td>₦${receipts.reduce((sum, r) => sum + Number(r.amount), 0).toLocaleString()}</td>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${receipts.map((r, i) => `
+              <tr class="hover:bg-blue-50 transition-all">
+                <td class="py-2 px-4">${i + 1}</td>
+                <td class="py-2 px-4">${formatDate(r.transdate)}</td>
+                <td class="py-2 px-4">₦${Number(r.amount).toLocaleString()}</td>
+                <td class="py-2 px-4">${r.remark}</td>
+              </tr>
+            `).join('')}
+            <tr class="bg-green-100 font-semibold">
+              <td class="py-2 px-4 text-green-900" colspan="2">Total Receipts: ${receipts.length}</td>
+              <td class="py-2 px-4 text-green-900" colspan="2">₦${receipts.reduce((sum, r) => sum + Number(r.amount), 0).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     `;
 
     document.getElementById('receiptTable').innerHTML = table;
@@ -304,10 +564,20 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
 
   // Clear receipts view and filters
   function clearReceipts() {
+    // Clear HTML content of the receipt table and result container
     document.getElementById('receiptTable').innerHTML = '';
+    document.getElementById('enquiryResults').innerHTML = '<p>Select a ward or quarters to begin.</p>'; // <-- also clear enquiry result container
+
+    // Reset input fields
     document.getElementById('fromDate').value = '';
     document.getElementById('toDate').value = '';
-    showSection('landingSection');
+    document.getElementById('enquiryFrom').value = '';
+    document.getElementById('enquiryTo').value = '';
+    document.getElementById('wardSelect').value = '';
+    document.getElementById('quartersSelect').value = '';
+
+    // Hide or reset all other sections (if applicable)
+    showSection('landingSection'); // switch to landing or default section
   }
 
   // Export filtered receipts as CSV
@@ -438,7 +708,7 @@ function printReceiptsPDF() {
               <tbody>
                 ${filteredReceipts.map(r => `
                   <tr>
-                    <td>${r.transdate}</td>
+                    <td>${formatDate(r.transdate)}</td>
                     <td>${r.amount}</td>
                     <td>${r.remark}</td>
                   </tr>
@@ -491,71 +761,66 @@ function printReceiptsPDF() {
     document.getElementById('quartersSelect').classList.toggle('hidden', type !== 'quarters');
   }
 
+
   // ✅ Now define fetchEnquiry
-  async function fetchEnquiry(type, value) {
-    try {
-      const res = await fetch(`/api/enquiry/${type}/${encodeURIComponent(value)}`);
-      const data = await res.json();
+async function fetchEnquiry(type, value) {
+  console.log("fetchEnquiry called");
+  const fromDate = document.getElementById('enquiryFrom').value;
+  const toDate = document.getElementById('enquiryTo').value;
 
-      if (!res.ok || !Array.isArray(data) || data.length === 0) {
-        document.getElementById('enquiryResults').innerHTML = '<p>No results found.</p>';
-        return;
-      }
+  try {
+    const queryParams = new URLSearchParams();
+    if (fromDate) queryParams.append('from', fromDate);
+    if (toDate) queryParams.append('to', toDate);
 
-    const grouped = {};
+    const res = await fetch(`/api/enquiry/${type}/${encodeURIComponent(value)}?${queryParams.toString()}`);
+    const data = await res.json();
 
-    data.forEach(r => {
-      if (!grouped[r.phoneno]) grouped[r.phoneno] = [];
-      grouped[r.phoneno].push(r);
-    });
+    if (!res.ok || !Array.isArray(data) || data.length === 0) {
+      document.getElementById('enquiryResults').innerHTML = '<p>No results found.</p>';
+      return;
+    }
 
-    const html = Object.entries(grouped).map(([phone, receipts]) => {
-      const totalAmount = receipts.reduce((sum, r) => sum + Number(r.amount), 0);
+    let html = '';
 
-      const rows = receipts.map(r => `
-        <tr>
-          <td>${r.transdate}</td>
-          <td>₦${Number(r.amount).toLocaleString()}</td>
-          <td>${r.remark}</td>
-        </tr>
-      `).join('');
-
-      return `
-        <div class="receipt-group">
-          <button class="accordion">Phone: ${phone} — Total Transactions Amount: ₦${totalAmount.toLocaleString()} (${receipts.length} receipts)</button>
-          <div class="panel">
-            <table class="enquiry-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Remark</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        </div>
+    if (type === 'ward') {
+      const total = data.reduce((sum, r) => sum + Number(r.amount), 0);
+      html = `
+        <h2 class="text-xl font-bold mb-2">Selected Ward: ${value}</h2>
+        <p class="text-lg font-semibold text-green-700 mb-4">Total = ₦${total.toLocaleString()}</p>
       `;
-    }).join('');
+    } else if (type === 'quarters') {
+      const wardGroups = {};
+      data.forEach(r => {
+        const ward = r.ward || r.wardname || 'Unknown';
+        if (!wardGroups[ward]) wardGroups[ward] = [];
+        wardGroups[ward].push(r);
+      });
+
+      let quarterTotal = 0;
+      html = `<h2 class="text-xl font-bold mb-4">Quarter: ${value}</h2>`;
+
+      Object.entries(wardGroups).forEach(([ward, records]) => {
+        const wardTotal = records.reduce((sum, r) => sum + Number(r.amount), 0);
+        quarterTotal += wardTotal;
+        html += `
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-700">Ward ${ward} under Quarter ${value}</h3>
+            <p class="text-green-700 mb-2">Total = ₦${wardTotal.toLocaleString()}</p>
+          </div>
+        `;
+      });
+
+      html += `<p class="mt-6 text-xl font-bold text-blue-700">Quarter Total = ₦${quarterTotal.toLocaleString()}</p>`;
+    }
 
     document.getElementById('enquiryResults').innerHTML = html;
 
-    // Enable accordion toggle
-    document.querySelectorAll('.accordion').forEach(btn => {
-      btn.addEventListener('click', () => {
-        btn.classList.toggle('active');
-        const panel = btn.nextElementSibling;
-        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-      });
-    });
-
-
-    } catch (err) {
-      console.error('Fetch enquiry failed:', err);
-      document.getElementById('enquiryResults').innerHTML = '<p>Error fetching records.</p>';
-    }
+  } catch (err) {
+    console.error('Fetch enquiry failed:', err);
+    document.getElementById('enquiryResults').innerHTML = '<p class="text-red-500">Error fetching records.</p>';
   }
+}
 
   //  Bind event listeners AFTER fetchEnquiry is defined
   document.getElementById('wardSelect').addEventListener('change', function () {

@@ -4,73 +4,157 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>User Dashboard</title>
-  <link rel="stylesheet" href="styles/dashboard.css">
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles/index.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
+<style>
+  @media (max-width: 4000px) and (min-width: 1700px) {
+    html {
+      font-size: 122% !important;
+    } 
+  }
 
+  @media (max-width: 471px) {
+    #receiptTable {
+      font-size: 85% !important;
+    }
+  }
+
+  @media (max-width: 491px) {
+    #receiptTable {
+      font-size: 79% !important;
+    }
+  }
+</style>
 <body>
 
   <!-- Dark Mode Toggle -->
-  <div class="top-bar">
-    <img src="/photos/OCDA-Logo3.png" alt="OCDA">
-    <button class="toggle-btn" onclick="toggleSidebar()">
+
+<div class="top-bar flex items-center justify-between bg-gray-100 px-4 py-2 fixed top-0 w-full z-50 shadow">
+  <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="h-10">
+  <div class="flex items-center gap-4">
+    <button id="menuToggle" onclick="toggleSidebar()" class="text-xl text-gray-700">
       <i class="fas fa-bars"></i>
     </button>
-    <button class="dark-toggle" onclick="toggleDarkMode()">
-      <i class="fas fa-moon"></i>
-    </button>
   </div>
+</div>
 
-  <!-- Sidebar -->
-  <div class="sidebar collapsed" id="sidebar">
-    <div class="sidebar-buttons">
-      <button onclick="showSection('profileSection')">
-        <i class="fas fa-user-circle"></i> <span>My Profile</span>
-      </button>
-      <button onclick="showReceipts()">
-        <i class="fas fa-receipt"></i> <span>My Receipts</span>
-      </button>
-      <button onclick="toggleEnquiry()">
-        <i class="fas fa-question-circle"></i> <span>Enquiries</span>
-      </button>
-      <button onclick="logout()">
-        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-      </button>
-    </div>
-  </div>
+<!-- Sidebar -->
+<aside id="sidebar" 
+     class="fixed top-0 left-0 h-screen bg-gray-900 text-white flex flex-col space-y-4 pt-20 px-2 transition-all duration-300 ease-in-out
+            hidden md:flex
+            w-0 md:w-16 xl:w-60 overflow-hidden z-40">
 
-  <div class="main">
+  <button onclick="handleTabClick('profileSection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-user-circle text-xl"></i>
+    <span class="hidden xl:inline">My Profile</span>
+  </button>
+  <button onclick="handleTabClick('receiptSection'); showReceipts()" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-receipt text-xl"></i>
+    <span class="hidden xl:inline">Receipts</span>
+  </button>
+  <button onclick="handleTabClick('enquirySection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-question-circle text-xl"></i>
+    <span class="hidden xl:inline">Enquiries</span>
+  </button>
+  <button onclick="logout()" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-sign-out-alt text-xl"></i>
+    <span class="hidden xl:inline">Logout</span>
+  </button>
+</aside>
 
-    <!-- Display after signing in -->
-    <section id="landingSection" class="landing-section" style="margin-top: 12%;">
-      <img src="/photos/OCDA-Logo3.png" alt="OCDA">
-    </section>
+<!-- Main Content -->
+<div id="mainContent"
+     class="transition-all duration-300 ease-in-out
+            md:pl-16 xl:pl-60 pl-4 pt-20">
+  <!-- Example section -->
+  <section id="landingSection" class="px-4">
+    <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="mx-auto max-w-xs">
+  </section>
 
-
-    <section id="profileSection"  class="hidden">
-      <h1>Welcome, <span id="username"></span></h1>
-      <h2>My Profile</h2>
-
-      <!-- Display Section -->
-      <div id="profileDisplay">
-        <p><strong>Phone 1:</strong> <span id="phone"></span></p>
-        <p><strong>Phone 2:</strong> <span id="phoneNo2"></span></p>
-        <p><strong>Email:</strong> <span id="email"></span></p>
-        <p><strong>State:</strong> <span id="state"></span></p>
-        <p><strong>Ward:</strong> <span id="ward"></span></p>
-        <p><strong>Quarters:</strong> <span id="quarters"></span></p>
-        <p><strong>Town:</strong> <span id="town"></span></p>
-        <p><strong>Age:</strong> <span id="age"></span></p>
-        <p><strong>Title:</strong> <span id="title"></span></p>
-        <p><strong>Honorary Title:</strong> <span id="honTitle"></span></p>
-        <p><strong>Qualifications:</strong> <span id="qualifications"></span></p>
-        <!--<p><strong>Exit Date:</strong> <span id="exitDate"></span></p>-->
-        <button onclick="toggleEdit(true)">Edit Profile</button>
+  <section id="profileSection" class="hidden p-6 md:p-10 lg:px-16 xl:px-24 2xl:px-32">
+    <div class="max-w-6xl mx-auto space-y-6 bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 md:p-10">
+      <div class="text-center space-y-2">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+          Welcome, <span id="username" class="text-blue-600 dark:text-blue-400"></span>
+        </h1>
+        <h2 class="text-lg md:text-xl text-gray-600 dark:text-gray-300 font-medium">My Profile</h2>
       </div>
 
+      <!-- Display Section -->
+      <div id="profileDisplay" class="bg-white dark:bg-gray-900 shadow rounded-lg p-6 md:p-10 space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm md:text-base">
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Phone 1:</p>
+            <p id="phone" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Phone 2:</p>
+            <p id="phoneNo2" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Email:</p>
+            <p id="email" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">State:</p>
+            <p id="state" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Ward:</p>
+            <p id="ward" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Quarters:</p>
+            <p id="quarters" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Town:</p>
+            <p id="town" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Age:</p>
+            <p id="age" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Title:</p>
+            <p id="title" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Honorary Title:</p>
+            <p id="honTitle" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div class="sm:col-span-2">
+            <p class="text-gray-500 dark:text-gray-400">Qualifications:</p>
+            <p id="qualifications" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+        </div>
+
+        <div class="text-center pt-4">
+          <button 
+            onclick="toggleEdit(true)"
+            class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
+          >
+            Edit Profile
+          </button>
+        </div>
+      </div>  
+
+
       <!-- Edit Section -->
-      <div id="profileEditForm" style="display:none">
+      <form id="profileEditForm" style="display:none">
         <!-- Phone Numbers -->
         <div class="form-row">
           <div class="form-group">
@@ -104,56 +188,16 @@
         <div class="form-row">
           <div class="form-group">
             <label for="quarters">Quarters</label>
-            <select id="quarters" name="quarters"> 
+            <select id="Quarters" name="quarters"> 
               <option value="">Select Quaters</option>
-              <option value="Ogunna">Ogunna</option>
-              <option value="Ogosi">Ogosi</option>
-              <option value="Ogotun">Ogotun</option>
             </select>
             <div class="error" id="quartersError"></div>
           </div>
           <!-- State -->
           <div class="form-group">
             <label for="state">State</label>
-            <select id="state" name="state"> 
+            <select id="State" name="state"> 
               <option value="">Select State</option>
-              <option value="Abia">Abia</option>
-              <option value="Adamawa">Adamawa</option>
-              <option value="Akwa Ibom">Akwa Ibom</option>
-              <option value="Anambra">Anambra</option>
-              <option value="Bauchi">Bauchi</option>
-              <option value="Bayelsa">Bayelsa</option>
-              <option value="Benue">Benue</option>
-              <option value="Borno">Borno</option>
-              <option value="Cross River">Cross River</option>
-              <option value="Delta">Delta</option>
-              <option value="Ebonyi">Ebonyi</option>
-              <option value="Edo">Edo</option>
-              <option value="Ekiti">Ekiti</option>
-              <option value="Enugu">Enugu</option>
-              <option value="FCT">FCT</option>
-              <option value="Gombe">Gombe</option>
-              <option value="Imo">Imo</option>
-              <option value="Jigawa">Jigawa</option>
-              <option value="Kaduna">Kaduna</option>
-              <option value="Kano">Kano</option>
-              <option value="Katsina">Katsina</option>
-              <option value="Kebbi">Kebbi</option>
-              <option value="Kogi">Kogi</option>
-              <option value="Kwara">Kwara</option>
-              <option value="Lagos">Lagos</option>
-              <option value="Nasarawa">Nasarawa</option>
-              <option value="Niger">Niger</option>
-              <option value="Ogun">Ogun</option>
-              <option value="Ondo">Ondo</option>
-              <option value="Osun">Osun</option>
-              <option value="Oyo">Oyo</option>
-              <option value="Plateau">Plateau</option>
-              <option value="Rivers">Rivers</option>
-              <option value="Sokoto">Sokoto</option>
-              <option value="Taraba">Taraba</option>
-              <option value="Yobe">Yobe</option>
-              <option value="Zamfara">Zamfara</option>
             </select>
             <div class="error" id="stateError"></div>
           </div>
@@ -163,17 +207,8 @@
         <div class="form-row">
           <div class="form-group">
             <label for="ward">Ward </label>
-            <select id="ward" name="ward" required> 
+            <select id="Ward" name="ward" required> 
               <option value="">Select Ward</option>
-              <option value="Awanji">Awanji</option>
-              <option value="Ayagama">Ayagama</option>
-              <option value="Ayasu/Ayaya">Ayasu/Ayaya</option>
-              <option value="Igoho">Igoho</option>
-              <option value="Igonu">Igonu</option>
-              <option value="Igukan">Igukan</option>
-              <option value="IkanOlotu">IkanOlotu</option>
-              <option value="Okoko">Okoko</option>
-              <option value="Uhon">Uhon</option>
             </select>
             <div class="error" id="wardError"></div>
           </div>
@@ -190,16 +225,6 @@
             <label for="title">Title</label>
             <select id="title" name="title"> 
               <option value="">Select Title</option>
-              <option value="Alhaji">Alhaji</option>
-              <option value="Brig/Gen">Brig/Gen</option>
-              <option value="Chief">Chief</option>
-              <option value="Dr">Dr</option>
-              <option value="Engr">Engr</option>
-              <option value="Mr">Mr</option>
-              <option value="Mrs">Mrs</option>
-              <option value="Miss">Miss</option>
-              <option value="Oba">Oba</option>
-              <option value="R/Adm">R/Adm</option>
             </select>
           </div>
 
@@ -207,24 +232,7 @@
             <label for="honTitle">Honorary Title</label>
             <select id="honTitle" name="honTitle"> 
               <option value="">Select Honorary Title</option>
-              <option value="AJAKA">AJAKA</option>
-              <option value="BALOGUN">BALOGUN</option>
-              <option value="Chief">Chief</option>
-              <option value="ELEBIRA">ELEBIRA</option>
-              <option value="ELEJOFI">ELEJOFI</option>
-              <option value="IGBEDI">IGBEDI</option>
-              <option value="KABIYESI">KABIYESI</option>              
-              <option value="Miss">Miss</option>
-              <option value="Mr">Mr</option>
-              <option value="Mrs">Mrs</option>
-              <option value="ODEMO">ODEMO</option>
-              <option value="ODOFIN">ODOFIN</option>
-              <option value="OJOMU">OJOMU</option>
-              <option value="OLORIEGBE">OLORIEGBE</option>
-              <option value="OLUGOTUN">OLUGOTUN</option>
-              <option value="OLUSA">OLUSA</option>
-              <option value="OSUNLA">OSUNLA</option>
-            </select>
+           </select>
           </div>
         </div>
 
@@ -234,14 +242,6 @@
             <label for="qualifications">Qualification</label>
             <select id="qualifications" name="qualifications"> 
               <option value="">Select Qualification</option>
-              <option value="BSC">BSC</option>
-              <option value="Diploma">Diploma</option>
-              <option value="HND">HND</option>
-              <option value="MSC">MSC</option>
-              <option value="NCE">NCE</option>
-              <option value="OND">OND</option>
-              <option value="PHD">PHD</option>
-              <option value="SCert">SCert</option>
             </select>
           </div>
           <div class="form-group">
@@ -265,50 +265,96 @@
 
         <button onclick="updateProfile()" class="submit-btn">Save Changes</button>
         <button onclick="toggleEdit(false)" class="btn-secondary">Cancel</button>
-      </div>
-    </section>
+      </form>
+    </div>
+  </section>
 
-    <section id="receiptSection" class="hidden">
-      <h2>My Receipts</h2>
+  <section id="receiptSection" class="hidden">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">My Receipts</h2>
 
-      <div class="receipt-filters">
-        <label>From: <input type="date" id="fromDate"></label>
-        <label>To: <input type="date" id="toDate"></label>
-        <div class="receipt-buttons">
-          <button onclick="filterReceipts()">Apply</button>
-          <button onclick="printReceiptsPDF()">Print / Export</button>
-          <button onclick="exportReceiptsToCSV()">Export CSV</button>
+      <div class="flex flex-wrap items-center gap-4 mb-6">
+        <label class="block text-sm text-gray-700 dark:text-gray-200">
+          From:
+          <input type="date" id="fromDate" class="mt-1 border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
+        </label>
+        <label class="block text-sm text-gray-700 dark:text-gray-200">
+          To:
+          <input type="date" id="toDate" class="mt-1 border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
+        </label>
+
+        <div class="flex flex-wrap gap-2">
+          <button onclick="filterReceipts()" class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded transition">
+            Apply
+          </button>
+          <button onclick="printReceiptsPDF()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded transition">
+            Print / Export
+          </button>
+          <button onclick="exportReceiptsToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded transition">
+            Export CSV
+          </button>
         </div>
       </div>
 
-      <div id="receiptTable"></div>
+      <div id="receiptTable" class="overflow-x-auto bg-white dark:bg-gray-900 rounded shadow p-4"></div>
 
-      <button onclick="clearReceipts()" class="btn-secondary">Close</button>
-    </section>
+      <div class="mt-6">
+        <button onclick="clearReceipts()"class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </section>
 
-    <section id="enquirySection" class="hidden">
-      <h2 style="text-align:center;">Enquiries</h2>
+  <section id="enquirySection" class="hidden px-4 py-8 max-w-3xl mx-auto">
+    <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-white mb-6">Enquiries</h2>
 
-      <div class="enquiry-tabs">
-        <label>
-          <input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()">
-          <span>Ward</span>
+      <div class="flex flex-col md:flex-row gap-4 mb-4">
+        <label class="flex flex-col">
+          <span class="text-sm text-gray-600">From:</span>
+          <input type="date" id="enquiryFrom" class="border rounded px-3 py-2">
         </label>
-        <label>
-          <input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()">
-          <span>Quarters</span>
+        <label class="flex flex-col">
+          <span class="text-sm text-gray-600">To:</span>
+          <input type="date" id="enquiryTo" class="border rounded px-3 py-2">
         </label>
       </div>
 
-      <div class="select-wrap">
-        <select id="wardSelect"></select>
-        <select id="quartersSelect" class="hidden"></select>
-      </div>
+    <!-- Radio Tabs -->
+    <div class="flex justify-center gap-6 mb-6">
+      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+        <input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()" class="accent-blue-600">
+        <span>Ward</span>
+      </label>
+      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+        <input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()" class="accent-blue-600">
+        <span>Quarters</span>
+      </label>
+    </div>
 
-      <div id="enquiryResults">Select a ward or quarters to begin.</div>
+    <!-- Dropdowns -->
+    <form class="flex flex-col md:flex-row gap-4 justify-center mb-6" id="selectForm">
+      <select id="wardSelect" class="px-4 py-2 border border-gray-300 rounded dark:bg-gray-800 dark:text-white dark:border-gray-600">
+        <option value="">Select Ward</option>
+      </select>
+      <select id="quartersSelect" class="hidden px-4 py-2 border border-gray-300 rounded dark:bg-gray-800 dark:text-white dark:border-gray-600">
+        <option value="">Select Quater</option>
+      </select>
+    </form>
 
-      <button onclick="clearReceipts()" class="btn-secondary">Close</button>
-    </section>
+    <!-- Results -->
+    <div id="enquiryResults" class="text-center text-gray-600 dark:text-gray-300 mb-6">
+      Select a ward or quarters to begin.
+    </div>
+
+    <!-- Close Button -->
+    <div class="text-center">
+      <button onclick="clearReceipts()" class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition">
+        Close
+      </button>
+    </div>
+  </section>
+
   </div>
 
 </body>

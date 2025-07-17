@@ -114,7 +114,7 @@ app.post('/signup', async (req, res) => {
       .input('Password', sql.VarChar, userData.password)
       .input('Title', sql.VarChar, userData.title)
       .input('HonTitle', sql.VarChar, userData.honTitle)
-      .input('Qualifications', sql.VarChar, userData.qualifications)
+      .input('Qualifications', sql.VarChar, userData.qualifications || null)
       .input('Profession', sql.VarChar, userData.profession)
       .input('exitdate', sql.Date, userData.exitDate || null)
       .input('CreatedAt', sql.DateTime, new Date())
@@ -252,7 +252,6 @@ app.post('/api/profile', async (req, res) => {
 
 app.get('/dashboard', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'dashboard.html');
-  console.log("Serving dashboard from:", filePath); // Debug line
   res.sendFile(filePath);
 });
 
@@ -263,12 +262,12 @@ app.post('/api/update-profile', async (req, res) => {
     phone,
     phoneNo2,
     email,
-    state,
+    State,
     sex,
     title,
     honTitle,
-    quarters,
-    ward,
+    Quarters,
+    Ward,
     town,
     qualifications,
     profession,
@@ -297,9 +296,9 @@ app.post('/api/update-profile', async (req, res) => {
       updates.push('email = @email');
       inputs.push({ name: 'email', type: sql.VarChar, value: email });
     }
-    if (state) {
+    if (State) {
       updates.push('State = @state');
-      inputs.push({ name: 'state', type: sql.VarChar, value: state });
+      inputs.push({ name: 'state', type: sql.VarChar, value: State });
     }
     if (sex) {
       updates.push('Sex = @sex');
@@ -313,13 +312,13 @@ app.post('/api/update-profile', async (req, res) => {
       updates.push('HonTitle = @honTitle');
       inputs.push({ name: 'honTitle', type: sql.VarChar, value: honTitle });
     }
-    if (quarters) {
+    if (Quarters) {
       updates.push('Quarters = @quarters');
-      inputs.push({ name: 'quarters', type: sql.VarChar, value: quarters });
+      inputs.push({ name: 'quarters', type: sql.VarChar, value: Quarters });
     }
-    if (ward) {
+    if (Ward) {
       updates.push('Ward = @ward');
-      inputs.push({ name: 'ward', type: sql.VarChar, value: ward });
+      inputs.push({ name: 'ward', type: sql.VarChar, value: Ward });
     }
     if (town) {
       updates.push('Town = @town');
@@ -425,6 +424,7 @@ app.get('/api/ledger-entry/:phoneno', async (req, res) => {
 //. Fetch Enquiries by Ward
 app.get('/api/enquiry/:type/:value', async (req, res) => {
   const { type, value } = req.params;
+  const { from, to } = req.query;
 
   if (!['ward', 'quarters'].includes(type)) {
     return res.status(400).json({ message: 'Invalid filter type' });
@@ -432,24 +432,27 @@ app.get('/api/enquiry/:type/:value', async (req, res) => {
 
   try {
     const pool = await sql.connect(config);
-    const query = `
-      SELECT * FROM memberledger 
-      WHERE phoneno IN (
-        SELECT PhoneNumber FROM Members 
-        WHERE ${type} = @value
-      )
+    let query = `
+      SELECT ml.*, m.ward FROM memberledger ml
+      JOIN Members m ON ml.phoneno = m.PhoneNumber
+      WHERE m.${type} = @value
     `;
 
-    const result = await pool.request()
-      .input('value', sql.VarChar, value)
-      .query(query);
+    if (from) query += ` AND ml.transdate >= @from `;
+    if (to) query += ` AND ml.transdate <= @to `;
 
+    const request = pool.request().input('value', sql.VarChar, value);
+    if (from) request.input('from', sql.Date, from);
+    if (to) request.input('to', sql.Date, to);
+
+    const result = await request.query(query);
     res.json(result.recordset);
   } catch (err) {
     console.error('Enquiry error:', err);
     res.status(500).json({ message: 'Server error during enquiry' });
   }
 });
+
 
 
 app.post('/logout', (req, res) => {
