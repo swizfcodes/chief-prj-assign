@@ -26,6 +26,12 @@
       font-size: 79% !important;
     }
   }
+
+  @media (max-width: 375px) {
+    #flex1 {
+      font-size: 50% !important;
+    }
+  }
 </style>
 <body>
 
@@ -42,22 +48,30 @@
 
 <!-- Sidebar -->
 <aside id="sidebar" 
-     class="fixed top-0 left-0 h-screen bg-gray-900 text-white flex flex-col space-y-4 pt-20 px-2 transition-all duration-300 ease-in-out
-            hidden md:flex
-            w-0 md:w-16 xl:w-60 overflow-hidden z-40">
+    class="fixed top-0 left-0 h-screen bg-gray-900 text-white flex flex-col space-y-4 pt-20 px-2 transition-all duration-300 ease-in-out
+    hidden md:flex
+    w-0 md:w-16 xl:w-60 overflow-hidden z-40">
+
+  <button onclick="handleTabClick('landingSection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-home text-xl"></i>
+    <span class="hidden xl:inline">Dashboard</span>
+  </button>
 
   <button onclick="handleTabClick('profileSection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
     <i class="fas fa-user-circle text-xl"></i>
     <span class="hidden xl:inline">My Profile</span>
   </button>
+
   <button onclick="handleTabClick('receiptSection'); showReceipts()" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
     <i class="fas fa-receipt text-xl"></i>
     <span class="hidden xl:inline">Receipts</span>
   </button>
+
   <button onclick="handleTabClick('enquirySection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
     <i class="fas fa-question-circle text-xl"></i>
     <span class="hidden xl:inline">Enquiries</span>
   </button>
+
   <button onclick="logout()" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
     <i class="fas fa-sign-out-alt text-xl"></i>
     <span class="hidden xl:inline">Logout</span>
@@ -68,16 +82,72 @@
 <div id="mainContent"
      class="transition-all duration-300 ease-in-out
             md:pl-16 xl:pl-60 pl-4 pt-20">
-  <!-- Example section -->
-  <section id="landingSection" class="px-4">
-    <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="mx-auto max-w-xs">
+
+
+  <!-- Landing section -->
+  <section id="landingSection" class="px-4 py-6">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+      Welcome, <span id="username" class="text-blue-600 dark:text-blue-400"></span>
+      <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="mx-auto mt-4 max-w-[150px]">
+    </div>
+
+    <!-- Filter Box -->
+    <div class="bg-white shadow-lg rounded-2xl p-5 mb-6 border-l-4 border-blue-500 max-w-xl mx-auto">
+      
+      <div class="flex items-center justify-between mb-4 gap-4">
+        
+        <!-- Month Filter -->
+        <div>
+          <label for="monthFilter" class="font-semibold text-gray-700 block mb-1">Month</label>
+          <select id="monthFilter" class="border rounded px-3 py-2 text-sm w-full">
+            <option value="">-- Select Month --</option>
+            <!-- JS will populate months -->
+          </select>
+        </div>
+
+        <!-- Year Filter -->
+        <div>
+          <label for="yearFilter" class="font-semibold text-gray-700 block mb-1">Year</label>
+          <select id="yearFilter" class="border rounded px-3 py-2 text-sm w-full">
+            <option value="">-- Select Year --</option>
+            <!-- JS will populate years -->
+          </select>
+        </div>
+
+      </div>
+
+      <div class="flex justify-between items-center" id="flex1">
+        <h2 class="text-lg font-semibold text-gray-800">Total Transactions:</h2>
+        <div class="flex items-center gap-2">
+          <span id="monthlyTotal" class="text-green-700 text-xl font-bold">₦0</span>
+          <button onclick="toggleAmountVisibility()" class="text-gray-500 hover:text-gray-800">
+            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- News & Events -->
+    <div class="bg-white shadow-md rounded-xl p-5 max-w-xl mx-auto border-l-4 border-orange-500" 
+    style="margin-top: 5%; ul li::before{content: none !important;}">
+      <h2 class="text-xl font-semibold text-gray-800 mb-3">News & Events</h2>
+      <ul id="newsList" class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+      </ul>
+    </div>
   </section>
 
+  <!-- profile section -->
   <section id="profileSection" class="hidden p-6 md:p-10 lg:px-16 xl:px-24 2xl:px-32">
     <div class="max-w-6xl mx-auto space-y-6 bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 md:p-10">
       <div class="text-center space-y-2">
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-          Welcome, <span id="username" class="text-blue-600 dark:text-blue-400"></span>
         </h1>
         <h2 class="text-lg md:text-xl text-gray-600 dark:text-gray-300 font-medium">My Profile</h2>
       </div>
@@ -145,7 +215,7 @@
         <div class="text-center pt-4">
           <button 
             onclick="toggleEdit(true)"
-            class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
+            class="bg-yellow-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
           >
             Edit Profile
           </button>
@@ -263,12 +333,13 @@
           </div>
         </div>
 
-        <button onclick="updateProfile()" class="submit-btn">Save Changes</button>
-        <button onclick="toggleEdit(false)" class="btn-secondary">Cancel</button>
+        <button onclick="updateProfile(event)" class="submit-btn">Save Changes</button>
+        <button onclick="toggleEdit(false)" class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition" style="margin-top: 2%;">Cancel</button>
       </form>
     </div>
   </section>
 
+  <!-- receipt section -->
   <section id="receiptSection" class="hidden">
     <div class="max-w-6xl mx-auto px-4 py-6">
       <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">My Receipts</h2>
@@ -306,6 +377,7 @@
     </div>
   </section>
 
+  <!-- enquiry section -->
   <section id="enquirySection" class="hidden px-4 py-8 max-w-3xl mx-auto">
     <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-white mb-6">Enquiries</h2>
 

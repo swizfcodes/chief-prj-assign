@@ -366,9 +366,6 @@ app.post('/api/update-profile', async (req, res) => {
 
 
 
-
-
-
 // Forgot Password Route
 app.post('/api/reset-password', async (req, res) => {
   const { phoneNumber, newPassword } = req.body;
@@ -418,6 +415,35 @@ app.get('/api/ledger-entry/:phoneno', async (req, res) => {
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch ledger entries' });
+  }
+});
+
+app.get('/api/member/ledger-entry/monthly-total', async (req, res) => {
+  const { month, phoneno } = req.query;
+  
+  if (!month || !phoneno) {
+    return res.status(400).json({ message: 'Missing month or phone number' });
+  }
+  
+  try {
+    const pool = await sql.connect(config);
+    
+    const result = await pool.request()
+      .input('phoneno', sql.VarChar, phoneno)
+      .input('month', sql.VarChar, month)
+      .query(`
+        SELECT SUM(amount) AS totalAmount
+        FROM memberledger
+        WHERE phoneno = @phoneno
+        AND FORMAT(transdate, 'yyyy-MM') = @month
+      `);
+    
+    const total = result.recordset[0]?.totalAmount || 0;
+    res.json({ total });
+    
+  } catch (err) {
+    console.error('Monthly total error:', err);
+    res.status(500).json({ message: 'Server error calculating monthly total' });
   }
 });
 

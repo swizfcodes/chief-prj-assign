@@ -40,25 +40,26 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.o
 
           console.log("Login response:", data);
 
-          if (res.ok) {
-              // Save user ID or phone for profile use
-              localStorage.setItem('loggedInPhone', data.phoneNumber);
-              localStorage.setItem('loggedInUserId', data.id);
+        if (res.ok) {
+            // Save user ID or phone for profile use
+            localStorage.setItem('phoneno', data.phoneNumber); // Changed from 'loggedInPhone' to 'phoneno'
+            localStorage.setItem('loggedInPhone', data.phoneNumber); // Keep this for compatibility
+            localStorage.setItem('loggedInUserId', data.id);
 
-              showSuccessMessage("Welcome back! Login successful.");
-              this.reset();
-              setTimeout(() => {
-                  window.location.href = "/dashboard";
-              }, 1500);
-          } else {
-              if (data.field === 'identifier') {
-                  showError('loginPhone', data.message);
-              } else if (data.field === 'password') {
-                  showError('loginPassword', data.message);
-              } else {
-                  alert(data.message || 'Login failed. Please try again.');
-              }
-          }
+            showSuccessMessage("Welcome back! Login successful.");
+            this.reset();
+            setTimeout(() => {
+                window.location.href = "/dashboard";
+            }, 1500);
+        }else {
+            if (data.field === 'identifier') {
+                showError('loginPhone', data.message);
+            } else if (data.field === 'password') {
+                showError('loginPassword', data.message);
+            } else {
+                alert(data.message || 'Login failed. Please try again.');
+            }
+        }
 
       } catch (error) {
           console.error('Login error:', error);

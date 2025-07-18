@@ -246,9 +246,252 @@ document.addEventListener('DOMContentLoaded', initializeSidebar);
     document.getElementById(sectionId).classList.remove('hidden');
   }
 
+// Month filter (auto populate)
+// Function to ensure user is logged in
+function ensureUserLoggedIn() {
+  const phoneno = getPhoneNumber();
+  
+  if (!phoneno) {
+    // Redirect to login page if no phone number found
+    alert('Session expired. Please log in again.');
+    window.location.href = '/login.html'; // Adjust path as needed
+    return false;
+  }
+  
+  return true;
+}
+
+// Month filter setup
+function getPhoneNumber() {
+  // Try localStorage with different possible keys
+  let phoneno = localStorage.getItem('phoneno') || 
+                localStorage.getItem('loggedInPhone') || 
+                localStorage.getItem('phoneNumber');
+  
+  // If not in localStorage, try sessionStorage
+  if (!phoneno) {
+    phoneno = sessionStorage.getItem('phoneno') || 
+              sessionStorage.getItem('loggedInPhone') || 
+              sessionStorage.getItem('phoneNumber');
+  }
+  
+  // If still not found, try to get from URL parameters
+  if (!phoneno) {
+    const urlParams = new URLSearchParams(window.location.search);
+    phoneno = urlParams.get('phoneno') || urlParams.get('phone');
+  }
+  
+  // If still not found, try to get from a hidden input or data attribute
+  if (!phoneno) {
+    const phoneInput = document.querySelector('input[name="phoneno"]');
+    if (phoneInput) {
+      phoneno = phoneInput.value;
+    }
+  }
+  
+  // If found from alternative source, store it in localStorage for future use
+  if (phoneno) {
+    localStorage.setItem('phoneno', phoneno);
+  }
+  
+  return phoneno;
+}
+
+// Function to ensure user is logged in
+function ensureUserLoggedIn() {
+  const phoneno = getPhoneNumber();
+  
+  if (!phoneno) {
+    // Redirect to login page if no phone number found
+    alert('Session expired. Please log in again.');
+    window.location.href = '/login.html'; // Adjust path as needed
+    return false;
+  }
+  
+  return true;
+}
+
+// Month filter setup
+const monthFilter = document.getElementById('monthFilter');
+const yearFilter = document.getElementById('yearFilter');
+
+// Check if elements exist before proceeding
+if (!monthFilter || !yearFilter) {
+  console.error('Required filter elements not found in DOM');
+  throw new Error('monthFilter or yearFilter elements not found');
+}
+
+// Add default "Select Month" option
+const defaultMonthOption = document.createElement('option');
+defaultMonthOption.value = '';
+defaultMonthOption.textContent = 'Select Month';
+defaultMonthOption.disabled = true;
+defaultMonthOption.selected = true;
+monthFilter.appendChild(defaultMonthOption);
+
+// Populate months (Jan to Dec)
+const monthNames = Array.from({ length: 12 }, (_, i) =>
+  new Date(0, i).toLocaleString('default', { month: 'long' })
+);
+monthNames.forEach((month, i) => {
+  const opt = document.createElement('option');
+  opt.value = String(i + 1).padStart(2, '0'); // e.g., "01"
+  opt.textContent = month;
+  monthFilter.appendChild(opt);
+});
+
+// Add default "Select Year" option
+const defaultYearOption = document.createElement('option');
+defaultYearOption.value = '';
+defaultYearOption.textContent = 'Select Year';
+defaultYearOption.disabled = true;
+defaultYearOption.selected = true;
+yearFilter.appendChild(defaultYearOption);
+
+// Populate years from current year back to 10 years ago
+const now = new Date();
+for (let y = now.getFullYear(); y >= now.getFullYear() - 10; y--) {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  yearFilter.appendChild(opt);
+}
+
+// Event listener to fetch total when both month and year are selected
+async function fetchMonthlyTotal() {
+  const month = monthFilter.value;
+  const year = yearFilter.value;
+
+  // Clear previous results if either filter is empty
+  if (!month || !year) {
+    const monthlyTotalEl = document.getElementById('monthlyTotal');
+    if (monthlyTotalEl) {
+      monthlyTotalEl.textContent = '';
+      delete monthlyTotalEl.dataset.amount;
+    }
+    return;
+  }
+
+  const phoneno = getPhoneNumber();
+  if (!phoneno) {
+    alert('Session expired. Please log in again.');
+    window.location.href = '/login.html';
+    return;
+  }
+
+  try {
+    const monthlyTotalEl = document.getElementById('monthlyTotal');
+    if (!monthlyTotalEl) {
+      console.error('monthlyTotal element not found');
+      return;
+    }
+
+    monthlyTotalEl.textContent = 'Loading...';
+
+    const res = await fetch(`/api/member/ledger-entry/monthly-total?month=${year}-${month}&phoneno=${encodeURIComponent(phoneno)}`);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const total = data.total || 0;
+    const formattedAmount = `₦${(+total).toLocaleString()}`;
+    
+    monthlyTotalEl.textContent = formattedAmount;
+    monthlyTotalEl.dataset.amount = formattedAmount;
+
+  } catch (error) {
+    console.error('Error fetching monthly total:', error);
+    const monthlyTotalEl = document.getElementById('monthlyTotal');
+    if (monthlyTotalEl) {
+      monthlyTotalEl.textContent = '₦0';
+    }
+    alert('Error loading monthly total. Please try again.');
+  }
+}
+
+// Add event listeners
+monthFilter.addEventListener('change', fetchMonthlyTotal);
+yearFilter.addEventListener('change', fetchMonthlyTotal);
+
+// Toggle eye functionality
+let amountVisible = true;
+
+function toggleAmountVisibility() {
+  amountVisible = !amountVisible;
+  const amt = document.getElementById('monthlyTotal');
+  const icon = document.getElementById('eyeIcon');
+  
+  if (amountVisible) {
+    // Show the actual amount
+    amt.textContent = amt.dataset.amount || '₦0';
+    amt.style.color = 'rgb(21 128 61)';
+    amt.style.textShadow = 'none';
+    
+    icon.innerHTML = `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M2.458 12C3.732 7.943 7.523 5 12 5
+           c4.477 0 8.268 2.943 9.542 7
+           -1.274 4.057-5.065 7-9.542 7
+           -4.477 0-8.268-2.943-9.542-7z" />`;
+  } else {
+    // Save the current amount and hide it
+    amt.dataset.amount = amt.textContent;
+    amt.textContent = '₦••••••';
+    amt.style.color = 'rgb(21 128 61)';
+    amt.style.textShadow = '0 0 8px rgba(0,0,0,0.5)';
+    
+    icon.innerHTML = `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M13.875 18.825A10.05 10.05 0 0112 19
+           c-4.477 0-8.268-2.943-9.542-7
+           a9.956 9.956 0 012.982-4.419M9.88 9.88a3 3 0 104.24 4.24" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M3 3l18 18" />`;
+  }
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => {
+  if (!ensureUserLoggedIn()) return;
+
+  yearFilter.value = now.getFullYear();
+  monthFilter.value = String(now.getMonth() + 1).padStart(2, '0');
+
+  fetchMonthlyTotal(); // Load initial data
+});
+
+
+//News nd Events section
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/admin/notices');
+    const newsItems = await res.json();
+    const newsList = document.getElementById('newsList');
+    
+    newsList.innerHTML = ''; 
+
+    if (newsItems.length === 0) {
+      newsList.innerHTML = `<li>No news or events available at this time.</li>`;
+      return;
+    }
+
+    newsItems.forEach(item => {
+      const li = document.createElement('li');
+      const date = new Date(item.created_at).toLocaleDateString();
+      li.innerHTML = `<span class="font-medium">${item.title}</span> <span class="text-xs text-gray-400 ml-2">(${date})</span>`;
+      newsList.appendChild(li);
+    });
+  } catch (err) {
+    console.error('Failed to load news:', err);
+    document.getElementById('newsList').innerHTML = '<li>Error loading news.</li>';
+  }
+});
+
 
   //user edit enable
-
   function toggleEdit() {
     const profileDisplay = document.getElementById('profileDisplay');
     const profileEditForm = document.getElementById('profileEditForm');
@@ -418,7 +661,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadUserProfile();
   }
 
-  async function updateProfile() {
+  console.log("UpdateProfile triggered");
+  async function updateProfile(event) {
+    event.preventDefault();
     const oldPhone = localStorage.getItem('loggedInPhone');
     if (!oldPhone) return alert("You're not logged in.");
 
@@ -432,6 +677,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumber: oldPhone })
       });
+      
       currentData = await res.json();
     } catch (err) {
       console.error('Error fetching current profile:', err);
@@ -447,7 +693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     fields.forEach(field => {
-      const input = form.querySelector(`#${field}`);
+      const input = form.querySelector(`#${field}`) || form.querySelector(`#${field.toLowerCase()}`) || form.querySelector(`#${field.toUpperCase()}`);
       if (input && input.value.trim() !== (currentData[field] || '').trim()) {
         updatedData[field] = input.value.trim();
       }
