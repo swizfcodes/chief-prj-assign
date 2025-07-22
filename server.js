@@ -2,12 +2,11 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const serveIndex = require('serve-index');
-const { sql, pool, poolConnect } = require('./db');
-const bcrypt = require('bcryptjs');
+const {  request } = require('./db-wrapper');
+const pool = require('./db');
 const path = require('path');
 const cors = require('cors');
 const app = express();
-const router = express.Router();
 const adminRoutes = require('./routes/admin');
 const config = require('./dbconfig'); 
 const PORT = process.env.PORT || 5500;
@@ -44,28 +43,6 @@ app.use(session({
   saveUninitialized: true
 }));
 
-const verifyToken = (req, res, next) => {
-  let token = req.headers['authorization'];
-
-  if (!token) return res.status(403).json({ message: 'No token provided' });
-
-  // Strip "Bearer " prefix if present
-  if (token.startsWith('Bearer ')) {
-    token = token.slice(7, token.length);
-  }
-
-  jwt.verify(token, SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ message: 'Failed to authenticate token' });
-    req.adminId = decoded.id;
-    next();
-  });
-};
-
-sql.connect(config).then(pool => {
-}).catch(err => {
-  console.error('Database connection failed:', err);
-});
-
 
 // Dummy login endpoint
 app.post('/api/login', (req, res) => {
@@ -85,90 +62,100 @@ app.use((req, res, next) => {
 // Signup Endpoint
 
 app.post('/signup', async (req, res) => {
-  try {
-    const userData = req.body;
-    console.log('Signup data received:', userData);
+    try {
+        const userData = req.body;
+        console.log('Signup data received:', userData);
 
-    const checkRequest = (await poolConnect).request();
-    const check = await checkRequest
-      .input('PhoneNumber', sql.VarChar, userData.phoneNumber)
-      .query(`SELECT * FROM Members WHERE PhoneNumber = @PhoneNumber`);
+        // 1. Check if phone number already exists
+        const checkResult = await request(`SELECT * FROM Members WHERE PhoneNumber = @phoneNumber`)
+            .inputs({ phoneNumber: userData.phoneNumber })
+            .run();
 
-    if (check.recordset.length > 0) {
-      return res.status(400).json({ field: 'phoneNumber', message: 'Phone number already exists' });
+        if (checkResult.recordset.length > 0) {
+            return res.status(400).json({ field: 'phoneNumber', message: 'Phone number already exists' });
+        }
+
+        // 2. Insert new user
+        // Prepare inputs object
+        const insertInputs = {
+            othernames: userData.otherNames,
+            Surname: userData.surname,
+            email: userData.email || '',
+            Sex: userData.sex,
+            DOB: userData.dob,
+            Quarters: userData.quarters,
+            Ward: userData.ward,
+            Town: userData.town,
+            State: userData.state,
+            PhoneNumber: userData.phoneNumber,
+            phoneno2: userData.phoneNo2 || null, // Ensure null if not provided
+            Password: userData.password,
+            Title: userData.title,
+            HonTitle: userData.honTitle,
+            Qualifications: userData.qualifications || null,
+            Profession: userData.profession,
+            exitdate: userData.exitDate || null, // Ensure null if not provided
+            CreatedAt: new Date(),
+        };
+
+        const insertQuery = `
+            INSERT INTO Members 
+            (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate)
+            VALUES 
+            (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate)
+        `;
+
+        const insertResult = await request(insertQuery).inputs(insertInputs).run();
+
+        // For mysql2/promise, insertId is typically directly on the result object for INSERT statements
+        const newUserId = insertResult.insertId || null; 
+
+        // Assuming you are using express-session for session management
+        if (req.session) {
+            req.session.phoneNumber = userData.phoneNumber;
+        } else {
+            console.warn('req.session is not available. Session middleware might not be configured.');
+        }
+
+        res.status(201).json({
+            message: 'Signup successful!',
+            id: newUserId,
+            phoneNumber: userData.phoneNumber
+        });
+
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ message: 'Signup failed. Try again later.' });
     }
-
-    const insertRequest = (await poolConnect).request();
-    const result = await insertRequest
-      .input('Surname', sql.VarChar, userData.surname)
-      .input('othernames', sql.VarChar, userData.otherNames)
-      .input('email', sql.VarChar, userData.email || '')
-      .input('Sex', sql.VarChar, userData.sex)
-      .input('DOB', sql.Date, userData.dob)
-      .input('Quarters', sql.VarChar, userData.quarters)
-      .input('Ward', sql.VarChar, userData.ward)
-      .input('Town', sql.VarChar, userData.town)
-      .input('State', sql.VarChar, userData.state)
-      .input('PhoneNumber', sql.VarChar, userData.phoneNumber)
-      .input('phoneno2', sql.VarChar, userData.phoneNo2)
-      .input('Password', sql.VarChar, userData.password)
-      .input('Title', sql.VarChar, userData.title)
-      .input('HonTitle', sql.VarChar, userData.honTitle)
-      .input('Qualifications', sql.VarChar, userData.qualifications || null)
-      .input('Profession', sql.VarChar, userData.profession)
-      .input('exitdate', sql.Date, userData.exitDate || null)
-      .input('CreatedAt', sql.DateTime, new Date())
-      .query(`
-        INSERT INTO Members 
-        (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate)
-        OUTPUT INSERTED.Id
-        VALUES 
-        (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate)
-      `);
-
-    const newUserId = result.recordset[0].Id;
-
-    req.session.phoneNumber = userData.phoneNumber;
-
-    res.status(201).json({
-      message: 'Signup successful!',
-      id: newUserId,
-      phoneNumber: userData.phoneNumber
-    });
-
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ message: 'Signup failed. Try again later.' });
-  }
 });
-
 
 // Login Endpoint
 app.post('/login', async (req, res) => {
+  let conn;
   try {
-    const { identifier, password } = req.body; // can be ID or phone number
+    const { identifier, password } = req.body;
 
-    const request = (await poolConnect).request();
+     conn = await pool.getConnection();
 
-    let field, sqlType;
-
+    let field, value;
     if (/^\d+$/.test(identifier) && Number(identifier) <= 2147483647) {
       field = 'Id';
-      sqlType = sql.Int;
-      request.input('Identifier', sqlType, parseInt(identifier, 10));
+      value = parseInt(identifier, 10);
     } else {
       field = 'PhoneNumber';
-      sqlType = sql.VarChar;
-      request.input('Identifier', sqlType, identifier);
+      value = identifier;
     }
 
-    const userResult = await request.query(`SELECT * FROM Members WHERE ${field} = @Identifier`);
+    const [rows] = await conn.execute(
+      `SELECT * FROM Members WHERE ${field} = ? LIMIT 1`,
+      [value]
+    );
 
-    if (userResult.recordset.length === 0) {
+    if (rows.length === 0) {
       return res.status(400).json({ field: 'identifier', message: `${field} not found` });
     }
 
-    const user = userResult.recordset[0];
+    const user = rows[0];
 
     if (user.Password !== password) {
       return res.status(400).json({ field: 'password', message: 'Incorrect password' });
@@ -176,11 +163,17 @@ app.post('/login', async (req, res) => {
 
     req.session.userId = user.Id;
 
-    res.status(200).json({ message: 'Login successful', id: user.Id, phoneNumber: user.PhoneNumber });
+    res.status(200).json({
+      message: 'Login successful',
+      id: user.Id,
+      phoneNumber: user.PhoneNumber,
+    });
 
-  } catch (error) {
-    console.error('Login error:', error);
+  } catch (err) {
+    console.error('❌ Login error:', err);
     res.status(500).json({ message: 'Login failed, server error' });
+  } finally {
+    if (conn) conn.release(); // ✅ always release to avoid connection leak
   }
 });
 
@@ -193,35 +186,31 @@ app.post('/api/profile', async (req, res) => {
       return res.status(400).json({ message: 'Phone number required' });
     }
 
-    const request = (await poolConnect).request();
-    const result = await request
-      .input('PhoneNumber', sql.VarChar, phoneNumber)
-      .query(`
-        SELECT 
-          othernames,
-          Surname,
-          PhoneNumber,
-          phoneno2,
-          Town,
-          email,
-          State,
-          Ward,
-          Quarters,
-          DOB,
-          Title,
-          HonTitle,
-          exitdate,
-          Qualifications
-        FROM Members
-        WHERE PhoneNumber = @PhoneNumber
-      `);
+    const result = await request`
+      SELECT 
+        othernames,
+        Surname,
+        PhoneNumber,
+        phoneno2,
+        Town,
+        email,
+        State,
+        Ward,
+        Quarters,
+        DOB,
+        Title,
+        HonTitle,
+        exitdate,
+        Qualifications
+      FROM Members
+      WHERE PhoneNumber = ${phoneNumber}
+    `.run();
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     const user = result.recordset[0];
-
     const dob = new Date(user.DOB);
     const age = new Date().getFullYear() - dob.getFullYear();
 
@@ -247,6 +236,7 @@ app.post('/api/profile', async (req, res) => {
     res.status(500).json({ message: 'Server error while loading profile' });
   }
 });
+
 
 // Serve the dashboard HTML file
 
@@ -279,82 +269,83 @@ app.post('/api/update-profile', async (req, res) => {
   }
 
   try {
-    await sql.connect(config);
-
     const updates = [];
     const inputs = [];
 
     if (phone) {
       updates.push('PhoneNumber = @newPhone');
-      inputs.push({ name: 'newPhone', type: sql.VarChar, value: phone });
+      inputs.push({ name: 'newPhone', value: phone });
     }
     if (phoneNo2) {
       updates.push('phoneno2 = @phoneNo2');
-      inputs.push({ name: 'phoneNo2', type: sql.VarChar, value: phoneNo2 });
+      inputs.push({ name: 'phoneNo2', value: phoneNo2 });
     }
     if (email) {
       updates.push('email = @email');
-      inputs.push({ name: 'email', type: sql.VarChar, value: email });
+      inputs.push({ name: 'email', value: email });
     }
     if (State) {
       updates.push('State = @state');
-      inputs.push({ name: 'state', type: sql.VarChar, value: State });
+      inputs.push({ name: 'state', value: State });
     }
     if (sex) {
       updates.push('Sex = @sex');
-      inputs.push({ name: 'sex', type: sql.VarChar, value: sex });
+      inputs.push({ name: 'sex', value: sex });
     }
     if (title) {
       updates.push('Title = @title');
-      inputs.push({ name: 'title', type: sql.VarChar, value: title });
+      inputs.push({ name: 'title', value: title });
     }
     if (honTitle) {
       updates.push('HonTitle = @honTitle');
-      inputs.push({ name: 'honTitle', type: sql.VarChar, value: honTitle });
+      inputs.push({ name: 'honTitle', value: honTitle });
     }
     if (Quarters) {
       updates.push('Quarters = @quarters');
-      inputs.push({ name: 'quarters', type: sql.VarChar, value: Quarters });
+      inputs.push({ name: 'quarters', value: Quarters });
     }
     if (Ward) {
       updates.push('Ward = @ward');
-      inputs.push({ name: 'ward', type: sql.VarChar, value: Ward });
+      inputs.push({ name: 'ward', value: Ward });
     }
     if (town) {
       updates.push('Town = @town');
-      inputs.push({ name: 'town', type: sql.VarChar, value: town });
+      inputs.push({ name: 'town', value: town });
     }
     if (qualifications) {
       updates.push('Qualifications = @qualifications');
-      inputs.push({ name: 'qualifications', type: sql.VarChar, value: qualifications });
+      inputs.push({ name: 'qualifications', value: qualifications });
     }
     if (profession) {
       updates.push('Profession = @profession');
-      inputs.push({ name: 'profession', type: sql.VarChar, value: profession });
+      inputs.push({ name: 'profession', value: profession });
     }
     if (exitDate) {
       updates.push('exitdate = @exitDate');
-      inputs.push({ name: 'exitDate', type: sql.Date, value: exitDate });
+      inputs.push({ name: 'exitDate', value: exitDate });
     }
 
     if (updates.length === 0) {
       return res.status(400).json({ message: 'No fields to update' });
     }
 
-    const pool = await sql.connect(config);
-    const request = pool.request();
-    inputs.forEach(input => {
-      request.input(input.name, input.type, input.value);
-    });
-    request.input('oldPhoneNumber', sql.VarChar, oldPhoneNumber);
+    inputs.push({ name: 'oldPhoneNumber', value: oldPhoneNumber });
 
-    const updateQuery = `
-      UPDATE Members
+    const query = `
+      UPDATE members
       SET ${updates.join(', ')}
       WHERE PhoneNumber = @oldPhoneNumber
     `;
 
-    await request.query(updateQuery);
+    const paramObject = Object.fromEntries(inputs.map(i => [i.name, i.value]));
+
+    const result = await request(query)
+      .inputs(paramObject)
+      .run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     res.json({ success: true, message: 'Profile updated successfully' });
 
@@ -363,7 +354,6 @@ app.post('/api/update-profile', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update profile' });
   }
 });
-
 
 
 // Forgot Password Route
@@ -375,11 +365,11 @@ app.post('/api/reset-password', async (req, res) => {
   }
 
   try {
-    const result = await sql.query`
-      UPDATE [dbo].[Members]
-      SET [Password] = ${newPassword}
-      WHERE [PhoneNumber] = ${phoneNumber}
-    `;
+    const result = await request`
+      UPDATE members
+      SET Password = ${newPassword}
+      WHERE PhoneNumber = ${phoneNumber}
+    `.run();
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ message: 'User not found' });
@@ -411,7 +401,8 @@ app.post('/logout', (req, res) => {
 app.get('/api/ledger-entry/:phoneno', async (req, res) => {
   const { phoneno } = req.params;
   try {
-    const result = await sql.query`SELECT * FROM memberledger WHERE phoneno = ${phoneno}`;
+    const result = await request `SELECT * FROM memberledger WHERE phoneno = ${phoneno}`.run();
+      
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch ledger entries' });
@@ -426,17 +417,15 @@ app.get('/api/member/ledger-entry/monthly-total', async (req, res) => {
   }
   
   try {
-    const pool = await sql.connect(config);
-    
-    const result = await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .input('month', sql.VarChar, month)
-      .query(`
-        SELECT SUM(amount) AS totalAmount
-        FROM memberledger
-        WHERE phoneno = @phoneno
-        AND FORMAT(transdate, 'yyyy-MM') = @month
-      `);
+    // Using your adapter's correct syntax
+    const result = await request(`
+      SELECT SUM(amount) AS totalAmount
+      FROM memberledger
+      WHERE phoneno = @phoneno
+      AND DATE_FORMAT(transdate, '%Y-%m') = @month
+    `)
+    .inputs({ phoneno, month })
+    .run();
     
     const total = result.recordset[0]?.totalAmount || 0;
     res.json({ total });
@@ -457,7 +446,6 @@ app.get('/api/enquiry/:type/:value', async (req, res) => {
   }
 
   try {
-    const pool = await sql.connect(config);
     let query = `
       SELECT ml.*, m.ward FROM memberledger ml
       JOIN Members m ON ml.phoneno = m.PhoneNumber
@@ -467,18 +455,19 @@ app.get('/api/enquiry/:type/:value', async (req, res) => {
     if (from) query += ` AND ml.transdate >= @from `;
     if (to) query += ` AND ml.transdate <= @to `;
 
-    const request = pool.request().input('value', sql.VarChar, value);
-    if (from) request.input('from', sql.Date, from);
-    if (to) request.input('to', sql.Date, to);
+    // Build inputs object
+    const inputs = { value };
+    if (from) inputs.from = from;
+    if (to) inputs.to = to;
 
-    const result = await request.query(query);
+    // Use your custom wrapper correctly
+    const result = await request(query).inputs(inputs).run();
     res.json(result.recordset);
   } catch (err) {
     console.error('Enquiry error:', err);
     res.status(500).json({ message: 'Server error during enquiry' });
   }
 });
-
 
 
 app.post('/logout', (req, res) => {

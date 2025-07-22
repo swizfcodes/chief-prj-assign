@@ -1521,18 +1521,33 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function loadProjectDropdown() {
   try {
-    const res = await fetch('/admin/stdxpenses');
+    const token = localStorage.getItem('token'); // or sessionStorage if that's where you stored it
+
+    if (!token) {
+      throw new Error('Token not found in localStorage.');
+    }
+
+    const res = await fetch(`${BASE_URL}/admin/stdxpenses`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Server responded with status ${res.status}`);
+    }
+
     const projects = await res.json();
     const dropdown = document.getElementById('projectDropdown');
     dropdown.innerHTML = projects.map(
       p => `<option value="${p.expscode}">${p.expsdesc} (${p.expscode})</option>`
     ).join('');
+    
   } catch (err) {
-    console.error('Project List Load Error:', err);
+    console.error('Project List Load Error:', err.message || err);
   }
-} window.addEventListener('DOMContentLoaded', () => {
-  loadProjectDropdown();
-});
+}
 
 
 //render ocda update

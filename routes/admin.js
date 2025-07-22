@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { sql, poolPromise } = require('../db');
+const pool = require('../db');
 const config = require('../dbconfig'); 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const SECRET = 'your_jwt_secret';
+const {  request} = require('../db-wrapper');
 
 // Middleware to parse JSON bodies
 // Token verification middleware
@@ -30,14 +31,16 @@ const verifyToken = (req, res, next) => {
 // Create Admin (no password hashing)
 router.post('/create', async (req, res) => {
   try {
-    const pool = await poolPromise;
-
-    const countResult = await pool.request().query('SELECT COUNT(*) AS count FROM Admins');
+    // Count existing admins
+    const countResult = await request`SELECT COUNT(*) AS count FROM admins`.run();
     const adminCount = countResult.recordset[0].count;
+    const created_at = new Date();
 
+    // If admins exist, require JWT token
     if (adminCount > 0) {
       const token = req.headers['authorization'];
       if (!token) return res.status(403).json({ message: 'No token provided' });
+
       try {
         jwt.verify(token, SECRET);
       } catch (err) {
@@ -47,22 +50,23 @@ router.post('/create', async (req, res) => {
 
     const { fullname, email, password, role } = req.body;
 
-    const check = await pool.request()
-      .input('email', sql.VarChar, email)
-      .query('SELECT * FROM Admins WHERE email = @email');
+    // Check if admin email already exists
+    const checkResult = await request`
+      SELECT * FROM admins WHERE email = ${email}
+    `.run();
 
-    if (check.recordset.length > 0) {
+    if (checkResult.recordset.length > 0) {
       return res.status(409).json({ message: 'Admin already exists' });
     }
 
-    await pool.request()
-      .input('fullname', sql.VarChar, fullname)
-      .input('email', sql.VarChar, email)
-      .input('password', sql.VarChar, password) // No hash
-      .input('role', sql.VarChar, role)
-      .query('INSERT INTO Admins (fullname, email, password, role) VALUES (@fullname, @email, @password, @role)');
+    // Insert new admin
+    await request`
+      INSERT INTO admins (fullname, email, password, role, created_at)
+      VALUES (${fullname}, ${email}, ${password}, ${role}, ${created_at})
+    `.run();
 
     res.status(201).json({ message: 'Admin created successfully' });
+
   } catch (err) {
     console.error('Create Admin Error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -72,10 +76,10 @@ router.post('/create', async (req, res) => {
 // Activate admin
 router.patch('/activate/:id', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, req.params.id)
-      .query('UPDATE Admins SET active = 1 WHERE id = @id');
+    const { id } = req.params;
+    const result = await request('UPDATE admins SET active = 1 WHERE id = @id')
+      .inputs({id})
+      .run();
     if (result.rowsAffected[0] === 0) return res.status(404).json({ message: 'Admin not found' });
     res.json({ message: 'Admin activated' });
   } catch (err) {
@@ -86,10 +90,11 @@ router.patch('/activate/:id', verifyToken, async (req, res) => {
 // Deactivate admin
 router.patch('/deactivate/:id', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, req.params.id)
-      .query('UPDATE Admins SET active = 0 WHERE id = @id');
+    const { id } = req.params;
+    const result = await request('UPDATE admins SET active = 0 WHERE id = @id')
+     .inputs({id})
+     .run();
+     
     if (result.rowsAffected[0] === 0) return res.status(404).json({ message: 'Admin not found' });
     res.json({ message: 'Admin deactivated' });
   } catch (err) {
@@ -100,10 +105,10 @@ router.patch('/deactivate/:id', verifyToken, async (req, res) => {
 // Delete admin
 router.delete('/delete/:id', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, req.params.id)
-      .query('DELETE FROM Admins WHERE id = @id');
+    const { id } = req.params;
+    const result = await request('DELETE FROM admins WHERE id = @id')
+      .inputs({id})
+      .run();
     if (result.rowsAffected[0] === 0) return res.status(404).json({ message: 'Admin not found' });
     res.json({ message: 'Admin deleted' });
   } catch (err) {
@@ -115,11 +120,10 @@ router.delete('/delete/:id', verifyToken, async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const pool = await poolPromise;
 
-    const result = await pool.request()
-      .input('email', sql.VarChar, email)
-      .query('SELECT * FROM Admins WHERE email = @email');
+    const result = await request('SELECT * FROM admins WHERE email = @email')
+      .inputs({ email })
+      .run();
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -159,11 +163,11 @@ router.post('/reset-adminpassword', async (req, res) => {
   }
 
   try {
-    const result = await sql.query`
-      UPDATE [dbo].[Admins]
+    const result = await request`
+      UPDATE admins
       SET [Password] = ${newPassword}
       WHERE [Email] = ${email}
-    `;
+    `.run();
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ message: 'User not found' });
@@ -176,11 +180,11 @@ router.post('/reset-adminpassword', async (req, res) => {
   }
 });
 
-//  List Admins
+//  List admins
 router.get('/list', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request().query('SELECT Id, fullname, email, role, active FROM Admins');
+    
+    const result = await request('SELECT Id, fullname, email, role, active FROM admins').run();
     res.json(result.recordset);
   } catch (err) {
     console.error('List Admin Error:', err);
@@ -194,13 +198,9 @@ router.put('/update/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     const { fullname, email, role } = req.body;
 
-    const pool = await poolPromise;
-    await pool.request()
-      .input('id', sql.Int, id)
-      .input('fullname', sql.VarChar, fullname)
-      .input('email', sql.VarChar, email)
-      .input('role', sql.VarChar, role)
-      .query('UPDATE Admins SET fullname=@fullname, email=@email, role=@role WHERE id=@id');
+    await request('UPDATE admins SET fullname=@fullname, email=@email, role=@role WHERE id=@id')
+      .inputs({ id, fullname, email, role })
+      .run();
 
     res.json({ message: 'Admin updated successfully' });
   } catch (err) {
@@ -212,13 +212,11 @@ router.put('/update/:id', verifyToken, async (req, res) => {
 // Dashboard Data
 router.get('/dashboard', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-
     const [ledger, summary, expenses, std] = await Promise.all([
-      pool.request().query('SELECT TOP (1000) phoneno, transdate, amount, remark FROM memberledger'),
-      pool.request().query('SELECT TOP (1000) period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary'),
-      pool.request().query('SELECT TOP (1000) docdate, project, remarks, amount FROM ocdaexpenses'),
-      pool.request().query('SELECT TOP (1000) expscode, expsdesc FROM Stdxpenses')
+      request('SELECT TOP (1000) phoneno, transdate, amount, remark FROM memberledger').run(),
+      request('SELECT TOP (1000) period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary').run(),
+      request('SELECT TOP (1000) docdate, project, remarks, amount FROM ocdaexpenses').run(),
+      request('SELECT TOP (1000) expscode, expsdesc FROM Stdxpenses').run()
     ]);
 
     res.json({
@@ -233,88 +231,103 @@ router.get('/dashboard', verifyToken, async (req, res) => {
   }
 });
 
-// Connect to MSSQL once and reuse the connection
-sql.connect(config).then(pool => {
 
-  // GET /admin/memberledger for reports
-  router.get('/memberledger', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query(`
+  // GET /admin/memberledgerfor reports
+router.get('/memberledger', verifyToken, async (req, res) => {
+  try {
+    const result = await request(`
       SELECT 
         phoneno, 
-        FORMAT(transdate, 'yyyy-MM-dd') AS transdate,
+        DATE_FORMAT(transdate, '%Y-%m-%d') AS transdate,
         amount, 
         remark, 
-        FORMAT(paydate, 'yyyy-MM-dd') AS paydate
+        DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate
       FROM memberledger
       ORDER BY transdate DESC
-      `);
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching member ledger:', err);
-      res.status(500).json({ error: 'Failed to fetch member ledger' });
-    }
-  });
-
-  //for screen D
-  router.get('/member-recordledger', verifyToken, async (req, res) => {
-  const { from, to } = req.query;
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('from', sql.Date, from)
-      .input('to', sql.Date, to)
-      .query(`
-        SELECT phoneno, transdate, amount, remark, paydate 
-        FROM MemberLedger 
-        WHERE transdate BETWEEN @from AND @to
-        ORDER BY transdate DESC
-      `);
-
+    `).run();
+    
     res.json(result.recordset);
   } catch (err) {
-    console.error('Member Ledger fetch error:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error fetching member ledger:', err);
+    res.status(500).json({ error: 'Failed to fetch member ledger' });
   }
 });
 
-  // GET /admin/monthlysummary
-  router.get('/monthlysummary', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching monthly summary:', err);
-      res.status(500).json({ error: 'Failed to fetch monthly summary' });
+  //for screen D
+router.get('/member-recordledger', verifyToken, async (req, res) => {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+        return res.status(400).json({ message: 'Both "from" and "to" dates are required.' });
     }
-  });
+
+    // Optional: Basic date validation
+    // Date.parse handles various valid date string formats (e.g., YYYY-MM-DD, ISO 8601)
+    if (isNaN(Date.parse(from)) || isNaN(Date.parse(to))) {
+        return res.status(400).json({ message: 'Invalid date format. Please use YYYY-MM-DD.' });
+    }
+
+    try {
+        const result = await request(`
+            SELECT 
+                phoneno, 
+                transdate, 
+                amount, 
+                remark, 
+                paydate 
+            FROM memberledger
+            WHERE 
+                paydate >= @from 
+                AND paydate < DATE_ADD(@to, INTERVAL 1 DAY)
+            ORDER BY paydate DESC
+        `)
+        .inputs({ from, to }) 
+        .run();
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error('Member Ledger fetch error:', err);
+        res.status(500).json({ message: 'Server error: Failed to retrieve ledger records.' });
+    }
+});
+
+  // GET /admin/monthlysummary
+router.get('/monthlysummary', verifyToken, async (req, res) => {
+  try {
+    const result = await request('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary').run();
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error fetching monthly summary:', err);
+    res.status(500).json({ error: 'Failed to fetch monthly summary' });
+  }
+});
 
   // GET /admin/ocdaexpenses
-  router.get('/ocdaexpenses', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT docdate, project, remarks, amount FROM ocdaexpenses');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching OCDA expenses:', err);
-      res.status(500).json({ error: 'Failed to fetch OCDA expenses' });
-    }
-  });
+router.get('/ocdaexpenses', verifyToken, async (req, res) => {
+  try {
+    const result = await request('SELECT docdate, project, remarks, amount FROM ocdaexpenses').run();
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error fetching OCDA expenses:', err);
+    res.status(500).json({ error: 'Failed to fetch OCDA expenses' });
+  }
+});
 
-  // GET /admin/stdxpenses
-  router.get('/stdxpenses', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT expscode, expsdesc FROM Stdxpenses');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching standard expenses:', err);
-      res.status(500).json({ error: 'Failed to fetch standard expenses' });
-    }
-  });
+// GET /admin/stdxpenses
+router.get('/stdxpenses', verifyToken, async (req, res) => {
+  try {
+    const result = await request('SELECT expscode, expsdesc FROM stdxpenses').run();
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Error fetching standard expenses:', err);
+    res.status(500).json({ error: 'Failed to fetch standard expenses' });
+  }
+});
 
 // GET /admin/incomeclassifications
 router.get('/incomeclass', verifyToken, async (req, res) => {
   try {
-    const result = await pool.request().query('SELECT incomecode, incomedesc FROM IncomeClassification');
+    const result = await request('SELECT incomecode, incomedesc FROM incomeclassification').run();
     res.json(result.recordset);
   } catch (err) {
     console.error('Error fetching income classifications:', err);
@@ -322,89 +335,66 @@ router.get('/incomeclass', verifyToken, async (req, res) => {
   }
 });
 
- // GET /admin/monthlysummary
-  router.get('/monthlysummary', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching monthly summary:', err);
-      res.status(500).json({ error: 'Failed to fetch monthly summary' });
-    }
-  });
-
-  // GET /admin/ocdaexpenses
-  router.get('/ocdaexpenses', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT docdate, project, remarks, amount FROM ocdaexpenses');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching OCDA expenses:', err);
-      res.status(500).json({ error: 'Failed to fetch OCDA expenses' });
-    }
-  });
-
-  // GET /admin/stdxpenses
-  router.get('/stdxpenses', verifyToken, async (req, res) => {
-    try {
-      const result = await pool.request().query('SELECT expscode, expsdesc FROM Stdxpenses');
-      res.json(result.recordset);
-    } catch (err) {
-      console.error('Error fetching standard expenses:', err);
-      res.status(500).json({ error: 'Failed to fetch standard expenses' });
-    }
-  });
-
-}).catch(err => {
-  console.error('Database connection failed:', err);
-});
-
 
 // create new member
 router.post('/createmember', verifyToken, async (req, res) => {
-  try {
-    const {
-      PhoneNumber, phoneno2, Surname, othernames, Title, HonTitle, Sex,
-      Quarters, Ward, State, Town, DOB, Qualifications, Profession,
-      exitdate, Password, email
-    } = req.body;
+    try {
+        const {
+            PhoneNumber, phoneno2, Surname, othernames, Title, HonTitle, Sex,
+            Quarters, Ward, State, Town, DOB, Qualifications, Profession,
+            exitdate, Password, email
+        } = req.body;
 
-    const pool = await poolPromise;
-    const createdby = req.adminId; // From token
-    const CreatedAt = new Date();
+        // Helper function to convert empty strings to null
+        const clean = val => (val?.trim() === '' ? null : val);
 
-    await pool.request()
-      .input('PhoneNumber', sql.VarChar, PhoneNumber)
-      .input('phoneno2', sql.VarChar, phoneno2)
-      .input('Surname', sql.VarChar, Surname)
-      .input('othernames', sql.VarChar, othernames)
-      .input('Title', sql.VarChar, Title)
-      .input('HonTitle', sql.VarChar, HonTitle)
-      .input('Sex', sql.VarChar, Sex)
-      .input('Quarters', sql.VarChar, Quarters)
-      .input('Ward', sql.VarChar, Ward)
-      .input('State', sql.VarChar, State)
-      .input('Town', sql.VarChar, Town)
-      .input('DOB', sql.Date, DOB)
-      .input('Qualifications', sql.VarChar, Qualifications)
-      .input('Profession', sql.VarChar, Profession)
-      .input('exitdate', sql.Date, exitdate || null)
-      .input('Password', sql.VarChar, Password) // plaintext
-      .input('CreatedAt', sql.DateTime, CreatedAt)
-      .input('email', sql.VarChar, email)
-      .input('createdby', sql.Int, createdby)
-      .query(`
-        INSERT INTO Members (PhoneNumber, phoneno2, Surname, othernames, Title, HonTitle, Sex, Quarters, Ward, State, Town,
-          DOB, Qualifications, Profession, exitdate, Password, CreatedAt, email, createdby)
-        VALUES (@PhoneNumber, @phoneno2, @Surname, @othernames, @Title, @HonTitle, @Sex, @Quarters, @Ward, @State, @Town,
-          @DOB, @Qualifications, @Profession, @exitdate, @Password, @CreatedAt, @email, @createdby)
-      `);
+        // Prepare the inputs object with cleaned values
+        const memberInputs = {
+            PhoneNumber: clean(PhoneNumber), // Assuming PhoneNumber is required and not empty
+            phoneno2: clean(phoneno2),
+            email: clean(email),
+            Password: clean(Password), // Remember to hash passwords before storing in a real application!
+            Surname: clean(Surname),
+            othernames: clean(othernames),
+            Title: clean(Title),
+            HonTitle: clean(HonTitle),
+            Sex: clean(Sex),
+            Quarters: clean(Quarters),
+            Ward: clean(Ward),
+            State: clean(State),
+            Town: clean(Town),
+            DOB: DOB, // DOB should ideally be a Date object or valid date string
+            Qualifications: clean(Qualifications),
+            Profession: clean(Profession),
+            exitdate: exitdate, // exitdate should ideally be a Date object or valid date string, or null
+            CreatedAt: new Date(), // Set creation timestamp
+            createdby: req.adminId // Assuming req.adminId is set by verifyToken middleware
+        };
 
-    res.status(201).json({ message: 'Member created successfully' });
-  } catch (err) {
-    console.error('Create Member Error:', err);
-    res.status(500).json({ message: 'Server error' });
-  }
+        await request(`
+            INSERT INTO members (
+                PhoneNumber, phoneno2, Surname, othernames, Title, HonTitle, Sex,
+                Quarters, Ward, State, Town, DOB, Qualifications, Profession,
+                exitdate, Password, CreatedAt, email, createdby
+            ) VALUES (
+                @PhoneNumber, @phoneno2, @Surname, @othernames, @Title, @HonTitle, @Sex,
+                @Quarters, @Ward, @State, @Town, @DOB, @Qualifications, @Profession,
+                @exitdate, @Password, @CreatedAt, @email, @createdby
+            )
+        `)
+        .inputs(memberInputs) // Pass the entire inputs object
+        .run();
+
+        res.status(201).json({ message: 'Member created successfully' });
+
+    } catch (err) {
+        console.error('Create Member Error:', err);
+        // Check for specific error types if needed (e.g., duplicate key error)
+        if (err.code === 'ER_DUP_ENTRY' || err.message.includes('Duplicate entry')) { // Example for MySQL duplicate entry error
+            return res.status(409).json({ message: 'A member with this phone number already exists.' });
+        }
+        res.status(500).json({ message: 'Server error: Failed to create member.' });
+    }
 });
 
 // Gemerate Monthly Summary
@@ -412,110 +402,111 @@ router.post('/generate-summary', verifyToken, async (req, res) => {
   try {
     const { year, month } = req.body;
     const paddedMonth = month.padStart(2, '0');
-    const period = `${year}${paddedMonth}`; 
+    const period = `${year}${paddedMonth}`; // e.g., 202406
 
-    // Get today's date and calculate last month
+    // Get today's date
     const now = new Date();
-    const thisMonth = now.getMonth() + 1; // 
+    const thisMonth = now.getMonth() + 1;
     const thisYear = now.getFullYear();
     let lastMonth = thisMonth - 1;
     let lastMonthYear = thisYear;
+
     if (lastMonth === 0) {
       lastMonth = 12;
-      lastMonthYear = thisYear - 1;
+      lastMonthYear--;
     }
-    const lastPeriod = `${lastMonthYear}${String(lastMonth).padStart(2, '0')}`; // e.g. 202406
 
-    // Only allow if period <= lastPeriod (not current/future), and not already done
+    const lastPeriod = `${lastMonthYear}${String(lastMonth).padStart(2, '0')}`;
+
+    // Only allow summaries for past months
     if (parseInt(period) > parseInt(lastPeriod)) {
       return res.status(400).json({ message: 'You can only generate summary for the previous or earlier months.' });
     }
 
-    const pool = await poolPromise;
-
-    // Check if already exists
-    const exists = await pool.request()
-      .input('period', sql.VarChar(6), period)
-      .query('SELECT 1 FROM monthlysummary WHERE period = @period');
+    // 🔍 Check if summary already exists
+    const exists = await request('SELECT 1 FROM monthlysummary WHERE period = @period')
+      .inputs({ period })
+      .run();
 
     if (exists.recordset.length > 0) {
       return res.status(409).json({ message: `Summary for ${period} already exists.` });
     }
 
-    // Get credits and debits
-    const [{ totalCredit }] = (await pool.request()
-      .query(`SELECT ISNULL(SUM(amount), 0) AS totalCredit
-              FROM memberledger 
-              WHERE FORMAT(transdate, 'yyyyMM') = '${period}'`)
-    ).recordset;
+    // 💳 Total Credit (inflows)
+    const creditResult = await request(`
+      SELECT IFNULL(SUM(amount), 0) AS totalCredit
+      FROM memberledger
+      WHERE DATE_FORMAT(transdate, '%Y%m') = @period
+    `).inputs({ period }).run();
 
-    const [{ totalDebit }] = (await pool.request()
-      .query(`SELECT ISNULL(SUM(amount), 0) AS totalDebit
-              FROM ocdaexpenses 
-              WHERE FORMAT(docdate, 'yyyyMM') = '${period}'`)
-    ).recordset;
+    const totalCredit = creditResult.recordset[0].totalCredit;
 
-    // Get previous net balance
-    const prevResult = await pool.request()
-      .query(`SELECT TOP 1 Netbalance AS prevNet
-              FROM monthlysummary 
-              WHERE period < '${period}' 
-              ORDER BY period DESC`);
-    const prevNet = prevResult.recordset.length > 0 ? prevResult.recordset[0].prevNet : 0;
+    // 💸 Total Debit (expenses)
+    const debitResult = await request(`
+      SELECT IFNULL(SUM(amount), 0) AS totalDebit
+      FROM ocdaexpenses
+      WHERE DATE_FORMAT(docdate, '%Y%m') = @period
+    `).inputs({ period }).run();
+
+    const totalDebit = debitResult.recordset[0].totalDebit;
+
+    // 🧾 Get previous balance
+    const prev = await request(`
+      SELECT Netbalance AS prevNet
+      FROM monthlysummary
+      WHERE period < @period
+      ORDER BY period DESC
+      LIMIT 1
+    `).inputs({ period }).run();
+
+    const prevNet = prev.recordset.length > 0 ? prev.recordset[0].prevNet : 0;
 
     const Netbalance = prevNet + totalCredit - totalDebit;
 
-    await pool.request()
-      .input('period', sql.VarChar(6), period)
-      .input('openbalance', sql.Decimal(18, 2), prevNet)
-      .input('Debitbalance', sql.Decimal(18, 2), totalCredit)      // <-- swapped
-      .input('Creditbalance', sql.Decimal(18, 2), totalDebit)      // <-- swapped
-      .input('Netbalance', sql.Decimal(18, 2), Netbalance)
-      .query(`INSERT INTO monthlysummary (period, openbalance, Debitbalance, Creditbalance, Netbalance)
-      VALUES (@period, @openbalance, @Debitbalance, @Creditbalance, @Netbalance)`);
+    // 💾 Save new summary
+    await request(`
+      INSERT INTO monthlysummary (period, openbalance, Debitbalance, Creditbalance, Netbalance)
+      VALUES (@period, @openbalance, @Debitbalance, @Creditbalance, @Netbalance)
+    `).inputs({
+      period,
+      openbalance: prevNet,
+      Debitbalance: totalCredit, // Your original code swapped these
+      Creditbalance: totalDebit,
+      Netbalance
+    }).run();
 
-    const newSummary = await pool.request()
-    .input('period', sql.VarChar(6), period)
-    .query('SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary WHERE period = @period');
+    // ✅ Fetch & return inserted summary
+    const summaryResult = await request(`
+      SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance
+      FROM monthlysummary
+      WHERE period = @period
+    `).inputs({ period }).run();
 
     res.status(201).json({
       message: 'Monthly summary saved',
-      summary: newSummary.recordset[0]
+      summary: summaryResult.recordset[0]
     });
+
   } catch (err) {
     console.error('Monthly Summary Error:', err);
     res.status(500).json({ message: 'Failed to generate summary' });
   }
 });
 
-
-router.get('/monthlysummary', verifyToken, async (req, res) => {
-  try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .query(`SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance FROM monthlysummary ORDER BY period DESC`);
-    res.json(result.recordset);
-  } catch (err) {
-    console.error('Summary Fetch Error:', err);
-    res.status(500).json({ message: 'Failed to fetch monthly summary' });
-  }
-});
-
 //show list of members
 router.get('/members', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .query(`
+    
+    const result = await request(`
         SELECT 
           PhoneNumber, Surname, othernames, Title, Sex, Quarters, Ward, 
           State, Town, DOB, Profession, Qualifications, email
-        FROM Members
+        FROM members
         ORDER BY surname
-      `);
+      `).run();
     res.json(result.recordset);
   } catch (err) {
-    console.error('Fetch Members Error:', err);
+    console.error('Fetch members Error:', err);
     res.status(500).json({ message: 'Failed to fetch members' });
   }
 });
@@ -524,12 +515,11 @@ router.get('/members', verifyToken, async (req, res) => {
 // Delete members
 router.delete('/member/:phone', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const phone = req.params.phone;
+    const PhoneNumber = req.params.phone;
 
-    const result = await pool.request()
-      .input('PhoneNumber', sql.VarChar, phone)
-      .query('DELETE FROM Members WHERE PhoneNumber = @PhoneNumber');
+    const result = await request('DELETE FROM members WHERE PhoneNumber = @PhoneNumber')
+      .inputs({ PhoneNumber })
+      .run();
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ message: 'Member not found' });
@@ -546,10 +536,10 @@ router.delete('/member/:phone', verifyToken, async (req, res) => {
 // GET single member
 router.get('/member/:phone', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('PhoneNumber', sql.VarChar, req.params.phone)
-      .query('SELECT * FROM Members WHERE PhoneNumber = @PhoneNumber');
+    const PhoneNumber = req.params.phone;
+    const result = await request('SELECT * FROM members WHERE PhoneNumber = @PhoneNumber')
+      .inputs({PhoneNumber})
+      .run();
 
     if (result.recordset.length === 0) return res.status(404).json({ message: 'Member not found' });
     res.json(result.recordset[0]);
@@ -561,93 +551,70 @@ router.get('/member/:phone', verifyToken, async (req, res) => {
 
 // PUT update member
 router.put('/member/:phone', verifyToken, async (req, res) => {
-  try {
-    const pool = await poolPromise;
+    try {
+        const { phone: oldPhoneNumber } = req.params; // Get phone from URL parameter
 
-    // Get the existing member
-    const existingResult = await pool.request()
-      .input('PhoneNumber', sql.VarChar, req.params.phone)
-      .query('SELECT * FROM Members WHERE PhoneNumber = @PhoneNumber');
-    if (existingResult.recordset.length === 0) {
-      return res.status(404).json({ message: 'Member not found' });
-    }
-    const existing = existingResult.recordset[0];
+        // 1. Get the existing member
+        // Corrected usage: .run() is a method, not a property
+        const existingResult = await request('SELECT * FROM members WHERE PhoneNumber = @oldPhoneNumber')
+            .inputs({ oldPhoneNumber })
+            .run();
 
-    //  If phone number is changing, check for conflicts
-    if (req.body.PhoneNumber && req.body.PhoneNumber !== req.params.phone) {
-      const check = await pool.request()
-        .input('newPhone', sql.VarChar, req.body.PhoneNumber)
-        .query('SELECT PhoneNumber FROM Members WHERE PhoneNumber = @newPhone');
-      if (check.recordset.length > 0) {
-        return res.status(409).json({ message: 'Phone number already in use by another member' });
-      }
-    }
-
-    // Merge fields: use req.body if present, else existing value
-    const fields = [
-      'PhoneNumber', 'phoneno2', 'Surname', 'othernames', 'Title', 'HonTitle', 'Sex',
-      'Quarters', 'Ward', 'State', 'Town', 'DOB', 'Qualifications',
-      'Profession', 'exitdate', 'Password', 'email'
-    ];
-
-    const merged = {};
-    fields.forEach(field => {
-      // For date fields, set to null if empty or not provided
-      fields.forEach(field => {
-        if (field === 'DOB' || field === 'exitdate') {
-          if (req.body[field] === undefined) {
-            merged[field] = existing[field];
-          } else if (req.body[field] === '') {
-            merged[field] = null;
-          } else {
-            merged[field] = req.body[field];
-          }
-        } else {
-          merged[field] = req.body[field] !== undefined ? req.body[field] : existing[field];
+        if (existingResult.recordset.length === 0) {
+            return res.status(404).json({ message: 'Member not found.' });
         }
-      });
-    });
+        const existingMember = existingResult.recordset[0];
 
+        // 2. Define fields to be updated and merge data
+        const fieldsToUpdate = [
+            'PhoneNumber', 'phoneno2', 'Surname', 'othernames', 'Title', 'HonTitle', 'Sex',
+            'Quarters', 'Ward', 'State', 'Town', 'DOB', 'Qualifications',
+            'Profession', 'exitdate', 'Password', 'email'
+        ];
 
-    // Bind all fields
-    const request = pool.request();
-    fields.forEach(field => {
-      if (field === 'DOB' || field === 'exitdate') {
-        request.input(field, sql.Date, merged[field]);
-      } else {
-        request.input(field, sql.VarChar, merged[field]);
-      }
-    });
-    request.input('oldPhone', sql.VarChar, req.params.phone);
+        const updatedInputs = {};
 
-    // Update
-    await request.query(`
-      UPDATE Members SET
-        PhoneNumber=@PhoneNumber,
-        phoneno2=@phoneno2,
-        Surname=@Surname,
-        othernames=@othernames,
-        Title=@Title,
-        HonTitle=@HonTitle,
-        Sex=@Sex,
-        Quarters=@Quarters,
-        Ward=@Ward,
-        State=@State,
-        Town=@Town,
-        DOB=@DOB,
-        Qualifications=@Qualifications,
-        Profession=@Profession,
-        exitdate=@exitdate,
-        Password=@Password,
-        email=@email
-      WHERE PhoneNumber = @oldPhone
-    `);
+        fieldsToUpdate.forEach(field => {
+            // Check if the field is present in req.body
+            if (req.body[field] !== undefined) {
+                // If it's a date field and the value is an empty string, set to null
+                if ((field === 'DOB' || field === 'exitdate') && req.body[field] === '') {
+                    updatedInputs[field] = null;
+                } else {
+                    // Otherwise, use the value from req.body
+                    updatedInputs[field] = req.body[field];
+                }
+            } else {
+                // If not in req.body, retain the existing value from the database
+                updatedInputs[field] = existingMember[field];
+            }
+        });
 
-    res.json({ message: 'Member updated successfully' });
-  } catch (err) {
-    console.error('Update member error:', err);
-    res.status(500).json({ message: 'Failed to update member' });
-  }
+        // Ensure the PhoneNumber for the WHERE clause is correctly set
+        // If PhoneNumber is being updated, use the new one for the UPDATE statement's SET clause,
+        // but always use oldPhoneNumber for the WHERE clause.
+        updatedInputs.oldPhoneNumber = oldPhoneNumber; // Parameter for the WHERE clause
+
+        // 3. Construct the UPDATE query
+        const setClauses = fieldsToUpdate.map(field => `${field}=@${field}`).join(', ');
+
+        const updateQuery = `
+            UPDATE members SET
+                ${setClauses}
+            WHERE PhoneNumber = @oldPhoneNumber
+        `;
+
+        // 4. Execute the update
+        await request(updateQuery)
+            .inputs(updatedInputs) // Pass the merged inputs
+            .run();
+
+        res.json({ message: 'Member updated successfully.' });
+
+    } catch (err) {
+        console.error('Update member error:', err);
+        res.status(500).json({ message: 'Failed to update member.' });
+    }
 });
 
 
@@ -657,14 +624,10 @@ router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   const { transdate, amount, remark } = req.body;
 
   try {
-    const pool = await sql.connect(config);
-    await pool.request()
-      .input('phoneno', sql.VarChar, phoneno)
-      .input('transdate', sql.Date, transdate) 
-      .input('amount', sql.Decimal(18, 2), amount)
-      .input('remark', sql.VarChar, remark)
-      .query(`INSERT INTO memberledger (phoneno, transdate, amount, remark, paydate)
-              VALUES (@phoneno, @transdate, @amount, @remark, CAST(GETDATE() AS DATE))`);
+    await request(`INSERT INTO memberledger(phoneno, transdate, amount, remark, paydate)
+      VALUES (@phoneno, @transdate, @amount, @remark, CURRENT_DATE)`)
+      .inputs({phoneno, transdate, amount, remark})
+      .run();
 
     res.status(200).json({ message: 'Ledger entry recorded successfully' });
   } catch (err) {
@@ -677,18 +640,17 @@ router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
 router.get('/api/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   const { phoneno } = req.params;
   try {
-    const pool = await sql.connect(config);
-    const result = await pool.request()
-    .input('phoneno', sql.VarChar, phoneno)
-    .query(`SELECT 
+    const result = await request(`SELECT 
               amount, 
               FORMAT(transdate, 'yyyy-MM-dd') AS transdate,
               amount, 
               remark, 
               FORMAT(paydate, 'yyyy-MM-dd') AS paydate
-            FROM memberledger 
+            FROM memberledger
             WHERE phoneno = @phoneno 
-            ORDER BY transdate DESC`);;
+            ORDER BY transdate DESC`)
+    .inputs({phoneno})
+    .run();
     res.send(result.recordset);
   } catch (err) {
     console.error(err);
@@ -698,21 +660,25 @@ router.get('/api/ledger-entry/:phoneno', verifyToken, async (req, res) => {
 
 // Add Expense with user-supplied date and project
 router.post('/ocdaexpenses', verifyToken, async (req, res) => {
-  const { docdate, project, amount, remarks } = req.body;
-
   try {
-    const pool = await sql.connect(config);
-    await pool.request()
-      .input('docdate', sql.Date, docdate)
-      .input('project', sql.VarChar, project)
-      .input('remarks', sql.VarChar, remarks)
-      .input('amount', sql.Decimal(18, 2), amount)
-      .query(`
-        INSERT INTO ocdaexpenses (docdate, project, remarks, amount)
-        VALUES (@docdate, @project, @remarks, @amount)
-      `);
+    const { docdate, project, amount, remarks } = req.body;
 
-    res.json({ success: true, message: 'OCDA expense saved' });
+    if (!docdate || !project || amount == null || !remarks) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const result = await request(`
+      INSERT INTO ocdaexpenses (docdate, project, remarks, amount)
+      VALUES (@docdate, @project, @remarks, @amount)
+    `)
+    .inputs({ docdate, project, remarks, amount })
+    .run();
+
+    res.status(201).json({
+      success: true,
+      message: 'OCDA expense saved successfully',
+      rowsAffected: result.rowsAffected[0]
+    });
   } catch (err) {
     console.error('OCDA Expense Error:', err);
     res.status(500).json({ error: 'Failed to save OCDA expense' });
@@ -722,9 +688,8 @@ router.post('/ocdaexpenses', verifyToken, async (req, res) => {
 // GET: Project List for Dropdown
 router.get('/project-list', verifyToken, async (req, res) => {
   try {
-    const pool = await sql.connect(config);
-    const result = await pool.request()
-      .query('SELECT expscode, expsdesc FROM Stdxpenses ORDER BY expsdesc');
+    const result = await request
+      ('SELECT expscode, expsdesc FROM stdxpenses ORDER BY expsdesc').run();
     res.json(result.recordset);
   } catch (err) {
     console.error('Project List Load Error:', err);
@@ -732,47 +697,25 @@ router.get('/project-list', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/ocdaexpenses', verifyToken, async (req, res) => {
-  try {
-    const pool = await sql.connect(config);
-    const result = await pool.request()
-      .query(`
-        SELECT TOP 1000
-          FORMAT(docdate, 'yyyy-MM-dd') AS docdate,
-          project,
-          remarks,
-          amount
-        FROM ocdaexpenses
-        ORDER BY docdate DESC
-      `);
-
-    res.json(result.recordset);
-  } catch (err) {
-    console.error('Error fetching OCDA expenses:', err);
-    res.status(500).json({ error: 'Failed to fetch OCDA expenses' });
-  }
-});
-
-
 // GET: Populate dropdowns
 router.get('/enquiry/options', verifyToken, async (req, res) => {
-  try {
-    const pool = await poolPromise;
-    const [members, wards, quarters] = await Promise.all([
-      pool.request().query("SELECT PhoneNumber, Surname + ' ' + othernames AS fullname FROM Members"),
-      pool.request().query("SELECT DISTINCT Ward FROM Members WHERE Ward IS NOT NULL AND Ward <> ''"),
-      pool.request().query("SELECT DISTINCT Quarters FROM Members WHERE Quarters IS NOT NULL AND Quarters <> ''")
-    ]);
+    try {
+        // Use the 'request' from your db-wrapper
+        const [membersResult, wardsResult, quartersResult] = await Promise.all([
+            request("SELECT PhoneNumber, CONCAT(Surname, ' ', othernames) AS fullname FROM members").run(),
+            request("SELECT DISTINCT Ward FROM members WHERE Ward IS NOT NULL AND Ward <> ''").run(),
+            request("SELECT DISTINCT Quarters FROM members WHERE Quarters IS NOT NULL AND Quarters <> ''").run()
+        ]);
 
-    res.json({
-      members: members.recordset,
-      wards: wards.recordset.map(w => w.Ward),
-      quarters: quarters.recordset.map(q => q.Quarters)
-    });
-  } catch (err) {
-    console.error('Dropdown Option Error:', err);
-    res.status(500).json({ message: 'Failed to load options' });
-  }
+        res.json({
+            members: membersResult.recordset,
+            wards: wardsResult.recordset.map(w => w.Ward),
+            quarters: quartersResult.recordset.map(q => q.Quarters)
+        });
+    } catch (err) {
+        console.error('Dropdown Option Error:', err);
+        res.status(500).json({ message: 'Failed to load options' });
+    }
 });
 
 // Helper to apply optional date filters
@@ -783,267 +726,372 @@ const whereDate = (dateField, start, end) => {
   return clauses.length ? ' AND ' + clauses.join(' AND ') : '';
 };
 
-// Main Enquiry Endpoint (updated)
+/**
+ * Helper function to build date filter clauses and add parameters to inputs.
+ * @param {string} dateColumn The name of the date column (e.g., 'transdate', 'docdate').
+ * @param {string} start The start date string.
+ * @param {string} end The end date string.
+ * @param {object} inputs The object to collect query parameters.
+ * @returns {string} The SQL date filter clause (e.g., " AND column >= @start_column AND column <= @end_column").
+ */
+
+
+function buildDateFilter(dateColumn, start, end, inputs) {
+    let clauses = [];
+    const paramNamePrefix = dateColumn.replace('.', '_'); // e.g., 'transdate' or 'l_transdate'
+
+    if (start) {
+        clauses.push(`${dateColumn} >= @start_${paramNamePrefix}`);
+        inputs[`start_${paramNamePrefix}`] = start;
+    }
+    if (end) {
+        clauses.push(`${dateColumn} <= @end_${paramNamePrefix}`);
+        inputs[`end_${paramNamePrefix}`] = end;
+    }
+    return clauses.length ? ` AND ${clauses.join(' AND ')}` : '';
+}
+
+// Main Enquiry Endpoint 
 router.get('/enquiry', verifyToken, async (req, res) => {
-  const { type, param = 'ALL', mode = 'summary', start, end } = req.query;
-  const pool = await poolPromise;
-  let summary = [];
-  let detail = [];
+    const { type, param = 'ALL', mode = 'summary', start, end } = req.query;
 
-  try {
-    // MEMBER
-    if (type === 'member') {
-      const dateFilter = whereDate('transdate', start, end);
+    let summary = [];
+    let detail = [];
+    let inputs = {}; // Initialize inputs object for query parameters
 
-      if (param === 'ALL') {
-        // List all members with total transactions
-        summary = await pool.request().query(`
-          SELECT m.PhoneNumber, m.Surname + ' ' + m.othernames AS fullname, ISNULL(SUM(l.amount), 0) AS total
-          FROM Members m
-          LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter ? `AND 1=1${dateFilter}` : ''}
-          GROUP BY m.PhoneNumber, m.Surname, m.othernames
-          ORDER BY fullname
-        `).then(r => r.recordset);
+    try {
+        // MEMBER
+        if (type === 'member') {
+            const dateFilter = buildDateFilter('l.transdate', start, end, inputs); // Pass inputs object
 
-        // Sum for ALL
-        const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
-        summary.push({ PhoneNumber: 'ALL', fullname: 'ALL', total: allTotal });
+            if (param === 'ALL') {
+                // List all members with total transactions
+                const summaryQuery = `
+                    SELECT 
+                        m.PhoneNumber, 
+                        CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                        COALESCE(SUM(l.amount), 0) AS total
+                    FROM members m
+                    LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter}
+                    GROUP BY m.PhoneNumber, m.Surname, m.othernames
+                    ORDER BY fullname
+                `;
+                summary = (await request(summaryQuery).inputs(inputs).run()).recordset;
 
-        if (mode === 'detail') {
-          // All member transactions (for right side)
-          detail = await pool.request().query(`
-            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
-            FROM memberledger l
-            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-            ${dateFilter ? `WHERE 1=1${dateFilter}` : ''}
-            ORDER BY l.phoneno, l.transdate DESC
-          `).then(r => r.recordset);
-        }
-      } else {
-        // Single member as before
-        const filter = `phoneno = '${param}'`;
-        const whereClause = `WHERE ${filter}${dateFilter}`;
-        if (mode === 'summary') {
-          summary = await pool.request().query(`
-            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, SUM(l.amount) AS total
-            FROM memberledger l
-            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-            ${whereClause}
-            GROUP BY l.phoneno, m.Surname, m.othernames
-          `).then(r => r.recordset);
-        } else {
-          detail = await pool.request().query(`
-            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
-            FROM memberledger l
-            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-            ${whereClause}
-            ORDER BY l.transdate DESC
-          `).then(r => r.recordset);
-          summary = [{
-            phoneno: param,
-            fullname: detail[0]?.fullname || '',
-            total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0)
-          }];
-        }
-      }
-    }
+                // Sum for ALL
+                const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
+                summary.push({ PhoneNumber: 'ALL', fullname: 'ALL', total: allTotal });
 
-    // WARD
-    else if (type === 'ward') {
-      const dateFilter = whereDate('transdate', start, end);
+                if (mode === 'detail') {
+                    // All member transactions (for right side)
+                    const detailQuery = `
+                        SELECT 
+                            l.phoneno, 
+                            CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                            DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
+                            l.amount, 
+                            l.remark
+                        FROM memberledger l
+                        LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                        WHERE 1=1 ${dateFilter}
+                        ORDER BY l.phoneno, l.transdate DESC
+                    `;
+                    detail = (await request(detailQuery).inputs(inputs).run()).recordset;
+                }
+            } else {
+                // Single member
+                const filterClause = `l.phoneno = @param`;
+                inputs.param = param; // Add param to inputs
 
-      if (param === 'ALL') {
-        // List all wards with total transactions
-        summary = await pool.request().query(`
-          SELECT m.Ward, ISNULL(SUM(l.amount), 0) AS total
-          FROM Members m
-          LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter ? `AND 1=1${dateFilter}` : ''}
-          WHERE m.Ward IS NOT NULL AND m.Ward <> ''
-          GROUP BY m.Ward
-          ORDER BY m.Ward
-        `).then(r => r.recordset);
+                const whereClause = `WHERE ${filterClause}${dateFilter}`;
 
-        // Sum for ALL
-        const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
-        summary.push({ Ward: 'ALL', total: allTotal });
-
-        if (mode === 'detail') {
-          // For each ward, list member transactions
-          const wards = summary.filter(w => w.Ward !== 'ALL').map(w => w.Ward);
-          for (const ward of wards) {
-            const members = await pool.request()
-              .input('ward', ward)
-              .query(`
-                SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
-                FROM memberledger l
-                LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-                WHERE m.Ward = @ward ${dateFilter}
-                ORDER BY l.phoneno, l.transdate DESC
-              `)
-              .then(r => r.recordset);
-            if (ward && members && members.length > 0) {
-              detail.push({ ward, members });
+                if (mode === 'summary') {
+                    const summaryQuery = `
+                        SELECT 
+                            l.phoneno, 
+                            CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                            SUM(l.amount) AS total
+                        FROM memberledger l
+                        LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                        ${whereClause}
+                        GROUP BY l.phoneno, m.Surname, m.othernames
+                    `;
+                    summary = (await request(summaryQuery).inputs(inputs).run()).recordset;
+                } else { // mode === 'detail'
+                    const detailQuery = `
+                        SELECT 
+                            l.phoneno, 
+                            CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                            DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
+                            l.amount, 
+                            l.remark
+                        FROM memberledger l
+                        LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                        ${whereClause}
+                        ORDER BY l.transdate DESC
+                    `;
+                    detail = (await request(detailQuery).inputs(inputs).run()).recordset;
+                    summary = [{
+                        phoneno: param,
+                        fullname: detail[0]?.fullname || '',
+                        total: detail.reduce((sum, row) => sum + parseFloat(row.amount), 0)
+                    }];
+                }
             }
-          }
         }
-      } else {
-        // Single ward as before
-        const wardClause = `Ward = '${param}'`;
-        const memberList = await pool.request().query(`SELECT PhoneNumber FROM Members WHERE ${wardClause}`);
-        const phones = memberList.recordset.map(m => `'${m.PhoneNumber}'`);
-        const phoneFilter = phones.length ? `l.phoneno IN (${phones.join(',')})` : '1=0';
-        const transFilter = `WHERE ${phoneFilter}${dateFilter}`;
 
-        summary = await pool.request().query(`
-          SELECT '${param}' AS Ward, SUM(l.amount) AS total
-          FROM memberledger l
-          ${transFilter}
-        `).then(r => r.recordset);
+        // WARD
+        else if (type === 'ward') {
+            inputs = {}; // Reset inputs for new type
+            const dateFilter = buildDateFilter('l.transdate', start, end, inputs);
 
-        if (mode === 'detail') {
-          const members = await pool.request().query(`
-            SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
-            FROM memberledger l
-            LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-            ${transFilter}
-            ORDER BY l.phoneno, l.transdate DESC
-          `).then(r => r.recordset);
-          detail = [{ ward: param, members }];
-        }
-      }
-    }
+            if (param === 'ALL') {
+                // List all wards with total transactions
+                const summaryQuery = `
+                    SELECT 
+                        m.Ward, 
+                        COALESCE(SUM(l.amount), 0) AS total
+                    FROM members m
+                    LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter}
+                    WHERE m.Ward IS NOT NULL AND m.Ward <> ''
+                    GROUP BY m.Ward
+                    ORDER BY m.Ward
+                `;
+                summary = (await request(summaryQuery).inputs(inputs).run()).recordset;
 
-    // QUARTER
-    else if (type === 'quarter') {
-      const dateFilter = whereDate('transdate', start, end);
+                // Sum for ALL
+                const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
+                summary.push({ Ward: 'ALL', total: allTotal });
 
-      if (param === 'ALL') {
-        // List all quarters with total transactions
-        summary = await pool.request().query(`
-          SELECT m.Quarters, ISNULL(SUM(l.amount), 0) AS total
-          FROM Members m
-          LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter ? `AND 1=1${dateFilter}` : ''}
-          WHERE m.Quarters IS NOT NULL AND m.Quarters <> ''
-          GROUP BY m.Quarters
-          ORDER BY m.Quarters
-        `).then(r => r.recordset);
+                if (mode === 'detail') {
+                    // For each ward, list member transactions
+                    const wards = summary.filter(w => w.Ward !== 'ALL').map(w => w.Ward);
+                    for (const ward of wards) {
+                        // Create new inputs object for each iteration to avoid parameter clashes
+                        const iterationInputs = { ...inputs, ward: ward }; 
+                        const membersQuery = `
+                            SELECT 
+                                l.phoneno, 
+                                CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                                DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
+                                l.amount, 
+                                l.remark
+                            FROM memberledger l
+                            LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                            WHERE m.Ward = @ward ${dateFilter}
+                            ORDER BY l.phoneno, l.transdate DESC
+                        `;
+                        const members = (await request(membersQuery).inputs(iterationInputs).run()).recordset;
+                        if (ward && members && members.length > 0) {
+                            detail.push({ ward, members });
+                        }
+                    }
+                }
+            } else {
+                // Single ward
+                inputs.param = param; // Add param to inputs
 
-        // Sum for ALL
-        const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
-        summary.push({ Quarters: 'ALL', total: allTotal });
+                const memberListQuery = `SELECT PhoneNumber FROM members WHERE Ward = @param`;
+                const memberList = await request(memberListQuery).inputs(inputs).run();
+                const phones = memberList.recordset.map(m => `'${m.PhoneNumber}'`); // Keep single quotes for IN clause
+                
+                const phoneFilter = phones.length ? `l.phoneno IN (${phones.join(',')})` : '1=0';
+                const transFilter = `WHERE ${phoneFilter}${dateFilter}`; // dateFilter already starts with AND if present
 
-        if (mode === 'detail') {
-          // For each quarter, list wards and under each ward, list member transactions
-          const quarters = summary.filter(q => q.Quarters !== 'ALL').map(q => q.Quarters);
-          for (const quarter of quarters) {
-            // Get wards in this quarter
-            const wardsResult = await pool.request()
-              .input('quarter', quarter)
-              .query(`SELECT DISTINCT Ward FROM Members WHERE Quarters = @quarter`);
-            const wards = wardsResult.recordset.map(w => w.Ward);
+                const summaryQuery = `
+                    SELECT 
+                        @param AS Ward, 
+                        SUM(l.amount) AS total
+                    FROM memberledger l
+                    ${transFilter}
+                `;
+                summary = (await request(summaryQuery).inputs(inputs).run()).recordset;
 
-            const wardsData = [];
-            for (const ward of wards) {
-              const members = await pool.request()
-                .input('ward', ward)
-                .input('quarter', quarter)
-                .query(`
-                  SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
-                  FROM memberledger l
-                  LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-                  WHERE m.Ward = @ward AND m.Quarters = @quarter ${dateFilter}
-                  ORDER BY l.phoneno, l.transdate DESC
-                `)
-                .then(r => r.recordset);
-              wardsData.push({ ward, members });
+                if (mode === 'detail') {
+                    const membersQuery = `
+                        SELECT 
+                            l.phoneno, 
+                            CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                            DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
+                            l.amount, 
+                            l.remark
+                        FROM memberledger l
+                        LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                        ${transFilter}
+                        ORDER BY l.phoneno, l.transdate DESC
+                    `;
+                    const members = (await request(membersQuery).inputs(inputs).run()).recordset;
+                    detail = [{ ward: param, members }];
+                }
             }
-            detail.push({ quarter, wards: wardsData });
-          }
         }
-      } else {
-        // Single quarter as before
-        const qClause = `Quarters = '${param}'`;
-        const wardsResult = await pool.request().query(`SELECT DISTINCT Ward FROM Members WHERE ${qClause}`);
-        const wards = wardsResult.recordset.map(w => w.Ward);
 
-        const phonesResult = await pool.request().query(`SELECT PhoneNumber, Ward FROM Members WHERE ${qClause}`);
-        const phonesByWard = phonesResult.recordset.reduce((acc, row) => {
-          acc[row.Ward] = acc[row.Ward] || [];
-          acc[row.Ward].push(`'${row.PhoneNumber}'`);
-          return acc;
-        }, {});
+        // QUARTER
+        else if (type === 'quarter') {
+            inputs = {}; // Reset inputs for new type
+            const dateFilter = buildDateFilter('l.transdate', start, end, inputs);
 
-        const allPhones = Object.values(phonesByWard).flat().join(',');
-        const phoneFilter = allPhones.length ? `phoneno IN (${allPhones})` : '1=0';
+            if (param === 'ALL') {
+                // List all quarters with total transactions
+                const summaryQuery = `
+                    SELECT 
+                        m.Quarters, 
+                        COALESCE(SUM(l.amount), 0) AS total
+                    FROM members m
+                    LEFT JOIN memberledger l ON m.PhoneNumber = l.phoneno ${dateFilter}
+                    WHERE m.Quarters IS NOT NULL AND m.Quarters <> ''
+                    GROUP BY m.Quarters
+                    ORDER BY m.Quarters
+                `;
+                summary = (await request(summaryQuery).inputs(inputs).run()).recordset;
 
-        summary = await pool.request().query(`
-          SELECT '${param}' AS Quarter, SUM(amount) AS total
-          FROM memberledger
-          WHERE ${phoneFilter}${dateFilter}
-        `).then(r => r.recordset);
+                // Sum for ALL
+                const allTotal = summary.reduce((sum, row) => sum + Number(row.total), 0);
+                summary.push({ Quarters: 'ALL', total: allTotal });
 
-        if (mode === 'detail') {
-          const wardsData = [];
-          for (const ward of wards) {
-            const phones = phonesByWard[ward] || [];
-            if (phones.length === 0) continue;
+                if (mode === 'detail') {
+                    // For each quarter, list wards and under each ward, list member transactions
+                    const quarters = summary.filter(q => q.Quarters !== 'ALL').map(q => q.Quarters);
+                    for (const quarter of quarters) {
+                        const iterationInputs = { ...inputs, quarter: quarter }; // Create new inputs for iteration
+                        // Get wards in this quarter
+                        const wardsQuery = `SELECT DISTINCT Ward FROM members WHERE Quarters = @quarter`;
+                        const wardsResult = await request(wardsQuery).inputs(iterationInputs).run();
+                        const wards = wardsResult.recordset.map(w => w.Ward);
 
-            // Get all transactions for this ward
-            const members = await pool.request().query(`
-              SELECT l.phoneno, m.Surname + ' ' + m.othernames AS fullname, FORMAT(l.transdate, 'yyyy-MM-dd') AS transdate, l.amount, l.remark
-              FROM memberledger l
-              LEFT JOIN Members m ON l.phoneno = m.PhoneNumber
-              WHERE l.phoneno IN (${phones.join(',')})${dateFilter}
-              ORDER BY l.phoneno, l.transdate DESC
-            `).then(r => r.recordset);
+                        const wardsData = [];
+                        for (const ward of wards) {
+                            const nestedIterationInputs = { ...iterationInputs, ward: ward }; // Create new inputs for nested iteration
+                            const membersQuery = `
+                                SELECT 
+                                    l.phoneno, 
+                                    CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                                    DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
+                                    l.amount, 
+                                    l.remark
+                                FROM memberledger l
+                                LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                                WHERE m.Ward = @ward AND m.Quarters = @quarter ${dateFilter}
+                                ORDER BY l.phoneno, l.transdate DESC
+                            `;
+                            const members = (await request(membersQuery).inputs(nestedIterationInputs).run()).recordset;
+                            wardsData.push({ ward, members });
+                        }
+                        detail.push({ quarter, wards: wardsData });
+                    }
+                }
+            } else {
+                // Single quarter
+                inputs.param = param; // Add param to inputs
 
-            wardsData.push({ ward, members });
-          }
-          detail = [{ quarter: param, wards: wardsData }];
+                const wardsQuery = `SELECT DISTINCT Ward FROM members WHERE Quarters = @param`;
+                const wardsResult = await request(wardsQuery).inputs(inputs).run();
+                const wards = wardsResult.recordset.map(w => w.Ward);
+
+                const phonesQuery = `SELECT PhoneNumber, Ward FROM members WHERE Quarters = @param`;
+                const phonesResult = await request(phonesQuery).inputs(inputs).run();
+                const phonesByWard = phonesResult.recordset.reduce((acc, row) => {
+                    acc[row.Ward] = acc[row.Ward] || [];
+                    acc[row.Ward].push(`'${row.PhoneNumber}'`);
+                    return acc;
+                }, {});
+
+                const allPhones = Object.values(phonesByWard).flat().join(',');
+                const phoneFilter = allPhones.length ? `phoneno IN (${allPhones})` : '1=0';
+
+                const summaryQuery = `
+                    SELECT 
+                        @param AS Quarter, 
+                        SUM(amount) AS total
+                    FROM memberledger
+                    WHERE ${phoneFilter}${dateFilter}
+                `;
+                summary = (await request(summaryQuery).inputs(inputs).run()).recordset;
+
+                if (mode === 'detail') {
+                    const wardsData = [];
+                    for (const ward of wards) {
+                        const phones = phonesByWard[ward] || [];
+                        if (phones.length === 0) continue;
+
+                        // Get all transactions for this ward
+                        const membersQuery = `
+                            SELECT 
+                                l.phoneno, 
+                                CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
+                                DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
+                                l.amount, 
+                                l.remark
+                            FROM memberledger l
+                            LEFT JOIN members m ON l.phoneno = m.PhoneNumber
+                            WHERE l.phoneno IN (${phones.join(',')})${dateFilter}
+                            ORDER BY l.phoneno, l.transdate DESC
+                        `;
+                        // Note: no specific @param for this query, as phones are directly inserted
+                        // but buildDateFilter adds its own date params.
+                        const nestedInputs = { ...inputs }; // Clone for nested scope
+                        const members = (await request(membersQuery).inputs(nestedInputs).run()).recordset;
+                        wardsData.push({ ward, members });
+                    }
+                    detail = [{ quarter: param, wards: wardsData }];
+                }
+            }
         }
-      }
+
+        // ACCOUNT
+        else if (type === 'account') {
+            inputs = {}; // Reset inputs for new type
+            // Note: Using `buildDateFilter` here with distinct parameter names for subqueries
+            const creditFilter = buildDateFilter('memberledger.transdate', start, end, inputs);
+            const debitFilter = buildDateFilter('ocdaexpenses.docdate', start, end, inputs);
+
+            // Pass start/end directly for selection as well, if needed for display
+            inputs.StartDate = start || null; // Use null for non-existent dates instead of 'N/A' in SQL inputs
+            inputs.EndDate = end || null;
+
+            const accountQuery = `
+                SELECT
+                    @StartDate AS StartDate,
+                    @EndDate AS EndDate,
+                    (SELECT COALESCE(SUM(amount), 0) FROM memberledger WHERE 1=1 ${creditFilter}) AS TotalCredit,
+                    (SELECT COALESCE(SUM(amount), 0) FROM ocdaexpenses WHERE 1=1 ${debitFilter}) AS TotalDebit
+            `;
+            summary = (await request(accountQuery).inputs(inputs).run()).recordset;
+        }
+
+        return res.json({ summary, detail });
+    } catch (err) {
+        console.error('Enquiry Error:', err);
+        return res.status(500).json({ message: 'Failed to process enquiry' });
     }
-
-    // ACCOUNT (unchanged)
-    else if (type === 'account') {
-      const creditFilter = whereDate('transdate', start, end);
-      const debitFilter = whereDate('docdate', start, end);
-
-      summary = await pool.request().query(`
-        SELECT
-          '${start || 'N/A'}' AS StartDate,
-          '${end || 'N/A'}' AS EndDate,
-          (SELECT ISNULL(SUM(amount), 0) FROM memberledger WHERE 1=1${creditFilter}) AS TotalCredit,
-          (SELECT ISNULL(SUM(amount), 0) FROM ocdaexpenses WHERE 1=1${debitFilter}) AS TotalDebit
-      `).then(r => r.recordset);
-    }
-
-    return res.json({ summary, detail });
-  } catch (err) {
-    console.error('Enquiry Error:', err);
-    return res.status(500).json({ message: 'Failed to process enquiry' });
-  }
 });
 
 //Static Tables
 //  GET all 
 router.get('/static/:type', async (req, res) => {
   const { type } = req.params;
+  
+  // Predefined safe configuration
   const tableMap = {
     titles: { table: 'Title', columns: ['title'] },
-    qualifications: { table: 'Qualfication', columns: ['qualification'] },
+    qualifications: { table: 'qualfication', columns: ['qualification'] },
     wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
-    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] },
-    states: { table: 'State', columns: ['statename', 'statecode'] }
+    hontitles: { table: 'hontitle', columns: ['Htitle', 'titlerank'] },
+    states: { table: 'state', columns: ['statename', 'statecode'] }
   };
+  
   const config = tableMap[type];
   if (!config) return res.status(400).json({ error: 'Invalid type' });
-
+  
+  // Build the query string directly (since table/column names can't be parameterized)
+  const safeCols = config.columns.map(col => `\`${col}\``).join(', ');
+  const safeTable = `\`${config.table}\``;
+  const query = `SELECT ${safeCols} FROM ${safeTable}`;
+  
   try {
-    const pool = await poolPromise;
-    const cols = config.columns.join(', ');
-    const result = await pool.request().query(`SELECT ${cols} FROM ${config.table}`);
-    res.json(result.recordset);
+    // Using your custom request wrapper
+    const result = await request(query).run();
+    res.json(result.recordset); // Your wrapper returns { recordset, rowsAffected }
   } catch (err) {
     console.error(`Error fetching ${type}:`, err);
     res.status(500).json({ error: `Failed to fetch ${type}` });
@@ -1052,9 +1100,9 @@ router.get('/static/:type', async (req, res) => {
 
 router.get('/static/states', async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .query('SELECT statename, statecode FROM State');
+    
+    const result = await request
+      `SELECT statename, statecode FROM state`.run();
     res.json(result.recordset);
   } catch (err) {
     console.error('Error fetching states:', err);
@@ -1064,118 +1112,149 @@ router.get('/static/states', async (req, res) => {
 
 
 // --- POST (Add) ---
+const tableMap = {
+  titles: {
+    table: 'Title',
+    columns: ['title']
+  },
+  qualifications: {
+    table: 'Qualfication',
+    columns: ['qualification']
+  },
+  wards: {
+    table: 'oyinwards',
+    columns: ['ward', 'Quarter']
+  },
+  hontitles: {
+    table: 'HonTitle',
+    columns: ['Htitle', 'titlerank']
+  }
+};
+
+// --- POST ---
 router.post('/static/:type', async (req, res) => {
   const { type } = req.params;
-  const tableMap = {
-    titles: { table: 'Title', columns: ['title'] },
-    qualifications: { table: 'Qualfication', columns: ['qualification'] },
-    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
-    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
-  };
   const config = tableMap[type];
   if (!config) return res.status(400).json({ error: 'Invalid type' });
 
   try {
-    const pool = await poolPromise;
     const values = config.columns.map(col => req.body[col]);
-    const placeholders = config.columns.map((_, i) => `@val${i}`).join(', ');
-    const request = pool.request();
-    config.columns.forEach((col, i) => request.input(`val${i}`, values[i]));
-    await request.query(`INSERT INTO ${config.table} (${config.columns.join(', ')}) VALUES (${placeholders})`);
-    res.json({ success: true });
+    if (values.some(val => val === undefined || val === null)) {
+      return res.status(400).json({ error: 'Missing required fields', required: config.columns });
+    }
+
+    const inputParams = {};
+    config.columns.forEach((col, i) => inputParams[`val${i}`] = values[i]);
+
+    const query = `
+      INSERT INTO ${config.table} (${config.columns.join(', ')})
+      VALUES (${config.columns.map((_, i) => `@val${i}`).join(', ')})
+    `;
+
+    const result = await request(query).inputs(inputParams).run();
+    res.json({ success: true, message: `Inserted into ${type}`, rowsAffected: result.rowsAffected[0] });
+
   } catch (err) {
-    console.error(`Error inserting into ${type}:`, err);
-    res.status(500).json({ error: `Failed to insert into ${type}` });
+    console.error(`Insert error (${type}):`, err);
+    res.status(500).json({ error: `Failed to insert into ${type}`, details: err.message });
   }
 });
 
-// --- PUT (Edit) ---
+// --- PUT ---
 router.put('/static/:type', async (req, res) => {
   const { type } = req.params;
-  const tableMap = {
-    titles: { table: 'Title', columns: ['title'] },
-    qualifications: { table: 'Qualfication', columns: ['qualification'] },
-    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
-    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
-  };
   const config = tableMap[type];
   if (!config) return res.status(400).json({ error: 'Invalid type' });
 
   try {
-    const pool = await poolPromise;
-    let where = '';
-    let request = pool.request();
+    const inputParams = {};
+    let whereClause = '';
 
     if (type === 'wards') {
       const { ward, Quarter } = req.query;
-      where = 'WHERE ward = @ward AND Quarter = @Quarter';
-      request.input('ward', ward).input('Quarter', Quarter);
+      if (!ward || !Quarter) return res.status(400).json({ error: 'ward and Quarter required' });
+      whereClause = 'WHERE ward = @ward AND Quarter = @Quarter';
+      inputParams.ward = ward;
+      inputParams.Quarter = Quarter;
+
     } else if (type === 'hontitles') {
       const { Htitle, titlerank } = req.query;
-      where = 'WHERE Htitle = @Htitle AND titlerank = @titlerank';
-      request.input('Htitle', Htitle).input('titlerank', titlerank);
-    } else if (type === 'titles') {
+      if (!Htitle || !titlerank) return res.status(400).json({ error: 'Htitle and titlerank required' });
+      whereClause = 'WHERE Htitle = @Htitle AND titlerank = @titlerank';
+      inputParams.Htitle = Htitle;
+      inputParams.titlerank = titlerank;
+
+    } else {
       const { value } = req.query;
-      where = 'WHERE title = @value';
-      request.input('value', value);
-    } else if (type === 'qualifications') {
-      const { value } = req.query;
-      where = 'WHERE qualification = @value';
-      request.input('value', value);
+      if (!value) return res.status(400).json({ error: 'value required for update' });
+      whereClause = `WHERE ${config.columns[0]} = @value`;
+      inputParams.value = value;
     }
 
-    // Build SET clause
-    const setClause = config.columns.map(col => `${col} = @new_${col}`).join(', ');
-    config.columns.forEach(col => request.input(`new_${col}`, req.body[col]));
+    config.columns.forEach(col => {
+      if (req.body[col] === undefined) throw new Error(`Missing new value for ${col}`);
+      inputParams[`new_${col}`] = req.body[col];
+    });
 
-    await request.query(`UPDATE ${config.table} SET ${setClause} ${where}`);
-    res.json({ success: true });
+    const setClause = config.columns.map(col => `${col} = @new_${col}`).join(', ');
+    const query = `UPDATE ${config.table} SET ${setClause} ${whereClause}`;
+    const result = await request(query).inputs(inputParams).run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'No record found to update' });
+    }
+
+    res.json({ success: true, message: `Updated ${type}`, rowsAffected: result.rowsAffected[0] });
+
   } catch (err) {
-    console.error(`Error updating ${type}:`, err);
-    res.status(500).json({ error: `Failed to update ${type}` });
+    console.error(`Update error (${type}):`, err);
+    res.status(500).json({ error: `Failed to update ${type}`, details: err.message });
   }
 });
 
 // --- DELETE ---
 router.delete('/static/:type', async (req, res) => {
   const { type } = req.params;
-  const tableMap = {
-    titles: { table: 'Title', columns: ['title'] },
-    qualifications: { table: 'Qualfication', columns: ['qualification'] },
-    wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
-    hontitles: { table: 'HonTitle', columns: ['Htitle', 'titlerank'] }
-  };
   const config = tableMap[type];
   if (!config) return res.status(400).json({ error: 'Invalid type' });
 
   try {
-    const pool = await poolPromise;
-    let where = '';
-    let request = pool.request();
+    const inputParams = {};
+    let whereClause = '';
 
     if (type === 'wards') {
       const { ward, Quarter } = req.query;
-      where = 'WHERE ward = @ward AND Quarter = @Quarter';
-      request.input('ward', ward).input('Quarter', Quarter);
+      if (!ward || !Quarter) return res.status(400).json({ error: 'ward and Quarter required' });
+      whereClause = 'WHERE ward = @ward AND Quarter = @Quarter';
+      inputParams.ward = ward;
+      inputParams.Quarter = Quarter;
+
     } else if (type === 'hontitles') {
       const { Htitle, titlerank } = req.query;
-      where = 'WHERE Htitle = @Htitle AND titlerank = @titlerank';
-      request.input('Htitle', Htitle).input('titlerank', titlerank);
-    } else if (type === 'titles') {
+      if (!Htitle || !titlerank) return res.status(400).json({ error: 'Htitle and titlerank required' });
+      whereClause = 'WHERE Htitle = @Htitle AND titlerank = @titlerank';
+      inputParams.Htitle = Htitle;
+      inputParams.titlerank = titlerank;
+
+    } else {
       const { value } = req.query;
-      where = 'WHERE title = @value';
-      request.input('value', value);
-    } else if (type === 'qualifications') {
-      const { value } = req.query;
-      where = 'WHERE qualification = @value';
-      request.input('value', value);
+      if (!value) return res.status(400).json({ error: 'value required for deletion' });
+      whereClause = `WHERE ${config.columns[0]} = @value`;
+      inputParams.value = value;
     }
 
-    await request.query(`DELETE FROM ${config.table} ${where}`);
-    res.json({ success: true });
+    const query = `DELETE FROM ${config.table} ${whereClause}`;
+    const result = await request(query).inputs(inputParams).run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'No record found to delete' });
+    }
+
+    res.json({ success: true, message: `Deleted from ${type}`, rowsAffected: result.rowsAffected[0] });
+
   } catch (err) {
-    console.error(`Error deleting from ${type}:`, err);
-    res.status(500).json({ error: `Failed to delete from ${type}` });
+    console.error(`Delete error (${type}):`, err);
+    res.status(500).json({ error: `Failed to delete from ${type}`, details: err.message });
   }
 });
 
@@ -1184,8 +1263,7 @@ router.delete('/static/:type', async (req, res) => {
 // GET all
 router.get('/stdxpenses', async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request().query('SELECT expscode, expsdesc FROM stdxpenses');
+    const result = await request` expscode, expsdesc FROM stdxpenses`.run();
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch' });
@@ -1195,15 +1273,23 @@ router.get('/stdxpenses', async (req, res) => {
 // POST
 router.post('/stdxpenses', async (req, res) => {
   const { expscode, expsdesc } = req.body;
+
+  if (!expscode || !expsdesc) {
+    return res.status(400).json({ error: 'Both expscode and expsdesc are required' });
+  }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('expscode', expscode)
-      .input('expsdesc', expsdesc)
-      .query('INSERT INTO stdxpenses (expscode, expsdesc) VALUES (@expscode, @expsdesc)');
-    res.json({ success: true });
+    const result = await request(`
+      INSERT INTO stdxpenses (expscode, expsdesc)
+      VALUES (@expscode, @expsdesc)
+    `)
+      .inputs({ expscode, expsdesc })
+      .run();
+
+    res.json({ success: true, rowsAffected: result.rowsAffected[0] });
   } catch (err) {
-    res.status(500).json({ error: 'Insert failed' });
+    console.error('Insert StdExpense Error:', err);
+    res.status(500).json({ error: 'Failed to insert stdxpense', details: err.message });
   }
 });
 
@@ -1211,45 +1297,79 @@ router.post('/stdxpenses', async (req, res) => {
 router.put('/stdxpenses', async (req, res) => {
   const { expscode } = req.query;
   const { expsdesc } = req.body;
+
+  if (!expscode || !expsdesc) {
+    return res.status(400).json({ error: 'expscode (query) and expsdesc (body) are required' });
+  }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('expscode', expscode)
-      .input('expsdesc', expsdesc)
-      .query('UPDATE stdxpenses SET expsdesc = @expsdesc WHERE expscode = @expscode');
-    res.json({ success: true });
+    const result = await request(`
+      UPDATE stdxpenses
+      SET expsdesc = @expsdesc
+      WHERE expscode = @expscode
+    `)
+      .inputs({ expscode, expsdesc })
+      .run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Expense code not found' });
+    }
+
+    res.json({ success: true, rowsAffected: result.rowsAffected[0] });
   } catch (err) {
-    res.status(500).json({ error: 'Update failed' });
+    console.error('Update StdExpense Error:', err);
+    res.status(500).json({ error: 'Failed to update stdxpense', details: err.message });
   }
 });
 
 // DELETE
 router.delete('/stdxpenses', async (req, res) => {
   const { expscode } = req.query;
+
+  if (!expscode) {
+    return res.status(400).json({ error: 'expscode is required' });
+  }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('expscode', expscode)
-      .query('DELETE FROM stdxpenses WHERE expscode = @expscode');
-    res.json({ success: true });
+    const result = await request(`
+      DELETE FROM stdxpenses
+      WHERE expscode = @expscode
+    `)
+      .inputs({ expscode })
+      .run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Expense code not found' });
+    }
+
+    res.json({ success: true, rowsAffected: result.rowsAffected[0] });
   } catch (err) {
-    res.status(500).json({ error: 'Delete failed' });
+    console.error('Delete StdExpense Error:', err);
+    res.status(500).json({ error: 'Failed to delete stdxpense', details: err.message });
   }
 });
-
 
 // POST income class
 router.post('/incomeclass', async (req, res) => {
   const { incomecode, incomedesc } = req.body;
+
+  if (!incomecode || !incomedesc) {
+    return res.status(400).json({ error: 'Both incomecode and incomedesc are required.' });
+  }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('incomecode', incomecode)
-      .input('incomedesc', incomedesc)
-      .query('INSERT INTO IncomeClassification (incomecode, incomedesc) VALUES (@incomecode, @incomedesc)');
-    res.json({ success: true });
+    await request(`
+      INSERT INTO incomeclassification (incomecode, incomedesc)
+      VALUES (@incomecode, @incomedesc)
+    `)
+    .inputs({ incomecode, incomedesc })
+    .run();
+
+    res.json({ success: true, message: 'Income classification added.' });
+
   } catch (err) {
-    res.status(500).json({ error: 'Insert failed' });
+    console.error('Insert Error:', err);
+    res.status(500).json({ error: 'Insert failed', details: err.message });
   }
 });
 
@@ -1257,29 +1377,57 @@ router.post('/incomeclass', async (req, res) => {
 router.put('/incomeclass', async (req, res) => {
   const { incomecode } = req.query;
   const { incomedesc } = req.body;
+
+  if (!incomecode || !incomedesc) {
+    return res.status(400).json({ error: 'incomecode and incomedesc are required.' });
+  }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('incomecode', incomecode)
-      .input('incomedesc', incomedesc)
-      .query('UPDATE IncomeClassification SET incomedesc = @incomedesc WHERE incomecode = @incomecode');
-    res.json({ success: true });
+    const result = await request(`
+      UPDATE incomeclassification
+      SET incomedesc = @incomedesc
+      WHERE incomecode = @incomecode
+    `)
+    .inputs({ incomecode, incomedesc })
+    .run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Income classification not found.' });
+    }
+
+    res.json({ success: true, message: 'Income classification updated.' });
+
   } catch (err) {
-    res.status(500).json({ error: 'Update failed' });
+    console.error('Update Error:', err);
+    res.status(500).json({ error: 'Update failed', details: err.message });
   }
 });
 
 // DELETE
 router.delete('/incomeclass', async (req, res) => {
   const { incomecode } = req.query;
+
+  if (!incomecode) {
+    return res.status(400).json({ error: 'incomecode is required.' });
+  }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('incomecode', incomecode)
-      .query('DELETE FROM IncomeClassification WHERE incomecode = @incomecode');
-    res.json({ success: true });
+    const result = await request(`
+      DELETE FROM incomeclassification
+      WHERE incomecode = @incomecode
+    `)
+    .inputs({ incomecode })
+    .run();
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: 'Income classification not found.' });
+    }
+
+    res.json({ success: true, message: 'Income classification deleted.' });
+
   } catch (err) {
-    res.status(500).json({ error: 'Delete failed' });
+    console.error('Delete Error:', err);
+    res.status(500).json({ error: 'Delete failed', details: err.message });
   }
 });
 
@@ -1287,20 +1435,27 @@ router.delete('/incomeclass', async (req, res) => {
 router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
   try {
     const { start, end, code = 'ALL', mode = 'summary' } = req.query;
-    const pool = await poolPromise;
-    let where = [];
-    if (start) where.push(`docdate >= @start`);
-    if (end) where.push(`docdate <= @end`);
-    if (code && code !== 'ALL') where.push(`e.project = @code`);
-    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
-    const request = pool.request();
-    if (start) request.input('start', sql.Date, start);
-    if (end) request.input('end', sql.Date, end);
-    if (code && code !== 'ALL') request.input('code', sql.VarChar, code);
+    const where = [];
+    const params = {};
 
-    if (mode === 'summary') {
-      const result = await request.query(`
+    if (start) {
+      where.push(`docdate >= @start`);
+      params.start = start;
+    }
+    if (end) {
+      where.push(`docdate <= @end`);
+      params.end = end;
+    }
+    if (code !== 'ALL') {
+      where.push(`e.project = @code`);
+      params.code = code;
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const query = mode === 'summary'
+      ? `
         SELECT 
           e.project AS code, 
           s.expsdesc AS description, 
@@ -1309,11 +1464,8 @@ router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
         LEFT JOIN stdxpenses s ON e.project = s.expscode
         ${whereClause}
         GROUP BY e.project, s.expsdesc
-        ORDER BY e.project
-      `);
-      res.json(result.recordset);
-    } else {
-      const result = await request.query(`
+        ORDER BY e.project`
+      : `
         SELECT 
           e.project AS code,
           s.expsdesc AS description,
@@ -1323,43 +1475,63 @@ router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
         FROM ocdaexpenses e
         LEFT JOIN stdxpenses s ON e.project = s.expscode
         ${whereClause}
-        ORDER BY e.project, e.docdate
-      `);
-      res.json(result.recordset);
-    }
+        ORDER BY e.project, e.docdate`;
+
+    const result = await request(query).inputs(params).run();
+    res.json(result.recordset);
+
   } catch (err) {
     console.error('OCDA Expenses Analysis error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+
 // ===== OCDA Income Analysis API (MSSQL version) =====
 router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
   try {
     const { start, end, code = 'ALL', mode = 'summary' } = req.query;
-    const pool = await poolPromise;
-    let where = [];
-    if (start) where.push(`transdate >= @start`);
-    if (end) where.push(`transdate <= @end`);
-    if (code && code !== 'ALL') where.push(`remark LIKE @code`);
-    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
-    if (mode === 'summary') {
-      // Group by remark (income code/desc)
-      const result = await pool.request()
-        .input('start', sql.Date, start || null)
-        .input('end', sql.Date, end || null)
-        .input('code', sql.VarChar, code !== 'ALL' ? `%${code}%` : null)
-        .query(`SELECT remark as code, MAX(remark) as description, SUM(amount) as amount FROM memberledger ${whereClause} GROUP BY remark`);
-      res.json(result.recordset);
-    } else {
-      // Detail: list all matching income entries
-      const result = await pool.request()
-        .input('start', sql.Date, start || null)
-        .input('end', sql.Date, end || null)
-        .input('code', sql.VarChar, code !== 'ALL' ? `%${code}%` : null)
-        .query(`SELECT FORMAT(transdate, 'yyyy-MM-dd') as date, remark, amount FROM memberledger ${whereClause} ORDER BY transdate`);
-      res.json(result.recordset);
+
+    const where = [];
+    const params = {};
+
+    if (start) {
+      where.push(`transdate >= @start`);
+      params.start = start;
     }
+    if (end) {
+      where.push(`transdate <= @end`);
+      params.end = end;
+    }
+    if (code !== 'ALL') {
+      where.push(`remark LIKE @code`);
+      params.code = `%${code}%`;
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const query = mode === 'summary'
+      ? `
+        SELECT 
+          remark AS code, 
+          MAX(remark) AS description, 
+          SUM(amount) AS amount 
+        FROM memberledger 
+        ${whereClause} 
+        GROUP BY remark
+        ORDER BY remark`
+      : `
+        SELECT 
+          FORMAT(transdate, 'yyyy-MM-dd') AS date, 
+          remark, 
+          amount 
+        FROM memberledger 
+        ${whereClause} 
+        ORDER BY transdate`;
+
+    const result = await request(query).inputs(params).run();
+    res.json(result.recordset);
+
   } catch (err) {
     console.error('OCDA Income Analysis error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -1369,27 +1541,26 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
 // GET /admin/members-summary
 router.get('/members-summary', verifyToken, async (req, res) => {
   try {
-    const pool = await poolPromise;
-    // Fetch all members with quarters and wards
-    const result = await pool.request().query(`
+    const result = await request(`
       SELECT Quarters, Ward
-      FROM Members
-      WHERE Quarters IS NOT NULL AND Quarters <> ''
+      FROM members
+      WHERE 
+        Quarters IS NOT NULL AND Quarters <> ''
         AND Ward IS NOT NULL AND Ward <> ''
-    `);
-    const members = result.recordset;
+    `).run();
 
-    // Get unique quarters and wards
+    const members = result.recordset;
     const quartersSet = new Set();
     const wardsSet = new Set();
+
     members.forEach(m => {
       quartersSet.add(m.Quarters);
       wardsSet.add(m.Ward);
     });
+
     const quarters = Array.from(quartersSet).sort();
     const wards = Array.from(wardsSet).sort();
 
-    // Build summary data: { [ward]: { [quarter]: count } }
     const data = {};
     wards.forEach(ward => {
       data[ward] = {};
@@ -1397,24 +1568,27 @@ router.get('/members-summary', verifyToken, async (req, res) => {
         data[ward][quarter] = 0;
       });
     });
+
     members.forEach(m => {
       if (data[m.Ward] && data[m.Ward][m.Quarters] !== undefined) {
         data[m.Ward][m.Quarters] += 1;
       }
     });
 
-    // Optionally, add totals per ward and per quarter
     const wardTotals = {};
     wards.forEach(ward => {
       wardTotals[ward] = quarters.reduce((sum, q) => sum + data[ward][q], 0);
     });
+
     const quarterTotals = {};
     quarters.forEach(quarter => {
       quarterTotals[quarter] = wards.reduce((sum, w) => sum + data[w][quarter], 0);
     });
+
     const grandTotal = members.length;
 
     res.json({ wards, quarters, data, wardTotals, quarterTotals, grandTotal });
+
   } catch (err) {
     console.error('Fetch Members Summary Error:', err);
     res.status(500).json({ message: 'Failed to fetch members summary' });
@@ -1425,22 +1599,25 @@ router.get('/members-summary', verifyToken, async (req, res) => {
 router.post('/notices', verifyToken, async (req, res) => {
   const { title, content, type } = req.body;
   const created_by = req.adminId;
-  console.log('adminId:', created_by, 'payload:', req.body);
+
   if (!title || !content || !type) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
+
   if (!created_by) {
     return res.status(401).json({ message: 'Invalid or missing admin token.' });
   }
+
   try {
-    const pool = await poolPromise;
-    await pool.request()
-      .input('title', sql.NVarChar, title)
-      .input('content', sql.NVarChar, content)
-      .input('type', sql.NVarChar, type)
-      .input('created_by', sql.Int, created_by)
-      .query('INSERT INTO Notices (title, content, type, created_by) VALUES (@title, @content, @type, @created_by)');
+    await request(`
+      INSERT INTO Notices (title, content, type, created_by)
+      VALUES (@title, @content, @type, @created_by)
+    `)
+    .inputs({ title, content, type, created_by })
+    .run();
+
     res.json({ success: true, message: 'Notice/Event posted' });
+
   } catch (err) {
     console.error('Error posting notice:', err);
     res.status(500).json({ message: 'Failed to post notice/event', error: err.message });
@@ -1450,9 +1627,9 @@ router.post('/notices', verifyToken, async (req, res) => {
 // GET: All notices/events (for both admin and member dashboards)
 router.get('/notices', async (req, res) => {
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .query('SELECT id, title, content, type, created_at FROM Notices ORDER BY created_at DESC');
+    
+    const result = await request
+      `SELECT id, title, content, type, created_at FROM Notices ORDER BY created_at DESC`.run();
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch notices/events' });
@@ -1461,31 +1638,28 @@ router.get('/notices', async (req, res) => {
 
 //Edit Notice/Event
 router.put('/notices/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
   const { title, content, type } = req.body;
-  const noticeId = req.params.id;
 
   if (!title || !content || !type) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
 
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, noticeId)
-      .input('title', sql.NVarChar, title)
-      .input('content', sql.NVarChar, content)
-      .input('type', sql.NVarChar, type)
-      .query(`
-        UPDATE Notices 
-        SET title = @title, content = @content, type = @type
-        WHERE id = @id
-      `);
+    const result = await request(`
+      UPDATE Notices 
+      SET title = @title, content = @content, type = @type
+      WHERE id = @id
+    `)
+    .inputs({ id, title, content, type })
+    .run();
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ message: 'Notice not found.' });
     }
 
     res.json({ success: true, message: 'Notice updated successfully.' });
+
   } catch (err) {
     console.error('Error updating notice:', err);
     res.status(500).json({ message: 'Failed to update notice' });
@@ -1497,10 +1671,12 @@ router.delete('/notices/:id', verifyToken, async (req, res) => {
   const noticeId = req.params.id;
 
   try {
-    const pool = await poolPromise;
-    const result = await pool.request()
-      .input('id', sql.Int, noticeId)
-      .query('DELETE FROM Notices WHERE id = @id');
+    
+    const result = await request
+    `DELETE FROM Notices WHERE id = @id`
+      .inputs({noticeId})
+      .run();
+      
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ message: 'Notice not found.' });
@@ -1515,63 +1691,81 @@ router.delete('/notices/:id', verifyToken, async (req, res) => {
 
 //Change PhoneNumber
 router.put('/change-phone', verifyToken, async (req, res) => {
-  const { oldPhone, newPhone } = req.body;
+    const { oldPhone, newPhone } = req.body;
 
-  if (!oldPhone || !newPhone) {
-    return res.status(400).json({ message: 'Both old and new phone numbers are required.' });
-  }
-
-  try {
-    const pool = await poolPromise;
-
-    // Check if old phone exists
-    const oldResult = await pool.request()
-      .input('oldPhone', sql.VarChar, oldPhone)
-      .query('SELECT * FROM Members WHERE PhoneNumber = @oldPhone');
-
-    if (oldResult.recordset.length === 0) {
-      return res.status(404).json({ message: 'Old phone number not found.' });
+    if (!oldPhone || !newPhone) {
+        return res.status(400).json({ message: 'Both old and new phone numbers are required.' });
     }
 
-    // Check if new phone already exists
-    const newResult = await pool.request()
-      .input('newPhone', sql.VarChar, newPhone)
-      .query('SELECT * FROM Members WHERE PhoneNumber = @newPhone');
-
-    if (newResult.recordset.length > 0) {
-      return res.status(409).json({ message: 'New phone number already exists.' });
-    }
-
-    // Begin transaction
-    const transaction = new sql.Transaction(pool);
-    await transaction.begin();
+    // Initialize an empty connection variable for the transaction
+    let connection; 
 
     try {
-      // Update Members table
-      await transaction.request()
-        .input('oldPhone', sql.VarChar, oldPhone)
-        .input('newPhone', sql.VarChar, newPhone)
-        .query(`UPDATE Members SET PhoneNumber = @newPhone WHERE PhoneNumber = @oldPhone`);
+        // --- Step 1: Check if old phone exists (using db-wrapper) ---
+        const oldCheck = await request(`
+            SELECT 1 FROM members WHERE PhoneNumber = @oldPhone
+        `)
+        .inputs({ oldPhone })
+        .run();
 
-      // Update memberledger table
-      await transaction.request()
-        .input('oldPhone', sql.VarChar, oldPhone)
-        .input('newPhone', sql.VarChar, newPhone)
-        .query(`UPDATE memberledger SET phoneno = @newPhone WHERE phoneno = @oldPhone`);
+        if (oldCheck.recordset.length === 0) {
+            return res.status(404).json({ message: 'Old phone number not found.' });
+        }
 
-      await transaction.commit();
-      res.status(200).json({ message: 'Phone number updated successfully in all records.' });
+        // --- Step 2: Check if new phone already exists (using db-wrapper) ---
+        const newCheck = await request(`
+            SELECT 1 FROM members WHERE PhoneNumber = @newPhone
+        `)
+        .inputs({ newPhone })
+        .run();
+
+        if (newCheck.recordset.length > 0) {
+            return res.status(409).json({ message: 'New phone number already exists.' });
+        }
+
+        // --- Step 3: Begin Transaction (direct mysql2/promise interaction) ---
+        // Get a connection from the pool for the transaction
+        connection = await pool.getConnection();
+        await connection.beginTransaction(); // Start the transaction
+
+        try {
+            // --- Step 4: Update in `members` table ---
+            // Using '?' placeholders for direct mysql2/promise execute method
+            const updateMembersQuery = `
+                UPDATE members SET PhoneNumber = ? WHERE PhoneNumber = ?
+            `;
+            await connection.execute(updateMembersQuery, [newPhone, oldPhone]);
+
+            // --- Step 5: Update in `memberledger` table ---
+            const updateLedgerQuery = `
+                UPDATE memberledger SET phoneno = ? WHERE phoneno = ?
+            `;
+            await connection.execute(updateLedgerQuery, [newPhone, oldPhone]);
+
+            // --- Step 6: Commit Transaction ---
+            await connection.commit();
+            res.status(200).json({ message: 'Phone number updated successfully in all records.' });
+
+        } catch (transactionErr) {
+            // --- Step 7: Rollback Transaction on error ---
+            await connection.rollback();
+            console.error('Transaction error:', transactionErr);
+            res.status(500).json({ message: 'Transaction failed. Changes rolled back.' });
+        } finally {
+            // Ensure the connection is released back to the pool
+            if (connection) {
+                connection.release();
+            }
+        }
+
     } catch (err) {
-      await transaction.rollback();
-      console.error('Transaction error:', err);
-      res.status(500).json({ message: 'Failed to update phone numbers.' });
+        console.error('Change Phone Server Error:', err);
+        // Ensure connection is released even if initial checks fail before transaction starts
+        if (connection) { 
+            connection.release();
+        }
+        res.status(500).json({ message: 'Server error.' });
     }
-
-  } catch (err) {
-    console.error('Server error:', err);
-    res.status(500).json({ message: 'Server error.' });
-  }
 });
-
 
 module.exports = router;

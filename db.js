@@ -1,26 +1,35 @@
 // db.js
-const sql = require('mssql');
-
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const config = require('./dbconfig');
 
-// Create one shared pool connection (singleton)
-const pool = new sql.ConnectionPool(config);
+// Create the pool using mysql2
+const pool = mysql.createPool(config);
 
-// Connect the pool once and export it
-const poolPromise = pool.connect();
-const poolConnect = pool.connect();
+pool.getConnection()
+  .then(conn => {
+    console.log('✅ MYSQL DB connected successfully.');
+    conn.release();
+  })
+  .catch(err => {
+    console.error('❌ MYSQL DB connection failed:', err);
+  });
 
-poolConnect.then(() => {
-  console.log('✅ DB connected successfully.');
-}).catch(err => {
-  console.error('❌ DB connection failed:', err);
-});
+module.exports = pool;
 
-module.exports = {
-  sql,
-  pool,
-  poolPromise,
-  poolConnect
-};
+
+/*{
+  "mysqlOptions": {
+    "authProtocol": "default",
+    "enableSsl": "Disabled"
+  },
+  "previewLimit": 50,
+  "server": "localhost",
+  "port": 3306,
+  "driver": "MySQL",
+  "name": "MYSQL80-HICAD",
+  "database": "sampledb",
+  "username": "Hicad",
+  "askForPassword": true
+}*/

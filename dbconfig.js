@@ -1,16 +1,15 @@
-// dbconfig.js
+// MYSQLconfig.js
 require('dotenv').config();
 
-console.log('DB_SERVER:', process.env.DB_SERVER);
+console.log('MYSQL_HOST:', process.env.MYSQL_HOST);
 
 module.exports = {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER,  // Must be double-escaped in .env
-  database: process.env.DB_DATABASE,
-  port: parseInt(process.env.DB_PORT) || 1433,
-  options: {
-    encrypt: false,                // Turn off encryption for local
-    trustServerCertificate: true  // Trust self-signed certs (for local testing)
-  }
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: parseInt(process.env.MYSQL_PORT) || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 };
