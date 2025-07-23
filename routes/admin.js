@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const config = require('../dbconfig'); 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const SECRET = 'your_jwt_secret';
-const {  request} = require('../db-wrapper');
+const {  request } = require('../db-wrapper');
 
-// Middleware to parse JSON bodies
 // Token verification middleware
 const verifyToken = (req, res, next) => {
   const bearerHeader = req.headers['authorization'];
@@ -685,17 +683,6 @@ router.post('/ocdaexpenses', verifyToken, async (req, res) => {
   }
 });
 
-// GET: Project List for Dropdown
-router.get('/project-list', verifyToken, async (req, res) => {
-  try {
-    const result = await request
-      ('SELECT expscode, expsdesc FROM stdxpenses ORDER BY expsdesc').run();
-    res.json(result.recordset);
-  } catch (err) {
-    console.error('Project List Load Error:', err);
-    res.status(500).json({ error: 'Failed to load project list' });
-  }
-});
 
 // GET: Populate dropdowns
 router.get('/enquiry/options', verifyToken, async (req, res) => {
@@ -1431,7 +1418,7 @@ router.delete('/incomeclass', async (req, res) => {
   }
 });
 
-// ===== OCDA Expenses Analysis API (MSSQL version) =====
+// ===== OCDA Expenses Analysis
 router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
   try {
     const { start, end, code = 'ALL', mode = 'summary' } = req.query;
@@ -1487,54 +1474,111 @@ router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
 });
 
 
-// ===== OCDA Income Analysis API (MSSQL version) =====
+// ===== OCDA Income Analysis
 router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
   try {
     const { start, end, code = 'ALL', mode = 'summary' } = req.query;
+    const whereConditions = [];
+    const params = {}; // This object will hold our named parameters
 
-    const where = [];
-    const params = {};
+    console.log('--- Debugging Parameter Issues (Admin.js) ---');
+    console.log('1. Original code from req.query:', code); // E.g., '%4010' or '@10'
+
+    let decodedCode = code;
+    if (code !== 'ALL') {
+        try {
+            decodedCode = decodeURIComponent(code); // Ensure it's decoded for the parameter value
+        } catch (e) {
+            console.warn("Failed to decode 'code' parameter:", code, e);
+            decodedCode = code;
+        }
+    }
+    console.log('2. Decoded code (before adding wildcards):', decodedCode); // Should be '@10' if original was '%4010'
+
 
     if (start) {
-      where.push(`transdate >= @start`);
+      whereConditions.push(`ml.transdate >= @start`); // Use named parameter
       params.start = start;
     }
     if (end) {
-      where.push(`transdate <= @end`);
+      whereConditions.push(`ml.transdate <= @end`); // Use named parameter
       params.end = end;
     }
-    if (code !== 'ALL') {
-      where.push(`remark LIKE @code`);
-      params.code = `%${code}%`;
+    if (decodedCode !== 'ALL') {
+      whereConditions.push(`ml.remark LIKE @code`); // Use named parameter
+      params.code = `%${decodedCode}%`; // Add wildcards to the parameter value
     }
 
-    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const whereClause = whereConditions.length ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const query = mode === 'summary'
-      ? `
-        SELECT 
-          remark AS code, 
-          MAX(remark) AS description, 
-          SUM(amount) AS amount 
-        FROM memberledger 
-        ${whereClause} 
-        GROUP BY remark
-        ORDER BY remark`
-      : `
-        SELECT 
-          FORMAT(transdate, 'yyyy-MM-dd') AS date, 
-          remark, 
-          amount 
-        FROM memberledger 
-        ${whereClause} 
-        ORDER BY transdate`;
+    console.log('3. Final params object sent to db-wrapper:', params); // Should be { code: '%@10%' } etc.
+    console.log('--- End Debugging Parameter Issues (Admin.js) ---');
 
-    const result = await request(query).inputs(params).run();
-    res.json(result.recordset);
+    let result;
+
+    if (mode === 'summary') {
+      const query = `
+        SELECT
+          ml.remark AS code,
+          IFNULL(ic.incomedesc, 'No Description') AS description,
+          SUM(ml.amount) AS amount,
+          COUNT(*) AS transaction_count
+        FROM memberledger ml
+        LEFT JOIN incomeclassification ic ON ml.remark = ic.incomecode
+        ${whereClause}
+        GROUP BY ml.remark, ic.incomedesc
+        ORDER BY ml.remark`;
+
+      console.log('Summary Query being sent:', query); // Check the final SQL string
+      console.log('Summary Params object being sent:', params); // Double check parameters here
+
+      // Pass the 'params' object to .inputs()
+      result = await request(query).inputs(params).run();
+      res.json(result.recordset);
+
+    } else { // mode === 'details'
+      const query = `
+        SELECT
+          ml.remark AS code,
+          DATE_FORMAT(ml.transdate, '%Y-%m-%d') AS date,
+          ml.amount,
+          CONCAT(IFNULL(ml.phoneno, ''), '(', IFNULL(m.Surname, ''), ' ', IFNULL(m.othernames, ''), ')') AS phoneno_name,
+          ml.remark AS transaction_description
+        FROM memberledger ml
+        LEFT JOIN members m ON ml.phoneno = m.PhoneNumber
+        ${whereClause}
+        ORDER BY ml.remark, ml.transdate`;
+
+      console.log('Details Query being sent:', query);
+      console.log('Details Params object being sent:', params);
+
+      // Pass the 'params' object to .inputs()
+      const queryResult = await request(query).inputs(params).run();
+
+      const groupedResults = queryResult.recordset.reduce((acc, row) => {
+        const code = row.code;
+        if (!acc[code]) {
+          acc[code] = {
+            code: code,
+            transactions: []
+          };
+        }
+        acc[code].transactions.push({
+          date: row.date,
+          phoneno_name: row.phoneno_name,
+          amount: row.amount,
+          transaction_description: row.transaction_description || ''
+        });
+        return acc;
+      }, {});
+
+      const formattedResults = Object.values(groupedResults);
+      res.json(formattedResults);
+    }
 
   } catch (err) {
     console.error('OCDA Income Analysis error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', details: err.sqlMessage || err.message });
   }
 });
 
@@ -1668,13 +1712,11 @@ router.put('/notices/:id', verifyToken, async (req, res) => {
 
 //delete Notice/Event
 router.delete('/notices/:id', verifyToken, async (req, res) => {
-  const noticeId = req.params.id;
-
   try {
-    
+     const {id} = req.params;
     const result = await request
     `DELETE FROM Notices WHERE id = @id`
-      .inputs({noticeId})
+      .inputs({id})
       .run();
       
 

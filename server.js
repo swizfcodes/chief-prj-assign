@@ -8,7 +8,6 @@ const path = require('path');
 const cors = require('cors');
 const app = express();
 const adminRoutes = require('./routes/admin');
-const config = require('./dbconfig'); 
 const PORT = process.env.PORT || 5500;
 
 app.use(cors({

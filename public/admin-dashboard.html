@@ -298,16 +298,8 @@
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Report</button>
         </form>
         <div class="overflow-auto rounded shadow bg-white">
-          <table class="min-w-full text-sm text-left">
-            <thead class="bg-gray-200 text-gray-700">
-              <tr>
-                <th class="p-2">Code/Date</th>
-                <th class="p-2">Description/Remark</th>
-                <th class="p-2">Amount</th>
-              </tr>
-            </thead>
-            <tbody id="ocdaIncomeAnalysisTable"></tbody>
-          </table>
+            <div id="ocdaIncomeAnalysisTable">
+            </div>
         </div>
       </section>
 
@@ -995,17 +987,46 @@
 
       <!-- notices -->
       <section id="notices-section" class="tab-content hidden">
-        <h2 class="text-xl font-semibold mb-4">Post Notice/Event</h2>
-        <form id="noticeForm" class="bg-white p-4 rounded shadow space-y-4 max-w-md">
-          <input type="text" id="noticeTitle" placeholder="Title" required class="w-full p-2 border rounded">
-          <select id="noticeType" class="w-full p-2 border rounded">
-            <option value="notice">Notice</option>
-            <option value="event">Event</option>
-          </select>
-          <textarea id="noticeContent" placeholder="Content" required class="w-full p-2 border rounded"></textarea>
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Post</button>
-        </form>
-        <div id="noticesList" class="mt-8"></div>
+          <h2 class="text-xl font-semibold mb-4">Post Notice/Event</h2>
+          <form id="noticeForm" class="bg-white p-4 rounded shadow space-y-4 max-w-md">
+              <input type="text" id="noticeTitle" placeholder="Title" required class="w-full p-2 border rounded">
+              <select id="noticeType" class="w-full p-2 border rounded">
+                  <option value="notice">Notice</option>
+                  <option value="event">Event</option>
+              </select>
+              <textarea id="noticeContent" placeholder="Content" required class="w-full p-2 border rounded"></textarea>
+              <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Post</button>
+          </form>
+
+          <h2 class="text-xl font-semibold mt-8 mb-4">Posted Notices/Events</h2>
+          <div id="noticesList" class="mt-4">
+              </div>
+
+          <div id="editNoticeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+              <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                  <h2 class="text-2xl font-bold mb-4">Edit Notice/Event</h2>
+                  <input type="hidden" id="editNoticeId">
+                  <div class="mb-4">
+                      <label for="editNoticeTitle" class="block text-gray-700 text-sm font-bold mb-2">Title:</label>
+                      <input type="text" id="editNoticeTitle" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                  </div>
+                  <div class="mb-4">
+                      <label for="editNoticeContent" class="block text-gray-700 text-sm font-bold mb-2">Content:</label>
+                      <textarea id="editNoticeContent" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="4" required></textarea>
+                  </div>
+                  <div class="mb-4">
+                      <label for="editNoticeType" class="block text-gray-700 text-sm font-bold mb-2">Type:</label>
+                      <select id="editNoticeType" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                          <option value="notice">Notice</option>
+                          <option value="event">Event</option>
+                      </select>
+                  </div>
+                  <div class="flex justify-end">
+                      <button id="saveEditNoticeBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2">Save Changes</button>
+                      <button id="cancelEditNoticeBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Cancel</button>
+                  </div>
+              </div>
+          </div>
       </section>
 
       <section id="change-PhoneNumber" class="tab-content hidden">

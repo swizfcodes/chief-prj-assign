@@ -1515,22 +1515,22 @@ document.getElementById('ocdaForm')?.addEventListener('submit', async (e) => {
     alert('Server error');
   }
 });
+
 window.addEventListener('DOMContentLoaded', () => {
   loadAllMemberLedger();
 });
 
 async function loadProjectDropdown() {
   try {
-    const token = localStorage.getItem('token'); // or sessionStorage if that's where you stored it
-
+  
     if (!token) {
       throw new Error('Token not found in localStorage.');
     }
 
-    const res = await fetch(`${BASE_URL}/admin/stdxpenses`, {
+    const res = await fetch('/admin/stdxpenses', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+       'Authorization':  `Bearer ${localStorage.getItem('adminToken')}`
       }
     });
 
@@ -1538,9 +1538,9 @@ async function loadProjectDropdown() {
       throw new Error(`Server responded with status ${res.status}`);
     }
 
-    const projects = await res.json();
+    const project = await res.json();
     const dropdown = document.getElementById('projectDropdown');
-    dropdown.innerHTML = projects.map(
+    dropdown.innerHTML = project.map(
       p => `<option value="${p.expscode}">${p.expsdesc} (${p.expscode})</option>`
     ).join('');
     
@@ -1575,6 +1575,7 @@ async function loadOCDAExpenses() {
 
 window.addEventListener('DOMContentLoaded', () => {
   loadOCDAExpenses();
+  loadProjectDropdown();
 });
 
 
@@ -1790,88 +1791,115 @@ if (mode === 'detail') {
       grouped[tx.phoneno].push(tx);
     });
     detailHtml = Object.entries(grouped).map(([phoneno, txs]) => `
-      <div class="mb-8">
-        <div class="font-bold text-lg mb-2">${phoneno} - ${txs[0]?.fullname || ''}</div>
-        <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
-          <thead>
-            <tr>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${txs.map(tx => `
+      <div class="mb-8 border border-gray-300 rounded shadow-sm">
+        <div class="font-bold text-lg bg-gray-100 px-4 py-2 cursor-pointer toggle-header" data-target="table-${phoneno}">
+        ${phoneno} - ${txs[0]?.fullname || ''}
+      </div>
+
+        <div id="table-${phoneno}" class="toggle-table hidden">
+          <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
+            <thead>
               <tr>
-                <td class="border border-gray-400 px-4 py-2 text-center">${tx.transdate}</td>
-                <td class="border border-gray-400 px-4 py-2 text-center">${tx.amount}</td>
-                <td class="border border-gray-400 px-4 py-2 text-center">${tx.remark}</td>
+                <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
+                <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
+                <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${txs.map(tx => `
+                <tr>
+                  <td class="border border-gray-400 px-4 py-2 text-center">${tx.transdate}</td>
+                  <td class="border border-gray-400 px-4 py-2 text-center">${tx.amount}</td>
+                  <td class="border border-gray-400 px-4 py-2 text-center">${tx.remark}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
     `).join('');
   } else if (type === 'ward') {
     detailHtml = detail.map(w => `
-      <div class="mb-8">
-        <div class="font-bold text-blue-600 text-lg mb-2">Ward: ${w.ward}</div>
-        <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
-          <thead>
-            <tr>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Phone</th>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Name</th>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
-              <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(Array.isArray(w.members) ? w.members : []).map(m => `
+      <div class="mb-8 border border-gray-300 rounded shadow">
+        <!-- Use "ward-view-" prefix -->
+        <div class="font-bold text-blue-600 text-lg bg-gray-50 px-4 py-2 cursor-pointer toggle-header"
+            data-target="ward-view-${w.ward}">
+          Ward: ${w.ward}
+        </div>
+
+        <div id="ward-view-${w.ward}" class="toggle-table hidden">
+          <table class="w-full border border-gray-400" style="border-collapse: collapse;">
+            <thead>
               <tr>
-                <td class="border border-gray-400 px-4 py-2 text-center">${m.phoneno}</td>
-                <td class="border border-gray-400 px-4 py-2 text-center">${m.fullname}</td>
-                <td class="border border-gray-400 px-4 py-2 text-center">${m.transdate}</td>
-                <td class="border border-gray-400 px-4 py-2 text-center">${m.amount}</td>
-                <td class="border border-gray-400 px-4 py-2 text-center">${m.remark}</td>
+                <th class="border px-4 py-2 bg-gray-100 text-center">Phone</th>
+                <th class="border px-4 py-2 bg-gray-100 text-center">Name</th>
+                <th class="border px-4 py-2 bg-gray-100 text-center">Date</th>
+                <th class="border px-4 py-2 bg-gray-100 text-center">Amount</th>
+                <th class="border px-4 py-2 bg-gray-100 text-center">Remark</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${(Array.isArray(w.members) ? w.members : []).map(m => `
+                <tr>
+                  <td class="border px-4 py-2 text-center">${m.phoneno}</td>
+                  <td class="border px-4 py-2 text-center">${m.fullname}</td>
+                  <td class="border px-4 py-2 text-center">${m.transdate}</td>
+                  <td class="border px-4 py-2 text-center">${m.amount}</td>
+                  <td class="border px-4 py-2 text-center">${m.remark}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
     `).join('');
   } else if (type === 'quarter') {
     detailHtml = detail.map(q => `
-      <div class="mb-10">
-        <div class="text-xl text-indigo-700 font-bold mb-3">Quarter: ${q.quarter}</div>
-        ${q.wards.map(w => `
-          <div class="ml-4 mb-6">
-            <div class="font-semibold text-lg text-blue-500 mb-2">Ward: ${w.ward}</div>
-            <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
-              <thead>
-                <tr>
-                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Phone</th>
-                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Name</th>
-                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Date</th>
-                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Amount</th>
-                  <th class="border border-gray-400 px-4 py-2 text-center bg-gray-100">Remark</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${(Array.isArray(w.members) ? w.members : []).map(m => `
-                  <tr>
-                    <td class="border border-gray-400 px-4 py-2 text-center">${m.phoneno}</td>
-                    <td class="border border-gray-400 px-4 py-2 text-center">${m.fullname}</td>
-                    <td class="border border-gray-400 px-4 py-2 text-center">${m.transdate}</td>
-                    <td class="border border-gray-400 px-4 py-2 text-center">${m.amount}</td>
-                    <td class="border border-gray-400 px-4 py-2 text-center">${m.remark}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
+      <div class="mb-10 border border-gray-300 rounded shadow">
+        <!-- Quarter Toggle Header -->
+        <div class="text-xl text-indigo-700 font-bold px-4 py-2 bg-gray-100 cursor-pointer toggle-header" data-target="quarter-block-${q.quarter}">
+          Quarter: ${q.quarter}
+        </div>
+
+        <!-- Quarter Toggle Content -->
+        <div id="quarter-block-${q.quarter}" class="toggle-table hidden">
+          ${q.wards.map(w => `
+            <div class="ml-4 mt-4 border border-gray-200 rounded">
+              <!-- Ward Toggle Header within Quarter -->
+              <div class="font-semibold text-lg text-blue-500 px-4 py-2 bg-gray-50 cursor-pointer toggle-header"
+                  data-target="quarter-${q.quarter}-ward-${w.ward}">
+                Ward: ${w.ward}
+              </div>
+
+              <!-- Ward Table within Quarter -->
+              <div id="quarter-${q.quarter}-ward-${w.ward}" class="toggle-table hidden">
+                <table class="w-full border border-gray-400" style="border-collapse: collapse;">
+                  <thead>
+                    <tr>
+                      <th class="border px-4 py-2 bg-gray-100 text-center">Phone</th>
+                      <th class="border px-4 py-2 bg-gray-100 text-center">Name</th>
+                      <th class="border px-4 py-2 bg-gray-100 text-center">Date</th>
+                      <th class="border px-4 py-2 bg-gray-100 text-center">Amount</th>
+                      <th class="border px-4 py-2 bg-gray-100 text-center">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(Array.isArray(w.members) ? w.members : []).map(m => `
+                      <tr>
+                        <td class="border px-4 py-2 text-center">${m.phoneno}</td>
+                        <td class="border px-4 py-2 text-center">${m.fullname}</td>
+                        <td class="border px-4 py-2 text-center">${m.transdate}</td>
+                        <td class="border px-4 py-2 text-center">${m.amount}</td>
+                        <td class="border px-4 py-2 text-center">${m.remark}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           `).join('')}
         </div>
+      </div>
     `).join('');
   }
 }
@@ -1886,6 +1914,37 @@ if (mode === 'detail') {
       </div>
     </div>
   `;
+
+  document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('toggle-header')) {
+      const id = e.target.getAttribute('data-target');
+      console.log('Clicked header targeting:', id);
+      
+      const content = document.getElementById(id);
+      
+      if (content) {
+        console.log(`Found element with id="${id}". Toggling visibility.`);
+        content.classList.toggle('hidden');
+      } else {
+        console.warn(`No element found with id="${id}"! Check if it exists in the DOM.`);
+        alert(`❗ Missing element with id="${id}" — maybe a typo or clash.`);
+      }
+    }
+  });
+
+  document.querySelectorAll(".ward-header").forEach(header => {
+  header.addEventListener("click", () => {
+    const targetId = header.dataset.target;
+    console.log("Clicked ward header targeting:", targetId);
+    const target = document.getElementById(targetId);
+    if (target) {
+      console.log("Found element with id:", targetId, "Toggling visibility.");
+      target.classList.toggle("hidden");
+    } else {
+      console.warn("❌ Ward element NOT FOUND:", targetId);
+    }
+  });
+});
 
   // Prepare hidden export table
   const allRows = [...summary, ...detail];
@@ -2051,38 +2110,94 @@ async function loadOCDAIncomeAnalysis({ start = '', end = '', code = 'ALL', mode
   try {
     const params = new URLSearchParams({ start, end, code, mode });
     const res = await fetch(`/admin/ocda-income-analysis?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
- }
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
     });
     const data = await res.json();
     renderOCDAIncomeAnalysis(data, mode);
   } catch (err) {
     console.error('Failed to load OCDA Income Analysis:', err);
-    document.getElementById('ocdaIncomeAnalysisTable').innerHTML = '<tr><td colspan="5">Failed to load data</td></tr>';
+    document.getElementById('ocdaIncomeAnalysisTable').innerHTML = '<div>Failed to load data</div>';
   }
 }
 
+const getCellClasses = () => "p-2 border text-center break-words";
+
+// The toggle function for Income groups
+function toggleIncomeGroup(index) {
+  const group = document.getElementById(`income-group-${index}`);
+  console.log('Toggling income group:', index, group);
+  if (group) {
+    group.classList.toggle('hidden');
+  } else {
+    console.error('Income Group not found:', `income-group-${index}`);
+  }
+}
+
+// Rewritten function for rendering OCDA Income Analysis
 function renderOCDAIncomeAnalysis(data, mode) {
-  const table = document.getElementById('ocdaIncomeAnalysisTable');
-  if (!Array.isArray(data) || data.length === 0) {
-    table.innerHTML = '<tr><td colspan="5">No data found</td></tr>';
+  const tableContainer = document.getElementById('ocdaIncomeAnalysisTable');
+  if (!tableContainer) {
+    console.error("Element with ID 'ocdaIncomeAnalysisTable' not found. Cannot render income analysis.");
     return;
   }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    tableContainer.innerHTML = '<div class="text-center text-gray-600 p-4">No income data found</div>';
+    return;
+  }
+
   if (mode === 'summary') {
-    table.innerHTML = data.map(row => `
-      <tr class="border-t">
-        <td class="p-2">${row.code}</td>
-        <td class="p-2">${row.description}</td>
-        <td class="p-2">${formatAmount(row.amount)}</td>
-      </tr>
-    `).join('');
+    tableContainer.innerHTML = `
+      <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-300">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-2 border">Code</th>
+              <th class="p-2 border">Description</th>
+              <th class="p-2 border">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(row => `
+              <tr>
+                <td class="${getCellClasses()} break-words">${row.code}</td>
+                <td class="${getCellClasses()} break-words">${row.description || ''}</td>
+                <td class="${getCellClasses()}">${formatAmount(row.amount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   } else {
-    table.innerHTML = data.map(row => `
-      <tr class="border-t">
-        <td class="p-2">${formatDate(row.date)}</td>
-        <td class="p-2">${row.remark}</td>
-        <td class="p-2">${formatAmount(row.amount)}</td>
-      </tr>
+    // Detail: Grouped table with expand/collapse
+    tableContainer.innerHTML = data.map((group, index) => `
+      <div class="mb-4 border rounded overflow-hidden shadow">
+        <button class="w-full text-left px-4 py-2 bg-gray-100 font-bold hover:bg-gray-200 focus:outline-none" onclick="toggleIncomeGroup(${index})">
+          ${group.code} (${group.transactions.length} transactions)
+        </button>
+        <div id="income-group-${index}" class="hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full border border-gray-400" style="border-collapse: collapse;">
+              <thead>
+                <tr>
+                  <th class="border px-2 py-1 text-center bg-gray-200 whitespace-nowrap">Date</th>
+                  <th class="border px-2 py-1 text-center bg-gray-200">Phone(Name)</th>
+                  <th class="border px-2 py-1 text-center bg-gray-200 whitespace-nowrap">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${group.transactions.map(transaction => `
+                  <tr>
+                    <td class="border px-2 py-1 text-center whitespace-nowrap">${formatDate(transaction.date)}</td>
+                    <td class="border px-2 py-1 text-center overflow-hidden" style="word-break: break-all;">${transaction.phoneno_name}</td> <td class="border px-2 py-1 text-center whitespace-nowrap">${formatAmount(transaction.amount)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     `).join('');
   }
 }
@@ -2351,23 +2466,166 @@ document.getElementById('noticeForm')?.addEventListener('submit', async function
 });
 
 
-// Load and display notices/events
+// Function to load 
 async function loadNotices() {
+  console.log("Loading notices...");
   try {
-    const res = await fetch(`${BASE_URL}/admin/notices`);
+    const res = await fetch(`${BASE_URL}/admin/notices`); // Assuming this is the GET endpoint for notices
+    if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+    }
     const notices = await res.json();
     const list = document.getElementById('noticesList');
+    
+    if (!list) {
+        console.error("Error: 'noticesList' element not found.");
+        return;
+    }
+
+    if (notices.length === 0) {
+        list.innerHTML = '<p class="text-gray-600">No notices or events posted yet.</p>';
+        return;
+    }
+
     list.innerHTML = notices.map(n => `
-      <div class="mb-4 p-4 border rounded shadow">
+      <div class="mb-4 p-4 border rounded shadow" data-notice-id="${n.id}">
         <div class="font-bold">${n.title} <span class="text-xs text-gray-500">[${n.type}]</span></div>
         <div class="text-gray-700">${n.content}</div>
         <div class="text-xs text-gray-400">${new Date(n.created_at).toLocaleString()}</div>
+        <div class="mt-2 flex space-x-2">
+            <button class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm py-1 px-3 rounded edit-notice-btn"
+                    data-id="${n.id}" 
+                    data-title="${n.title}" 
+                    data-content="${n.content}" 
+                    data-type="${n.type}">Edit</button>
+            <button class="bg-red-500 hover:bg-red-600 text-white text-sm py-1 px-3 rounded delete-notice-btn"
+                    data-id="${n.id}">Delete</button>
+        </div>
       </div>
     `).join('');
+
+    // Attach event listeners after rendering
+    attachNoticeEventListeners();
+
   } catch (err) {
-    document.getElementById('noticesList').innerText = 'Failed to load notices/events';
+    console.error('Error loading notices:', err);
+    const list = document.getElementById('noticesList');
+    if (list) {
+        list.innerText = 'Failed to load notices/events.';
+    }
   }
 }
+
+// Function to attach event listeners to dynamically created buttons
+function attachNoticeEventListeners() {
+    // Edit buttons
+    document.querySelectorAll('.edit-notice-btn').forEach(button => {
+        button.onclick = function() { // Using onclick for simplicity, addEventListener is generally preferred
+            const id = this.dataset.id;
+            const title = this.dataset.title;
+            const content = this.dataset.content;
+            const type = this.dataset.type;
+
+            // Populate the modal fields
+            document.getElementById('editNoticeId').value = id;
+            document.getElementById('editNoticeTitle').value = title;
+            document.getElementById('editNoticeContent').value = content;
+            document.getElementById('editNoticeType').value = type;
+
+            // Show the modal
+            document.getElementById('editNoticeModal').classList.remove('hidden');
+        };
+    });
+
+    // Delete buttons
+    document.querySelectorAll('.delete-notice-btn').forEach(button => {
+        button.onclick = function() {
+            const id = this.dataset.id;
+            if (confirm('Are you sure you want to delete this notice/event?')) {
+                deleteNotice(id);
+            }
+        };
+    });
+
+    // Modal close button
+    document.getElementById('cancelEditNoticeBtn').onclick = function() {
+        document.getElementById('editNoticeModal').classList.add('hidden');
+    };
+
+    // Modal save button
+    document.getElementById('saveEditNoticeBtn').onclick = function() {
+        const id = document.getElementById('editNoticeId').value;
+        const title = document.getElementById('editNoticeTitle').value;
+        const content = document.getElementById('editNoticeContent').value;
+        const type = document.getElementById('editNoticeType').value;
+        
+        updateNotice(id, title, content, type);
+    };
+}
+
+
+// Function to supdate request
+async function updateNotice(id, title, content, type) {
+    try {
+        const token = `Bearer ${localStorage.getItem('adminToken')}`;
+        if (!token) {
+            throw new Error('Token not found in localStorage. Please log in.');
+        }
+
+        const res = await fetch(`${BASE_URL}/admin/notices/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            },
+            body: JSON.stringify({ title, content, type })
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(`Failed to update notice: ${errorData.message || res.statusText}`);
+        }
+
+        const data = await res.json();
+        alert(data.message); // Or use a more sophisticated notification system
+        
+        document.getElementById('editNoticeModal').classList.add('hidden'); // Hide modal
+        loadNotices(); // Reload notices to reflect changes
+    } catch (err) {
+        console.error('Error updating notice:', err);
+        alert(err.message);
+    }
+}
+
+// Function to delete request
+async function deleteNotice(id) {
+    try {
+        const token = `Bearer ${localStorage.getItem('adminToken')}`;
+        if (!token) {
+            throw new Error('Token not found in localStorage. Please log in.');
+        }
+
+        const res = await fetch(`${BASE_URL}/admin/notices/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': token
+            }
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(`Failed to delete notice: ${errorData.message || res.statusText}`);
+        }
+
+        const data = await res.json();
+        alert(data.message);
+        loadNotices(); // Reload notices to reflect deletion
+    } catch (err) {
+        console.error('Error deleting notice:', err);
+        alert(err.message);
+    }
+}
+
 
 // Call loadNotices() when the notices tab is shown
 document.querySelectorAll('.tab-button').forEach(btn => {
