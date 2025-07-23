@@ -13,7 +13,6 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
-    "msnodesqlv8": "^4.5.0",
     "mssql": "^11.0.1",
     "mysql2": "^3.14.2",
     "pg": "^8.16.3",
