@@ -14,10 +14,29 @@
       content: "" !important; 
     }
 
+    label{
+      color: black !important;
+    }
+
+    h2{
+      color: black !important;
+    }
+
+    .form-wrapper,
+    .container-form{
+      background: none !important;
+    }
+
   @media (max-width: 4000px) and (min-width: 1700px) {
     html {
       font-size: 100% !important;
     } 
+  }
+
+  @media (max-width: 1023px) and (min-width: 600px) {
+    .p-6 {
+        padding-top: 7% !important;
+    }
   }
 
   @media (max-width: 768px) {
@@ -31,9 +50,16 @@
     font-size: 70% !important;
   }
 
+    @media (max-width: 468px) {
+    .email-wrap {
+      word-break: break-word;
+      max-width: 70px;
+    }
+  }
+
   .p-6 {
       padding: 0.5rem !important;
-      padding-top: 15% !important;
+      padding-top: 10% !important;
   }
 }
   </style>
@@ -66,7 +92,7 @@
         <!-- Receipt Main Tab -->
         <div class="relative"   id="receiptTabWrapper">
           <button id="receiptTabBtn"
-            class="w-full px-4 py-2 text-left rounded text-white flex justify-between items-center">
+            class="w-full px-4 py-2 text-left rounded text-black flex justify-between items-center">
             <span><i data-lucide="file-text" class="w-4 h-4 inline-block mr-2"></i> Reports</span>
             <i data-lucide="chevron-down" class="w-4 h-4 ml-auto"></i>
           </button>
@@ -140,7 +166,25 @@
 
         <!-- Admin List -->
         <h2 class="text-xl font-semibold mb-4">Admin List</h2>
-        <div id="adminTable" class="bg-white p-4 rounded shadow text-sm">Loading...</div>
+        <div id="adminTable" class="bg-white p-4 rounded shadow text-sm overflow-x-auto max-w-full">
+          <div class="w-full overflow-hidden">
+            <table class="table-auto w-full text-left whitespace-normal break-words">
+              <thead>
+                <tr class="bg-gray-100">
+                  <th class="px-4 py-2">Name</th>
+                  <th class="px-4 py-2">Email</th>
+                  <th class="px-4 py-2">Role</th>
+                  <th class="px-4 py-2">Status</th>
+                  <th class="px-4 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminTableBody">
+                <!-- JS will populate rows here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
 
         <!-- Edit Admin Modal -->
         <div id="editAdminModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">

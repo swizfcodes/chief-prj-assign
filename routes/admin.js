@@ -1455,7 +1455,7 @@ router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
         SELECT 
           e.project AS code,
           s.expsdesc AS description,
-          FORMAT(e.docdate, 'yyyy-MM-dd') AS date, 
+          DATE_FORMAT(e.docdate, '%Y-%m-%d') AS date, 
           e.remarks AS remark, 
           e.amount
         FROM ocdaexpenses e

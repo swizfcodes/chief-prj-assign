@@ -5,7 +5,6 @@ function formatDate(date) {
   return date.split('T')[0];
 }
 
-
 async function fetchAPI(endpoint, method = 'GET', data = null) {
   const options = {
     method,

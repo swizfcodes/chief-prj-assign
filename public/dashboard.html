@@ -9,6 +9,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <style>
+  ul li::before {
+    content: "" !important; 
+  }
+
+  label{
+    color: black !important;
+  }
+
   @media (max-width: 4000px) and (min-width: 1700px) {
     html {
       font-size: 122% !important;
@@ -88,7 +96,7 @@
   <section id="landingSection" class="px-4 py-6">
     <!-- Header -->
     <div class="text-center mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
       Welcome, <span id="username" class="text-blue-600 dark:text-blue-400"></span>
       <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="mx-auto mt-4 max-w-[150px]">
     </div>
@@ -137,7 +145,7 @@
 
     <!-- News & Events -->
     <div class="bg-white shadow-md rounded-xl p-5 max-w-xl mx-auto border-l-4 border-orange-500" 
-    style="margin-top: 5%; ul li::before{content: none !important;}">
+    style="margin-top: 5%;">
       <h2 class="text-xl font-semibold text-gray-800 mb-3">News & Events</h2>
       <ul id="newsList" class="list-disc pl-5 space-y-2 text-sm text-gray-600">
       </ul>
@@ -345,11 +353,11 @@
       <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">My Receipts</h2>
 
       <div class="flex flex-wrap items-center gap-4 mb-6">
-        <label class="block text-sm text-gray-700 dark:text-gray-200">
+        <label class="block text-sm text-black-700 dark:text-gray-700">
           From:
           <input type="date" id="fromDate" class="mt-1 border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
         </label>
-        <label class="block text-sm text-gray-700 dark:text-gray-200">
+        <label class="block text-sm text-black-700 dark:text-gray-700">
           To:
           <input type="date" id="toDate" class="mt-1 border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
         </label>
@@ -367,7 +375,7 @@
         </div>
       </div>
 
-      <div id="receiptTable" class="overflow-x-auto bg-white dark:bg-gray-900 rounded shadow p-4"></div>
+      <div id="receiptTable" class="overflow-x-auto bg-white rounded shadow p-4"></div>
 
       <div class="mt-6">
         <button onclick="clearReceipts()"class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition">
@@ -383,22 +391,22 @@
 
       <div class="flex flex-col md:flex-row gap-4 mb-4">
         <label class="flex flex-col">
-          <span class="text-sm text-gray-600">From:</span>
+          <span class="text-sm text-black-600">From:</span>
           <input type="date" id="enquiryFrom" class="border rounded px-3 py-2">
         </label>
         <label class="flex flex-col">
-          <span class="text-sm text-gray-600">To:</span>
+          <span class="text-sm text-black-600">To:</span>
           <input type="date" id="enquiryTo" class="border rounded px-3 py-2">
         </label>
       </div>
 
     <!-- Radio Tabs -->
     <div class="flex justify-center gap-6 mb-6">
-      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-700">
         <input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()" class="accent-blue-600">
         <span>Ward</span>
       </label>
-      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-700">
         <input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()" class="accent-blue-600">
         <span>Quarters</span>
       </label>

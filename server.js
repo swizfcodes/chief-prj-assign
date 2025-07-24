@@ -21,109 +21,79 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
-app.use('/admin', adminRoutes);
-
-
-// Middleware
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/public', serveIndex(path.join(__dirname, 'public'), { icons: true }));
-
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
 app.use(session({
   secret: 'super-secret',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,
+  cookie: {
+    secure: false,         // true for HTTPS
+    sameSite: 'lax'        // important for cookies across origin
+  }
 }));
 
-
-// Dummy login endpoint
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username && password) {
-        res.json({ success: true, token: 'fake-jwt-token' });
-    } else {
-        res.status(400).json({ success: false, message: 'Missing credentials' });
-    }
-});
-
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  next();
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/admin', adminRoutes);
 
 // Signup Endpoint
 app.post('/signup', async (req, res) => {
-    try {
-        const userData = req.body;
-        console.log('Signup data received:', userData);
+  try {
+    const userData = req.body;
+    console.log('Signup data received:', userData);
 
-        // 1. Check if phone number already exists
-        const checkResult = await request(`SELECT * FROM members WHERE PhoneNumber = @phoneNumber`)
-            .inputs({ phoneNumber: userData.phoneNumber })
-            .run();
+    const checkResult = await request(`
+      SELECT * FROM members WHERE PhoneNumber = @PhoneNumber
+    `).inputs({ PhoneNumber: userData.phoneNumber }).run();
 
-        if (checkResult.recordset.length > 0) {
-            return res.status(400).json({ field: 'phoneNumber', message: 'Phone number already exists' });
-        }
-
-        // 2. Insert new user
-        // Prepare inputs object
-        const insertInputs = {
-            othernames: userData.otherNames,
-            Surname: userData.surname,
-            email: userData.email || '',
-            Sex: userData.sex,
-            DOB: userData.dob,
-            Quarters: userData.quarters,
-            Ward: userData.ward,
-            Town: userData.town,
-            State: userData.state,
-            PhoneNumber: userData.phoneNumber,
-            phoneno2: userData.phoneNo2 || null, // Ensure null if not provided
-            Password: userData.password,
-            Title: userData.title,
-            HonTitle: userData.honTitle,
-            Qualifications: userData.qualifications || null,
-            Profession: userData.profession,
-            exitdate: userData.exitDate || null, // Ensure null if not provided
-            CreatedAt: new Date(),
-        };
-
-        const insertQuery = `
-            INSERT INTO members 
-            (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate)
-            VALUES 
-            (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate)
-        `;
-
-        const insertResult = await request(insertQuery).inputs(insertInputs).run();
-
-        // For mysql2/promise, insertId is typically directly on the result object for INSERT statements
-        const newUserId = insertResult.insertId || null; 
-
-        // Assuming you are using express-session for session management
-        if (req.session) {
-            req.session.phoneNumber = userData.phoneNumber;
-        } else {
-            console.warn('req.session is not available. Session middleware might not be configured.');
-        }
-
-        res.status(201).json({
-            message: 'Signup successful!',
-            id: newUserId,
-            phoneNumber: userData.phoneNumber
-        });
-
-    } catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ message: 'Signup failed. Try again later.' });
+    if (checkResult.recordset.length > 0) {
+      return res.status(400).json({ field: 'phoneNumber', message: 'Phone number already exists' });
     }
+
+    const insertInputs = {
+      othernames: userData.otherNames,
+      Surname: userData.surname,
+      email: userData.email || '',
+      Sex: userData.sex,
+      DOB: userData.dob,
+      Quarters: userData.quarters,
+      Ward: userData.ward,
+      Town: userData.town,
+      State: userData.state,
+      PhoneNumber: userData.phoneNumber,
+      phoneno2: userData.phoneNo2 || null,
+      Password: userData.password,
+      Title: userData.title,
+      HonTitle: userData.honTitle,
+      Qualifications: userData.qualifications || null,
+      Profession: userData.profession,
+      exitdate: userData.exitDate || null,
+      CreatedAt: new Date(),
+    };
+
+    const insertQuery = `
+      INSERT INTO members 
+      (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate)
+      VALUES 
+      (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate)
+    `;
+
+    await request(insertQuery).inputs(insertInputs).run();
+
+    if (req.session) {
+      req.session.phoneNumber = userData.phoneNumber;
+    } else {
+      console.warn('⚠️ Session middleware is missing.');
+    }
+
+    res.status(201).json({
+      message: 'Signup successful!',
+      phoneNumber: userData.phoneNumber
+    });
+
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Signup failed. Try again later.' });
+  }
 });
 
 // Login Endpoint
@@ -180,6 +150,36 @@ app.post('/login', async (req, res) => {
   } finally {
     if (conn) conn.release();
   }
+});
+
+app.use(express.json());
+app.use('/admin', adminRoutes);
+
+
+// Middleware
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/public', serveIndex(path.join(__dirname, 'public'), { icons: true }));
+
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
+
+// Dummy login endpoint
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username && password) {
+        res.json({ success: true, token: 'fake-jwt-token' });
+    } else {
+        res.status(400).json({ success: false, message: 'Missing credentials' });
+    }
 });
 
 // dashboard Endpoint//
@@ -492,81 +492,3 @@ process.on('unhandledRejection', (reason, promise) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-/*app.get('/api/profile', (req, res) => {
-    res.json({
-        age: 30,
-        phoneNo: '+234 801 234 5678',
-        honors: 'Cum Laude',
-        exitDate: '2025-12-31',
-        town: 'Benin City',
-        state: 'Edo',
-        ward: 'Oredo Ward 1',
-        quarters: 'GRA Phase II',
-        qualifications: ['B.Sc. Computer Science', 'PMP Certification']
-    });
-});
-
-app.get('/dashboard', (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-*/
-
-
-/*const express = require('express');
-const Parser = require('rss-parser');
-const cors = require('cors');
-
-const app = express();
-const port = 5500;
-
-// Add user-agent to avoid being blocked
-const parser = new Parser({
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Node.js RSS Reader)',
-  },
-});
-
-app.use(cors());
-app.use(express.static('public'));
-
-app.get('/news', async (req, res) => {
-  try {
-    const feed = await parser.parseURL('https://feeds.bbci.co.uk/news/world/rss.xml');
-    const articles = feed.items.map(item => {
-      const media = item['media:content'] || item['media:thumbnail'];
-      const imageUrl = media && media.$ && media.$.url ? media.$.url : null;
-
-      return {
-        title: item.title,
-        link: item.link,
-        pubDate: item.pubDate,
-        image: imageUrl
-      };
-    });
-
-    res.json(articles);
-  } catch (err) {
-    console.error('❌ Failed to fetch news:', err.message || err);
-    res.status(500).json({ error: 'Failed to fetch news' });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
-});*/
-
-

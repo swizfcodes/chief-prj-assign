@@ -292,67 +292,76 @@ async function loadAdmins() {
     }
 
     const table = `
-      <table class="w-full text-left border border-collapse">
-        <thead>
-          <tr class="bg-gray-200">
-            <th class="p-2 border">#</th>
-            <th class="p-2 border">Full Name</th>
-            <th class="p-2 border">Email</th>
-            <th class="p-2 border">Role</th>
-            <th class="p-2 border">Status</th>
-            <th class="p-2 border">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${admins.map((admin, index) => `
-            <tr>
-              <td class="p-2 border">${index + 1}</td>
-              <td class="p-2 border">${admin.fullname}</td>
-              <td class="p-2 border">${admin.email}</td>
-              <td class="p-2 border">${admin.role}</td>
-              <td class="p-2 border">${admin.active == 1 || admin.active === '1' ? 'Active' : 'Inactive'}</td>
-              <td class="p-2 border">
-                <!-- Desktop Buttons (≥ md) -->
-                <div class="hidden md:flex gap-1">
-                  <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})" class="px-2 py-1 rounded ${admin.active ? 'bg-yellow-500' : 'bg-green-500'} text-white text-xs">
-                    ${admin.active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button class="px-2 py-1 bg-blue-600 text-white rounded text-xs edit-admin-btn"
-                    data-id="${admin.Id}"
-                    data-fullname="${admin.fullname}"
-                    data-email="${admin.email}"
-                    data-role="${admin.role}">
-                    Edit
-                  </button>
-                  <button onclick="deleteAdmin('${admin.Id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs">Delete</button>
-                </div>
-
-                <!-- Mobile 3-dot menu (< md) -->
-                <div class="relative inline-block md:hidden">
-                  <button onclick="toggleMenu(this)" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none">
-                    <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M6 10a2 2 0 114.001-.001A2 2 0 016 10zm4 0a2 2 0 114.001-.001A2 2 0 0110 10zm4 0a2 2 0 114.001-.001A2 2 0 0114 10z" />
-                    </svg>
-                  </button>
-                  <div class="hidden absolute right-0 z-10 mt-2 w-36 bg-white border rounded-lg shadow-md">
-                    <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})" class="w-full text-left px-4 py-2 text-sm ${admin.active ? 'bg-yellow-500' : 'bg-green-500'}  hover:bg-gray-100">
+      <div class="overflow-x-hidden max-w-full">
+        <table class="w-full text-left border border-collapse table-auto">
+          <thead>
+            <tr class="bg-gray-200 text-xs sm:text-sm">
+              <th class="p-2 border">#</th>
+              <th class="p-2 border">Full Name</th>
+              <th class="p-2 border">Email</th>
+              <th class="p-2 border">Role</th>
+              <th class="p-2 border">Status</th>
+              <th class="p-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${admins.map((admin, index) => `
+              <tr class="text-xs sm:text-sm">
+                <td class="p-2 border">${index + 1}</td>
+                <td class="p-2 border break-words">${admin.fullname}</td>
+                <td class="p-2 border email-wrap">${admin.email}</td>
+                <td class="p-2 border">${admin.role}</td>
+                <td class="p-2 border">${admin.active == 1 || admin.active === '1' ? 'Active' : 'Inactive'}</td>
+                <td class="p-2 border">
+                  <!-- Desktop Buttons -->
+                  <div class="hidden md:flex gap-1 flex-wrap">
+                    <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})"
+                      class="px-2 py-1 rounded ${admin.active ? 'bg-yellow-500' : 'bg-green-500'} text-white text-xs">
                       ${admin.active ? 'Deactivate' : 'Activate'}
                     </button>
-                    <button class="w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-gray-100 edit-admin-btn"
+                    <button class="px-2 py-1 bg-blue-600 text-white rounded text-xs edit-admin-btn"
                       data-id="${admin.Id}"
                       data-fullname="${admin.fullname}"
                       data-email="${admin.email}"
                       data-role="${admin.role}">
                       Edit
                     </button>
-                    <button onclick="deleteAdmin('${admin.Id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100">Delete</button>
+                    <button onclick="deleteAdmin('${admin.Id}')" class="px-2 py-1 bg-red-600 text-white rounded text-xs">
+                      Delete
+                    </button>
                   </div>
-                </div>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>`;
+
+                  <!-- Mobile Menu -->
+                  <div class="relative inline-block md:hidden">
+                    <button onclick="toggleMenu(this)" class="p-2 rounded-full hover:bg-gray-100 focus:outline-none">
+                      <svg class="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6 10a2 2 0 114.001-.001A2 2 0 016 10zm4 0a2 2 0 114.001-.001A2 2 0 0110 10zm4 0a2 2 0 114.001-.001A2 2 0 0114 10z" />
+                      </svg>
+                    </button>
+                    <div class="hidden absolute right-0 z-10 mt-2 w-36 bg-white border rounded-lg shadow-md">
+                      <button onclick="toggleAdminStatus('${admin.Id}', ${admin.active})"
+                        class="w-full text-left px-4 py-2 text-sm ${admin.active ? 'bg-yellow-500' : 'bg-green-500'} hover:bg-gray-100">
+                        ${admin.active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button class="w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-gray-100 edit-admin-btn"
+                        data-id="${admin.Id}"
+                        data-fullname="${admin.fullname}"
+                        data-email="${admin.email}"
+                        data-role="${admin.role}">
+                        Edit
+                      </button>
+                      <button onclick="deleteAdmin('${admin.Id}')" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-100">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
     document.getElementById('adminTable').innerHTML = table;
   } catch (err) {
     console.error('Admin Load Error:', err);

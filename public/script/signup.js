@@ -242,6 +242,15 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://oyinakokocda.org';
     }
   });
 
+  document.addEventListener('DOMContentLoaded', function () {
+    const checkbox = document.getElementById('acceptRules');
+    const submitBtn = document.getElementById('submitBtn');
+
+    checkbox.addEventListener('change', function () {
+      submitBtn.disabled = !checkbox.checked;
+    });
+  });
+
 
   // Export function to get user data (for database integration)
   window.getUserData = function() {
