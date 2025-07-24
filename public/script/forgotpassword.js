@@ -1,5 +1,5 @@
 const isLocal = window.location.hostname === 'localhost';
-const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://chief-prj-assign.onrender.com'; 
+const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://oyinakokocda.org'; 
   
   function showError(fieldId, message) {
     const errorElement = document.getElementById(fieldId + 'Error');

@@ -1060,7 +1060,7 @@ router.get('/static/:type', async (req, res) => {
   
   // Predefined safe configuration
   const tableMap = {
-    titles: { table: 'Title', columns: ['title'] },
+    titles: { table: 'title', columns: ['title'] },
     qualifications: { table: 'qualfication', columns: ['qualification'] },
     wards: { table: 'oyinwards', columns: ['ward', 'Quarter'] },
     hontitles: { table: 'hontitle', columns: ['Htitle', 'titlerank'] },
@@ -1101,7 +1101,7 @@ router.get('/static/states', async (req, res) => {
 // --- POST (Add) ---
 const tableMap = {
   titles: {
-    table: 'Title',
+    table: 'title',
     columns: ['title']
   },
   qualifications: {
@@ -1118,7 +1118,6 @@ const tableMap = {
   }
 };
 
-// --- POST ---
 router.post('/static/:type', async (req, res) => {
   const { type } = req.params;
   const config = tableMap[type];
@@ -1654,7 +1653,7 @@ router.post('/notices', verifyToken, async (req, res) => {
 
   try {
     await request(`
-      INSERT INTO Notices (title, content, type, created_by)
+      INSERT INTO notices (title, content, type, created_by)
       VALUES (@title, @content, @type, @created_by)
     `)
     .inputs({ title, content, type, created_by })
@@ -1673,7 +1672,7 @@ router.get('/notices', async (req, res) => {
   try {
     
     const result = await request
-      `SELECT id, title, content, type, created_at FROM Notices ORDER BY created_at DESC`.run();
+      `SELECT id, title, content, type, created_at FROM notices ORDER BY created_at DESC`.run();
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch notices/events' });
@@ -1691,7 +1690,7 @@ router.put('/notices/:id', verifyToken, async (req, res) => {
 
   try {
     const result = await request(`
-      UPDATE Notices 
+      UPDATE notices 
       SET title = @title, content = @content, type = @type
       WHERE id = @id
     `)
@@ -1715,7 +1714,7 @@ router.delete('/notices/:id', verifyToken, async (req, res) => {
   try {
      const {id} = req.params;
     const result = await request
-    `DELETE FROM Notices WHERE id = @id`
+    `DELETE FROM notices WHERE id = @id`
       .inputs({id})
       .run();
       

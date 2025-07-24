@@ -14,9 +14,8 @@ app.use(cors({
   origin: [
     'http://localhost:5500',        // local frontend
     'http://127.0.0.1:5500',
-    'https://ocdaonline.net',       
+    'https://oyinakokocda.org',       
     // production
-    'https://chief-prj-assign.onrender.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
@@ -59,14 +58,13 @@ app.use((req, res, next) => {
 });
 
 // Signup Endpoint
-
 app.post('/signup', async (req, res) => {
     try {
         const userData = req.body;
         console.log('Signup data received:', userData);
 
         // 1. Check if phone number already exists
-        const checkResult = await request(`SELECT * FROM Members WHERE PhoneNumber = @phoneNumber`)
+        const checkResult = await request(`SELECT * FROM members WHERE PhoneNumber = @phoneNumber`)
             .inputs({ phoneNumber: userData.phoneNumber })
             .run();
 
@@ -98,7 +96,7 @@ app.post('/signup', async (req, res) => {
         };
 
         const insertQuery = `
-            INSERT INTO Members 
+            INSERT INTO members 
             (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate)
             VALUES 
             (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate)
@@ -133,8 +131,10 @@ app.post('/login', async (req, res) => {
   let conn;
   try {
     const { identifier, password } = req.body;
+    console.log('📥 Login request received:', identifier, password);
 
-     conn = await pool.getConnection();
+    conn = await pool.getConnection();
+    console.log('✅ DB connection established');
 
     let field, value;
     if (/^\d+$/.test(identifier) && Number(identifier) <= 2147483647) {
@@ -145,22 +145,28 @@ app.post('/login', async (req, res) => {
       value = identifier;
     }
 
+    console.log(`🔍 Searching by ${field}:`, value);
+
     const [rows] = await conn.execute(
-      `SELECT * FROM Members WHERE ${field} = ? LIMIT 1`,
+      `SELECT * FROM members WHERE ${field} = ? LIMIT 1`,
       [value]
     );
 
     if (rows.length === 0) {
+      console.log('❌ No user found');
       return res.status(400).json({ field: 'identifier', message: `${field} not found` });
     }
 
     const user = rows[0];
+    console.log('👤 User found:', user);
 
     if (user.Password !== password) {
+      console.log('🔐 Password mismatch');
       return res.status(400).json({ field: 'password', message: 'Incorrect password' });
     }
 
     req.session.userId = user.Id;
+    console.log('✅ Login successful');
 
     res.status(200).json({
       message: 'Login successful',
@@ -169,10 +175,10 @@ app.post('/login', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Login error:', err);
+    console.error('❌ Login error:', err); // full error
     res.status(500).json({ message: 'Login failed, server error' });
   } finally {
-    if (conn) conn.release(); // ✅ always release to avoid connection leak
+    if (conn) conn.release();
   }
 });
 
@@ -201,7 +207,7 @@ app.post('/api/profile', async (req, res) => {
         HonTitle,
         exitdate,
         Qualifications
-      FROM Members
+      FROM members
       WHERE PhoneNumber = ${phoneNumber}
     `.run();
 
@@ -447,7 +453,7 @@ app.get('/api/enquiry/:type/:value', async (req, res) => {
   try {
     let query = `
       SELECT ml.*, m.ward FROM memberledger ml
-      JOIN Members m ON ml.phoneno = m.PhoneNumber
+      JOIN members m ON ml.phoneno = m.PhoneNumber
       WHERE m.${type} = @value
     `;
 
