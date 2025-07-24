@@ -491,43 +491,43 @@ function setupAdminTab() {
   loadAdmins(); // Always refresh admin list when tab is shown
 }
 
-  // Call setupAdminTab() when the "Administrators" tab is shown
-  document.querySelectorAll('.tab-button').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      if (btn.dataset.tab === 'create-member') {
-        setupAdminTab();
-      }
-    });
+// Call setupAdminTab() when the "Administrators" tab is shown
+document.querySelectorAll('.tab-button').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    if (btn.dataset.tab === 'create-member') {
+      setupAdminTab();
+    }
   });
+});
 
-      // Format amount with ₦ and commas
-    const formatAmount = amount => `₦${parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+  // Format amount with ₦ and commas
+const formatAmount = amount => `₦${parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
 
-    // Format date to DD/MM/YYYY
-    const formatDate = dateStr => {
-      const date = new Date(dateStr);
-      if (isNaN(date)) return dateStr;
-      return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
-    };
+// Format date to DD/MM/YYYY
+const formatDate = dateStr => {
+  const date = new Date(dateStr);
+  if (isNaN(date)) return dateStr;
+  return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
+};
 
-    // Tab navigation
-    document.querySelectorAll('.tab-button').forEach(btn => {
-      btn.addEventListener('click', function () {
-        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active-tab'));
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+// Tab navigation
+document.querySelectorAll('.tab-button').forEach(btn => {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active-tab'));
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
 
-        this.classList.add('active-tab');
-        const tabId = this.getAttribute('data-tab');
-        const tabSection = document.getElementById(tabId);
-        if (tabSection) tabSection.classList.remove('hidden');
+    this.classList.add('active-tab');
+    const tabId = this.getAttribute('data-tab');
+    const tabSection = document.getElementById(tabId);
+    if (tabSection) tabSection.classList.remove('hidden');
 
-        // Only call setupAdminTab when admin tab is clicked
-        if (tabId === 'create-admin') setupAdminTab();
-        if (tabId === 'member-list') loadMembers();
-        if (tabId === 'ledger-entry') loadMemberLedger();
-        // ...other tab-specific loaders
-      });
-    });
+    // Only call setupAdminTab when admin tab is clicked
+    if (tabId === 'create-admin') setupAdminTab();
+    if (tabId === 'member-list') loadMembers();
+    if (tabId === 'ledger-entry') loadMemberLedger();
+    // ...other tab-specific loaders
+  });
+});
 
     // Fetch Data Sections
 function fetchTable(endpoint, targetId, renderFn) {
@@ -2075,7 +2075,7 @@ function renderOCDAExpensesAnalysis(data, mode) {
   }
 }
 
-// ✅ Add this outside the render function
+// Add this outside the render function
 function toggleGroup(index) {
   const section = document.getElementById(`group-${index}`);
   if (section) section.classList.toggle('hidden');

@@ -235,4 +235,3 @@ function authenticateUser(phone, password) {
         return false;
     }
 }
-

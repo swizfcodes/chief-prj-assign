@@ -163,7 +163,7 @@
 .about-section {
   background-color: var(--bg-color);
   padding: 4rem 2rem;
-  color: #1a1a1a;
+  color: var(--text-color);
   font-family: "Poppins", sans-serif;
    animation: fadeIn 1.5s ease-in-out;
 }
