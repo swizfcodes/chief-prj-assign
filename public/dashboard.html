@@ -6,11 +6,17 @@
   <title>User Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles/index.css">
+  <link rel="icon" type="image/png" href="/photos/favicon.ico" sizes="32x32">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <style>
   ul li::before {
     content: "" !important; 
+  }
+
+  .form-wrapper,
+  .container-form{
+    background: none !important;
   }
 
   label{
@@ -32,6 +38,27 @@
   @media (max-width: 491px) {
     #receiptTable {
       font-size: 79% !important;
+    }
+
+    .p-4{
+      padding: 0.1rem !important;
+    }
+
+    .p-5{
+      padding: 0.1rem !important;
+    }
+
+    .p-6{
+      padding: 0.1rem !important;
+    }
+
+    .px-4 {
+      padding-right: 0.2rem !important;
+      padding-left: 0.2rem !important;
+    }
+
+    .pl-4 {
+     padding-left: 0.1rem !important; 
     }
   }
 
@@ -123,7 +150,6 @@
             <!-- JS will populate years -->
           </select>
         </div>
-
       </div>
 
       <div class="flex justify-between items-center" id="flex1">
@@ -154,10 +180,10 @@
 
   <!-- profile section -->
   <section id="profileSection" class="hidden p-6 md:p-10 lg:px-16 xl:px-24 2xl:px-32">
-    <div class="max-w-6xl mx-auto space-y-6 bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 md:p-10">
+    <div class="max-w-6xl mx-auto space-y-6 bg-white rounded-lg shadow-md p-6 md:p-10">
       <div class="text-center space-y-2">
         </h1>
-        <h2 class="text-lg md:text-xl text-gray-600 dark:text-gray-300 font-medium">My Profile</h2>
+        <h2 class="text-lg md:text-xl text-gray-600 font-medium">My Profile</h2>
       </div>
 
       <!-- Display Section -->
@@ -233,6 +259,18 @@
 
       <!-- Edit Section -->
       <form id="profileEditForm" style="display:none">
+          <!-- Row: Surname + Other Names -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="surname">Surname </label>
+              <input type="text" id="surname" name="Surname">
+            </div>
+            <div class="form-group">
+              <label for="otherNames">OtherNames</label>
+              <input type="text" id="othernames" name="othernames">
+            </div>
+          </div>
+
         <!-- Phone Numbers -->
         <div class="form-row">
           <div class="form-group">

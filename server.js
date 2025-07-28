@@ -101,10 +101,10 @@ app.post('/login', async (req, res) => {
   let conn;
   try {
     const { identifier, password } = req.body;
-    console.log('📥 Login request received:', identifier, password);
+    console.log('Login request received:', identifier, password);
 
     conn = await pool.getConnection();
-    console.log('✅ DB connection established');
+    console.log('DB connection established');
 
     let field, value;
     if (/^\d+$/.test(identifier) && Number(identifier) <= 2147483647) {
@@ -115,7 +115,7 @@ app.post('/login', async (req, res) => {
       value = identifier;
     }
 
-    console.log(`🔍 Searching by ${field}:`, value);
+    console.log(`Searching by ${field}:`, value);
 
     const [rows] = await conn.execute(
       `SELECT * FROM members WHERE ${field} = ? LIMIT 1`,
@@ -131,12 +131,12 @@ app.post('/login', async (req, res) => {
     console.log('👤 User found:', user);
 
     if (user.Password !== password) {
-      console.log('🔐 Password mismatch');
+      console.log('Password mismatch');
       return res.status(400).json({ field: 'password', message: 'Incorrect password' });
     }
 
     req.session.userId = user.Id;
-    console.log('✅ Login successful');
+    console.log('Login successful');
 
     res.status(200).json({
       message: 'Login successful',
@@ -151,9 +151,6 @@ app.post('/login', async (req, res) => {
     if (conn) conn.release();
   }
 });
-
-app.use(express.json());
-app.use('/admin', adminRoutes);
 
 
 // Middleware
@@ -256,6 +253,8 @@ app.post('/api/update-profile', async (req, res) => {
     oldPhoneNumber,
     phone,
     phoneNo2,
+    surname,
+    othernames,
     email,
     State,
     sex,
@@ -284,6 +283,14 @@ app.post('/api/update-profile', async (req, res) => {
     if (phoneNo2) {
       updates.push('phoneno2 = @phoneNo2');
       inputs.push({ name: 'phoneNo2', value: phoneNo2 });
+    }
+    if (surname) {
+      updates.push('Surname = @surname');
+      inputs.push({ name: 'surname', value: surname });
+    }
+    if (othernames) {
+      updates.push('othernames = @othernames');
+      inputs.push({ name: 'othernames', value: othernames });
     }
     if (email) {
       updates.push('email = @email');
@@ -388,19 +395,6 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 
-
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      console.error('Logout failed:', err);
-      return res.status(500).json({ message: 'Logout failed' });
-    }
-    res.clearCookie('connect.sid'); // Optional: depends on session setup
-    res.status(200).json({ message: 'Logged out successfully' });
-  });
-});
-
-
 //Fetch Individual Ledger Receipts
 
 app.get('/api/ledger-entry/:phoneno', async (req, res) => {
@@ -474,9 +468,16 @@ app.get('/api/enquiry/:type/:value', async (req, res) => {
   }
 });
 
-
+//logout
 app.post('/logout', (req, res) => {
-  req.session.destroy(() => res.json({ message: 'Logged out' }));
+  req.session.destroy(err => {
+    if (err) {
+      console.error('Logout failed:', err);
+      return res.status(500).json({ message: 'Logout failed' });
+    }
+    res.clearCookie('connect.sid');
+    res.status(200).json({ message: 'Logged out successfully' });
+  });
 });
 
 

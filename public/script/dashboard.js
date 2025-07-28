@@ -686,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Compare form values to current data
     const updatedData = { oldPhoneNumber: oldPhone };
     const fields = [
-      'phone', 'phoneNo2', 'email', 'State', 'sex', 'title',
+      'phone', 'phoneNo2', 'othernames', 'surname','email', 'State', 'sex', 'title',
       'honTitle', 'Quarters', 'Ward', 'town',
       'qualifications', 'profession', 'exitDate'
     ];
@@ -1007,7 +1007,7 @@ function printReceiptsPDF() {
   }
 
 
-  // ✅ Now define fetchEnquiry
+  //  Now define fetchEnquiry
 async function fetchEnquiry(type, value) {
   console.log("fetchEnquiry called");
   const fromDate = document.getElementById('enquiryFrom').value;
@@ -1049,9 +1049,21 @@ async function fetchEnquiry(type, value) {
         const wardTotal = records.reduce((sum, r) => sum + Number(r.amount), 0);
         quarterTotal += wardTotal;
         html += `
-          <div class="mb-6">
-            <h3 class="text-lg font-semibold text-gray-700">Ward ${ward} under Quarter ${value}</h3>
-            <p class="text-green-700 mb-2">Total = ₦${wardTotal.toLocaleString()}</p>
+          <div class="overflow-x-auto rounded-lg shadow-md my-6">
+            <table class="min-w-full divide-y divide-gray-300 bg-white">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Ward</th>
+                  <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${ward}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-green-700 font-semibold">₦${wardTotal.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         `;
       });

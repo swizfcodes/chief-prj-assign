@@ -7,8 +7,8 @@
 </head>
 <link rel="stylesheet" href="styles/index.css">
 <script src="https://cdn.tailwindcss.com"></script>
-
- <link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<link rel="icon" type="image/png" href="/photos/favicon.ico" sizes="32x32">
+<link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
 <body>
   <div class="form-wrapper">
@@ -18,8 +18,8 @@
 
         
         <div class="form-container">
-            <!-- Success Message -->
-            <div class="success-message" id="successMessage">
+          <!-- Success Message -->
+          <div class="success-message" id="successMessage">
         </div>
 
         <!-- Row: Surname + Other Names -->
@@ -134,20 +134,20 @@
           </div>
         </div>
 
-      <!-- Row: Email  + Exit Date-->
-       <!-- Email-->
-      <div class="form-row">
-        <div class="form-group">
-            <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" placeholder="example@domain.com">
-        </div>
+        <!-- Row: Email  + Exit Date-->
+        <!-- Email-->
+        <div class="form-row">
+          <div class="form-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" name="email" placeholder="example@domain.com">
+          </div>
 
-        <!-- Exit Date -->
-        <div class="form-group">
-          <label for="exitDate">Exit Date</label>
-          <input type="date" id="exitDate" name="exitDate">
+          <!-- Exit Date -->
+          <div class="form-group">
+            <label for="exitDate">Exit Date</label>
+            <input type="date" id="exitDate" name="exitDate">
+          </div>
         </div>
-      </div>
 
         <!-- Row: Passwords -->
         <div class="form-row">
@@ -164,41 +164,40 @@
         </div>
 
         <!-- T & C -->
-<div class="form-group">
-  <label class="inline-flex items-start gap-2">
-    <input type="checkbox" id="acceptRules" name="acceptRules" class="form-checkbox text-blue-600 mt-1 w-auto"> 
-    <span class="text-sm text-black-800 font-medium">
-      I ACCEPT TO ABIDE BY THE RULES AND REGULATIONS OF THE ASSOCIATION
-    </span>
-  </label>
-</div>
+        <div class="form-group">
+          <label class="inline-flex items-start gap-2">
+            <input type="checkbox" id="acceptRules" name="acceptRules" class="form-checkbox text-blue-600 mt-1 w-auto"> 
+            <span class="text-sm text-black-800 font-medium">
+              I ACCEPT TO ABIDE BY THE RULES AND REGULATIONS OF THE ASSOCIATION
+            </span>
+          </label>
+        </div>
 
-<button type="submit" class="submit-btn hidden" id="submitBtn">Create Account</button>
-
+        <button type="submit" class="submit-btn hidden" id="submitBtn">Create Account</button>
       </form>
     </div>
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const checkbox = document.getElementById('acceptRules');
-    const submitBtn = document.getElementById('submitBtn');
+    document.addEventListener('DOMContentLoaded', function () {
+      const checkbox = document.getElementById('acceptRules');
+      const submitBtn = document.getElementById('submitBtn');
 
-    checkbox.addEventListener('change', function () {
-      if (checkbox.checked) {
-        // Remove the 'hidden' class to make the button visible
-        submitBtn.classList.remove('hidden');
-        // Enable the button
-        submitBtn.disabled = false;
-      } else {
-        // Add the 'hidden' class to hide the button
-        submitBtn.classList.add('hidden');
-        // Disable the button (optional, as it's hidden)
-        submitBtn.disabled = true;
-      }
+      checkbox.addEventListener('change', function () {
+        if (checkbox.checked) {
+          // Remove the 'hidden' class to make the button visible
+          submitBtn.classList.remove('hidden');
+          // Enable the button
+          submitBtn.disabled = false;
+        } else {
+          // Add the 'hidden' class to hide the button
+          submitBtn.classList.add('hidden');
+          // Disable the button (optional, as it's hidden)
+          submitBtn.disabled = true;
+        }
+      });
     });
-  });
-</script>
+  </script>
 </body>
 <script src="script/signup.js"></script>
 </html>

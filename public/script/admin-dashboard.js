@@ -1322,6 +1322,42 @@ async function savePhoneNumber(e) {
   }
 }
 
+//merge phonenumber
+async function mergePhoneNumber(e) {
+  e.preventDefault();
+
+  const form = document.getElementById('phoneNumberMergingForm');
+  const firstPhone = document.getElementById('firstphoneno').value.trim();
+  const secondPhone = document.getElementById('secondPhoneNumber').value.trim();
+
+  if (!firstPhone || !secondPhone || firstPhone === secondPhone) {
+    alert("Both phone numbers must be filled and different.");
+    return;
+  }
+
+  try {
+    const res = await fetch('/admin/merge-phone', {
+      method: 'PUT',
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+      },
+      body: JSON.stringify({ firstPhone, secondPhone })
+    });
+
+    const result = await res.json();
+    alert(res.ok ? result.message : result.error);
+
+    if (res.ok) {
+      form.reset();
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert('An error occurred while merging.');
+  }
+}
+
 async function deleteMember(phone) {
   if (!confirm('Are you sure you want to delete this member?')) return;
   try {
@@ -1381,8 +1417,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (Array.isArray(data)) {
         data.forEach(item => {
           const option = document.createElement('option');
-          option.value = item.incomecode;
-          option.textContent = item.incomecode;
+          option.value = item.incomedesc;
+          option.textContent = item.incomedesc;
           remarkDropdown.appendChild(option);
         });
       }
@@ -1801,11 +1837,11 @@ if (mode === 'detail') {
     });
     detailHtml = Object.entries(grouped).map(([phoneno, txs]) => `
       <div class="mb-8 border border-gray-300 rounded shadow-sm">
-        <div class="font-bold text-lg bg-gray-100 px-4 py-2 cursor-pointer toggle-header" data-target="table-${phoneno}">
-        ${phoneno} - ${txs[0]?.fullname || ''}
-      </div>
+        <div class="font-bold text-lg bg-gray-100 px-4 py-2 cursor-pointer toggle-header" data-target="member-${phoneno.replace(/[^a-zA-Z0-9]/g, '_')}">
+          ${phoneno} - ${txs[0]?.fullname || ''}
+        </div>
 
-        <div id="table-${phoneno}" class="toggle-table hidden">
+        <div id="member-${phoneno.replace(/[^a-zA-Z0-9]/g, '_')}" class="toggle-table hidden">
           <table class="w-full border border-gray-400 shadow-sm" style="border-collapse: collapse;">
             <thead>
               <tr>
@@ -1827,89 +1863,128 @@ if (mode === 'detail') {
         </div>
       </div>
     `).join('');
+
   } else if (type === 'ward') {
-    detailHtml = detail.map(w => `
-      <div class="mb-8 border border-gray-300 rounded shadow">
-        <!-- Use "ward-view-" prefix -->
-        <div class="font-bold text-blue-600 text-lg bg-gray-50 px-4 py-2 cursor-pointer toggle-header"
-            data-target="ward-view-${w.ward}">
-          Ward: ${w.ward}
-        </div>
+    // For 'ward' type, calculate total amount for each member within each ward
+      const wardsWithMemberTotals = detail.map(w => {
+          // Group transactions by member within each ward to calculate individual member totals
+        const groupedMembers = {};
+        (Array.isArray(w.members) ? w.members : []).forEach(tx => {
+            if (!groupedMembers[tx.phoneno]) {
+                groupedMembers[tx.phoneno] = { phoneno: tx.phoneno, fullname: tx.fullname, totalAmount: 0 };
+            }
+            groupedMembers[tx.phoneno].totalAmount += (parseFloat(tx.amount) || 0);
+        });
+        return { ...w, members: Object.values(groupedMembers) }; // Convert grouped object back to array
+      });
 
-        <div id="ward-view-${w.ward}" class="toggle-table hidden">
-          <table class="w-full border border-gray-400" style="border-collapse: collapse;">
-            <thead>
+    detailHtml = wardsWithMemberTotals.map((w, wardIndex) => {
+        const uniqueId = `ward-${wardIndex}-${w.ward.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    return `
+    <div class="mb-8 border border-gray-300 rounded shadow">
+      <div class="font-bold text-blue-600 text-lg bg-gray-50 px-4 py-2 cursor-pointer toggle-header"
+          data-target="${uniqueId}">
+        Ward: ${w.ward}
+      </div>
+
+      <div id="${uniqueId}" class="toggle-tables hidden">
+        <table class="w-full border border-gray-400" style="border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th class="border px-4 py-2 bg-gray-100 text-center">Phone</th>
+              <th class="border px-4 py-2 bg-gray-100 text-center">Name</th>
+              <th class="border px-4 py-2 text-center bg-gray-100">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(Array.isArray(w.members) ? w.members : []).map(m => `
               <tr>
-                <th class="border px-4 py-2 bg-gray-100 text-center">Phone</th>
-                <th class="border px-4 py-2 bg-gray-100 text-center">Name</th>
-                <th class="border px-4 py-2 bg-gray-100 text-center">Date</th>
-                <th class="border px-4 py-2 bg-gray-100 text-center">Amount</th>
-                <th class="border px-4 py-2 bg-gray-100 text-center">Remark</th>
+                <td class="border px-4 py-2 text-center">${m.phoneno}</td>
+                <td class="border px-4 py-2 text-center">${m.fullname}</td>
+                <td class="border px-4 py-2 text-center">${m.totalAmount}</td>
               </tr>
-            </thead>
-            <tbody>
-              ${(Array.isArray(w.members) ? w.members : []).map(m => `
-                <tr>
-                  <td class="border px-4 py-2 text-center">${m.phoneno}</td>
-                  <td class="border px-4 py-2 text-center">${m.fullname}</td>
-                  <td class="border px-4 py-2 text-center">${m.transdate}</td>
-                  <td class="border px-4 py-2 text-center">${m.amount}</td>
-                  <td class="border px-4 py-2 text-center">${m.remark}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-    `).join('');
+    </div>
+  `;
+    }).join('');
+
   } else if (type === 'quarter') {
-    detailHtml = detail.map(q => `
-      <div class="mb-10 border border-gray-300 rounded shadow">
-        <!-- Quarter Toggle Header -->
-        <div class="text-xl text-indigo-700 font-bold px-4 py-2 bg-gray-100 cursor-pointer toggle-header" data-target="quarter-block-${q.quarter}">
-          Quarter: ${q.quarter}
-        </div>
+    // For 'quarter' type, calculate total amount for each ward within each quarter,
+    // and also calculate member totals within those wards.
+    const quartersWithWardAndMemberTotals = detail.map(q => {
+        const wardsWithTotals = (Array.isArray(q.wards) ? q.wards : []).map(w => {
+            // Group transactions by member within each ward for individual member totals
+            const groupedMembers = {};
+            (Array.isArray(w.members) ? w.members : []).forEach(tx => {
+                if (!groupedMembers[tx.phoneno]) {
+                    groupedMembers[tx.phoneno] = { phoneno: tx.phoneno, fullname: tx.fullname, totalAmount: 0 };
+                }
+                groupedMembers[tx.phoneno].totalAmount += (parseFloat(tx.amount) || 0);
+            });
 
-        <!-- Quarter Toggle Content -->
-        <div id="quarter-block-${q.quarter}" class="toggle-table hidden">
-          ${q.wards.map(w => `
-            <div class="ml-4 mt-4 border border-gray-200 rounded">
-              <!-- Ward Toggle Header within Quarter -->
-              <div class="font-semibold text-lg text-blue-500 px-4 py-2 bg-gray-50 cursor-pointer toggle-header"
-                  data-target="quarter-${q.quarter}-ward-${w.ward}">
-                Ward: ${w.ward}
-              </div>
+            // Calculate total for all members within this ward
+            const wardTotalAmount = Object.values(groupedMembers).reduce((sum, m) => sum + m.totalAmount, 0);
 
-              <!-- Ward Table within Quarter -->
-              <div id="quarter-${q.quarter}-ward-${w.ward}" class="toggle-table hidden">
-                <table class="w-full border border-gray-400" style="border-collapse: collapse;">
-                  <thead>
-                    <tr>
-                      <th class="border px-4 py-2 bg-gray-100 text-center">Phone</th>
-                      <th class="border px-4 py-2 bg-gray-100 text-center">Name</th>
-                      <th class="border px-4 py-2 bg-gray-100 text-center">Date</th>
-                      <th class="border px-4 py-2 bg-gray-100 text-center">Amount</th>
-                      <th class="border px-4 py-2 bg-gray-100 text-center">Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${(Array.isArray(w.members) ? w.members : []).map(m => `
-                      <tr>
-                        <td class="border px-4 py-2 text-center">${m.phoneno}</td>
-                        <td class="border px-4 py-2 text-center">${m.fullname}</td>
-                        <td class="border px-4 py-2 text-center">${m.transdate}</td>
-                        <td class="border px-4 py-2 text-center">${m.amount}</td>
-                        <td class="border px-4 py-2 text-center">${m.remark}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          `).join('')}
-        </div>
+            return { ...w, members: Object.values(groupedMembers), wardTotalAmount };
+        });
+
+        // Calculate total for the entire quarter
+        const quarterTotalAmount = wardsWithTotals.reduce((sum, w) => sum + w.wardTotalAmount, 0);
+
+        return { ...q, wards: wardsWithTotals, quarterTotalAmount };
+    });
+
+    detailHtml = quartersWithWardAndMemberTotals.map((q, quarterIndex) => {
+        const quarterUniqueId = `quarter-${quarterIndex}-${q.quarter.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+        return `
+    <div class="mb-10 border border-gray-300 rounded shadow">
+      <div class="text-xl text-indigo-700 font-bold px-4 py-2 bg-gray-100 cursor-pointer toggle-header" data-target="${quarterUniqueId}">
+        Quarter: ${q.quarter}
       </div>
-    `).join('');
+
+      <div id="${quarterUniqueId}" class="">
+        ${q.wards.map((w, wardIndex) => {
+            const wardInQuarterUniqueId = `quarter-${quarterIndex}-ward-${wardIndex}-${w.ward.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+            return `
+          <div class="ml-4 mt-4 border border-gray-200 rounded">
+            <div class="font-semibold text-lg text-blue-500 px-4 py-2 bg-gray-50 cursor-pointer toggle-header"
+                data-target="${wardInQuarterUniqueId}">
+              Ward: ${w.ward} (Total: ${w.wardTotalAmount.toFixed(2)})
+            </div>
+
+            <div id="${wardInQuarterUniqueId}" class="toggle-table hidden">
+              <table class="w-full border border-gray-400" style="border-collapse: collapse;">
+                <thead>
+                  <tr>
+                    <th class="border px-4 py-2 bg-gray-100 text-center">Phone</th>
+                    <th class="border px-4 py-2 bg-gray-100 text-center">Name</th>
+                    <th class="border px-4 py-2 bg-gray-100 text-center">Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(Array.isArray(w.members) ? w.members : []).map(m => `
+                    <tr>
+                      <td class="border px-4 py-2 text-center">${m.phoneno}</td>
+                      <td class="border px-4 py-2 text-center">${m.fullname}</td>
+                      <td class="border px-4 py-2 text-center">${m.totalAmount.toFixed(2)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+  }).join('');
   }
 }
 
@@ -1924,35 +1999,43 @@ if (mode === 'detail') {
     </div>
   `;
 
-  document.addEventListener('click', function (e) {
-    if (e.target.classList.contains('toggle-header')) {
-      const id = e.target.getAttribute('data-target');
-      console.log('Clicked header targeting:', id);
+// --- CONSOLIDATED TOGGLE EVENT HANDLER ---
+document.addEventListener('click', function (e) {
+  console.log('Click detected on:', e.target);
+  console.log('Classes:', e.target.classList);
+  
+  if (e.target.classList.contains('toggle-header')) {
+    e.preventDefault();
+    e.stopPropagation(); 
+    
+    const targetId = e.target.getAttribute('data-target');
+    console.log('Toggle header clicked, targeting ID:', targetId);
+    
+    // Debug: List all elements with IDs
+    const allIds = Array.from(document.querySelectorAll('[id]')).map(el => el.id);
+    console.log('All available IDs in DOM:', allIds);
+    
+    const targetElement = document.getElementById(targetId);
+    
+    if (targetElement) {
+      console.log('✅ Found target element:', targetElement);
+      console.log('Current classes before toggle:', targetElement.classList.toString());
       
-      const content = document.getElementById(id);
+      targetElement.classList.toggle('hidden');
       
-      if (content) {
-        console.log(`Found element with id="${id}". Toggling visibility.`);
-        content.classList.toggle('hidden');
-      } else {
-        console.warn(`No element found with id="${id}"! Check if it exists in the DOM.`);
-        alert(`❗ Missing element with id="${id}" — maybe a typo or clash.`);
-      }
-    }
-  });
-
-  document.querySelectorAll(".ward-header").forEach(header => {
-  header.addEventListener("click", () => {
-    const targetId = header.dataset.target;
-    console.log("Clicked ward header targeting:", targetId);
-    const target = document.getElementById(targetId);
-    if (target) {
-      console.log("Found element with id:", targetId, "Toggling visibility.");
-      target.classList.toggle("hidden");
+      console.log('Classes after toggle:', targetElement.classList.toString());
+      console.log('Is hidden?', targetElement.classList.contains('hidden'));
     } else {
-      console.warn("❌ Ward element NOT FOUND:", targetId);
+      console.error('❌ Target element NOT FOUND with ID:', targetId);
+      console.error('Available IDs:', allIds);
+      
+      // Try alternative search methods
+      const byQuery = document.querySelector(`#${CSS.escape(targetId)}`);
+      console.log('Alternative query result:', byQuery);
+      
+      alert(`❗ Element with ID "${targetId}" not found!\nAvailable IDs: ${allIds.join(', ')}`);
     }
-  });
+  }
 });
 
   // Prepare hidden export table
@@ -2101,8 +2184,6 @@ function exportOCDAReportToPDF() {
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
   }).from(element).save();
 }
-
-
 
 document.getElementById('ocdaExpensesAnalysisForm')?.addEventListener('submit', function(e) {
   e.preventDefault();
@@ -2751,7 +2832,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const stateDropdown = document.getElementById('state');
 
   try {
-    const res = await fetch('/admin/static/states'); // Or correct path like /api/static/states
+    const res = await fetch('/admin/static/states');
 
     const contentType = res.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {

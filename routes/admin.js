@@ -348,10 +348,10 @@ router.post('/createmember', verifyToken, async (req, res) => {
 
         // Prepare the inputs object with cleaned values
         const memberInputs = {
-            PhoneNumber: clean(PhoneNumber), // Assuming PhoneNumber is required and not empty
+            PhoneNumber: clean(PhoneNumber), 
             phoneno2: clean(phoneno2),
             email: clean(email),
-            Password: clean(Password), // Remember to hash passwords before storing in a real application!
+            Password: clean(Password), 
             Surname: clean(Surname),
             othernames: clean(othernames),
             Title: clean(Title),
@@ -361,12 +361,12 @@ router.post('/createmember', verifyToken, async (req, res) => {
             Ward: clean(Ward),
             State: clean(State),
             Town: clean(Town),
-            DOB: DOB, // DOB should ideally be a Date object or valid date string
+            DOB: DOB, 
             Qualifications: clean(Qualifications),
             Profession: clean(Profession),
-            exitdate: exitdate, // exitdate should ideally be a Date object or valid date string, or null
-            CreatedAt: new Date(), // Set creation timestamp
-            createdby: req.adminId // Assuming req.adminId is set by verifyToken middleware
+            exitdate: exitdate || '', 
+            CreatedAt: new Date(), 
+            createdby: req.adminId 
         };
 
         await request(`
@@ -1478,39 +1478,38 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
   try {
     const { start, end, code = 'ALL', mode = 'summary' } = req.query;
     const whereConditions = [];
-    const params = {}; // This object will hold our named parameters
+    const params = {}; 
 
     console.log('--- Debugging Parameter Issues (Admin.js) ---');
-    console.log('1. Original code from req.query:', code); // E.g., '%4010' or '@10'
+    console.log('1. Original code from req.query:', code);
 
     let decodedCode = code;
     if (code !== 'ALL') {
         try {
-            decodedCode = decodeURIComponent(code); // Ensure it's decoded for the parameter value
+            decodedCode = decodeURIComponent(code); 
         } catch (e) {
             console.warn("Failed to decode 'code' parameter:", code, e);
             decodedCode = code;
         }
     }
-    console.log('2. Decoded code (before adding wildcards):', decodedCode); // Should be '@10' if original was '%4010'
-
+    console.log('2. Decoded code (before adding wildcards):', decodedCode); 
 
     if (start) {
-      whereConditions.push(`ml.transdate >= @start`); // Use named parameter
+      whereConditions.push(`ml.transdate >= @start`);
       params.start = start;
     }
     if (end) {
-      whereConditions.push(`ml.transdate <= @end`); // Use named parameter
+      whereConditions.push(`ml.transdate <= @end`); 
       params.end = end;
     }
     if (decodedCode !== 'ALL') {
-      whereConditions.push(`ml.remark LIKE @code`); // Use named parameter
-      params.code = `%${decodedCode}%`; // Add wildcards to the parameter value
+      whereConditions.push(`ml.remark LIKE @code`);
+      params.code = `%${decodedCode}%`; 
     }
 
     const whereClause = whereConditions.length ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    console.log('3. Final params object sent to db-wrapper:', params); // Should be { code: '%@10%' } etc.
+    console.log('3. Final params object sent to db-wrapper:', params); 
     console.log('--- End Debugging Parameter Issues (Admin.js) ---');
 
     let result;
@@ -1528,8 +1527,8 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
         GROUP BY ml.remark, ic.incomedesc
         ORDER BY ml.remark`;
 
-      console.log('Summary Query being sent:', query); // Check the final SQL string
-      console.log('Summary Params object being sent:', params); // Double check parameters here
+      console.log('Summary Query being sent:', query); 
+      console.log('Summary Params object being sent:', params);
 
       // Pass the 'params' object to .inputs()
       result = await request(query).inputs(params).run();
@@ -1807,6 +1806,64 @@ router.put('/change-phone', verifyToken, async (req, res) => {
         }
         res.status(500).json({ message: 'Server error.' });
     }
+});
+
+router.put('/merge-phone', verifyToken, async (req, res) => {
+  const { firstPhone, secondPhone } = req.body;
+
+  if (!firstPhone || !secondPhone || firstPhone === secondPhone) {
+    return res.status(400).json({ message: 'Both phone numbers are required and must be different.' });
+  }
+
+  let connection; // For managing transaction safely
+
+  try {
+    // --- Step 1: Check if both phone numbers exist ---
+    const checkPhones = await request(`
+      SELECT PhoneNumber FROM members WHERE PhoneNumber IN (@firstPhone, @secondPhone)
+    `)
+    .inputs({ firstPhone, secondPhone })
+    .run();
+
+    if (checkPhones.recordset.length < 2) {
+      return res.status(404).json({ message: 'One or both phone numbers not found in members table.' });
+    }
+
+    // --- Step 2: Start transaction ---
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // --- Step 3: Reassign memberledger entries from second to first ---
+      const updateLedgerQuery = `
+        UPDATE memberledger SET phoneno = ? WHERE phoneno = ?
+      `;
+      await connection.execute(updateLedgerQuery, [firstPhone, secondPhone]);
+
+      // --- Step 4: Delete second phone from members ---
+      const deleteSecondMember = `
+        DELETE FROM members WHERE PhoneNumber = ?
+      `;
+      await connection.execute(deleteSecondMember, [secondPhone]);
+
+      // --- Step 5: Commit transaction ---
+      await connection.commit();
+      res.status(200).json({ message: 'Phone numbers merged successfully.' });
+
+    } catch (transactionErr) {
+      await connection.rollback();
+      console.error('Merge Transaction Error:', transactionErr);
+      res.status(500).json({ message: 'Transaction failed. Changes rolled back.' });
+
+    } finally {
+      if (connection) connection.release();
+    }
+
+  } catch (err) {
+    console.error('Merge Phone Server Error:', err);
+    if (connection) connection.release();
+    res.status(500).json({ message: 'Server error.' });
+  }
 });
 
 module.exports = router;
