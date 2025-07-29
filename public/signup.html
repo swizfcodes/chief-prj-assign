@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCDA</title>
+</head>
+<link rel="stylesheet" href="styles/index.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="icon" type="image/png" href="/photos/favicon.ico" sizes="32x32">
+<link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<body>
+  <div class="form-wrapper">
+    <div class="container-form">
+      <form class="form active" id="signupForm">
+        <h2 class="title">Create Account</h2>
+
+        
+        <div class="form-container">
+          <!-- Success Message -->
+          <div class="success-message" id="successMessage">
+        </div>
+
+        <!-- Row: Surname + Other Names -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="surname">Surname <span class="required">*</span></label>
+            <input type="text" id="surname" name="surname" required>
+            <div class="error" id="surnameError"></div>
+          </div>
+          <div class="form-group">
+            <label for="otherNames">OtherNames <span class="required">*</span></label>
+            <input type="text" id="otherNames" name="otherNames" required>
+            <div class="error" id="otherNamesError"></div>
+          </div>
+        </div>
+
+        <!-- Phone Numbers -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" required placeholder="e.g., 08012345678">
+            </div>
+            <div class="form-group">
+                <label for="phoneNo2">Secondary Phone</label>
+                <input type="tel" id="phoneNo2" name="phoneNo2" placeholder="Optional">
+            </div>
+        </div>
+
+        <!-- Row: Title + HonTitle -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <select id="title" name="title"> 
+              <option value="">Select Title</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="honTitle">Honorary Title</label>
+            <select id="honTitle" name="honTitle"> 
+              <option value="">Select Honorary Title</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row: Sex + DOB -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="sex">Sex <span class="required">*</span></label>
+            <select id="sex" name="sex" required> 
+              <option value="">Select Sex</option>
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+            <div class="error" id="sexError"></div>
+          </div>
+          <div class="form-group">
+            <label for="dob">Date of Birth <span class="required">*</span></label>
+            <input type="date" id="dob" name="dob" required>
+            <div class="error" id="dobError"></div>
+          </div>
+        </div>
+
+        <!-- Quarters + Ward-->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="quarters">Quarters<span class="required">*</span></label>
+            <select id="quarters" name="quarters" required> 
+              <option value="">Select Quaters</option>
+            </select>
+            <div class="error" id="quartersError"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="ward">Ward <span class="required">*</span></label>
+            <select id="ward" name="ward" required> 
+              <option value="">Select Ward</option>
+            </select>
+            <div class="error" id="wardError"></div>
+          </div>
+        </div>
+        
+        <!-- Row: State + Town -->
+        <div class="form-row">
+          <!-- State -->
+          <div class="form-group">
+            <label for="state">State <span class="required">*</span></label>
+            <select id="state" name="state" required> 
+              <option value="">Select State</option>
+            </select>
+            <div class="error" id="stateError"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="town">Town <span class="required">*</span></label>
+            <input type="text" id="town" name="town" required>
+            <div class="error" id="townError"></div>
+          </div>
+        </div>
+
+        <!-- Row: Qualifications + Profession -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="qualifications">Qualification</label>
+            <select id="qualifications" name="qualifications"> 
+              <option value="">Select Qualification</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="profession">Profession</label>
+            <input type="text" id="profession" name="profession">
+          </div>
+        </div>
+
+        <!-- Row: Email  + Exit Date-->
+        <!-- Email-->
+        <div class="form-row">
+          <div class="form-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" name="email" placeholder="example@domain.com">
+          </div>
+
+          <!-- Exit Date -->
+          <div class="form-group">
+            <label for="exitDate">Exit Date</label>
+            <input type="date" id="exitDate" name="exitDate">
+          </div>
+        </div>
+
+        <!-- Row: Passwords -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="password">Password <span class="required">*</span></label>
+            <input type="password" id="password" name="password" required>
+            <div class="error" id="passwordError"></div>
+          </div>
+          <div class="form-group">
+            <label for="retypePassword">Retype Password <span class="required">*</span></label>
+            <input type="password" id="retypePassword" name="retypePassword" required>
+            <div class="error" id="retypePasswordError"></div>
+          </div>
+        </div>
+
+        <!-- T & C -->
+        <div class="form-group">
+          <label class="inline-flex items-start gap-2">
+            <input type="checkbox" id="acceptRules" name="acceptRules" class="form-checkbox text-blue-600 mt-1 w-auto"> 
+            <span class="text-sm text-black-800 font-medium">
+              I ACCEPT TO ABIDE BY THE RULES AND REGULATIONS OF THE ASSOCIATION
+            </span>
+          </label>
+        </div>
+
+        <button type="submit" class="submit-btn hidden" id="submitBtn">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const checkbox = document.getElementById('acceptRules');
+      const submitBtn = document.getElementById('submitBtn');
+
+      checkbox.addEventListener('change', function () {
+        if (checkbox.checked) {
+          // Remove the 'hidden' class to make the button visible
+          submitBtn.classList.remove('hidden');
+          // Enable the button
+          submitBtn.disabled = false;
+        } else {
+          // Add the 'hidden' class to hide the button
+          submitBtn.classList.add('hidden');
+          // Disable the button (optional, as it's hidden)
+          submitBtn.disabled = true;
+        }
+      });
+    });
+  </script>
+</body>
+<script src="script/signup.js"></script>
+</html>

@@ -1,0 +1,973 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  text-decoration: none;
+  border: none;
+  outline: none;
+  scroll-behavior: smooth;
+  font-family: "Poppins", sans-serif;
+}
+
+:root{
+  --bg-color: #081b29;
+  --second-bg-color: #112e42;
+  --text-color: #ededed;
+  --main-color: #94c2d8;
+  --accent-color: #00bcd4;
+  --hover-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Header */
+.hicad-header {
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 1.2rem 4%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Logo */
+.ocda-logoIdentity {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--main-color);
+  transition: color 0.3s ease;
+  letter-spacing: 2px;
+  width: 40%;
+  height: 40%;
+  font-size: 1rem;
+}
+
+.hicad-logo{
+  width: 10rem;
+}
+
+.hicad-logo:hover {
+  color: var(--accent-color);
+}
+
+/* Navbar */
+.hicad-navbar {
+  display: flex;
+  gap: 2rem;
+}
+
+.hicad-navbar a {
+  color: var(--text-color);
+  font-size: 1.05rem;
+  font-weight: 500;
+  position: relative;
+  padding: 0.3rem 0;
+  transition: color 0.3s ease;
+}
+
+/* Underline hover effect */
+.hicad-navbar a::after {
+  content: "";
+  position: absolute;
+  width: 0%;
+  height: 2px;
+  left: 0;
+  bottom: 0;
+  background-color: var(--accent-color);
+  transition: width 0.3s;
+}
+
+.hicad-navbar a:hover::after,
+.hicad-navbar .home-active::after {
+  width: 100%;
+}
+
+.hicad-navbar a:hover {
+  color: var(--accent-color);
+}
+
+/* Active link */
+.home-active {
+  color: var(--accent-color);
+}
+
+/* Hamburger Icon */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 5px;
+}
+
+.hamburger span {
+  height: 3px;
+  width: 25px;
+  background-color: var(--text-color);
+  border-radius: 2px;
+  transition: 0.3s ease;
+}
+
+/* Responsive Navbar */
+@media (max-width: 768px) {
+  .hicad-navbar {
+    position: absolute;
+    top: 100%;
+    left: -100%;
+    width: 100%;
+    background-color: var(--bg-color);
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    transition: 0.3s ease;
+    text-align: center;
+  }
+
+  .hicad-navbar.active {
+    left: 0;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+}
+
+/* Landing */
+.landing-section {
+  overflow: hidden;
+  margin-top: 2%;
+  margin-left: 30%;
+
+}
+
+.landing-section img {
+  width: 50%;
+  height: 25%;
+  animation: fadeInZoom 2s ease-in-out;
+  background: none;
+}
+
+@keyframes fadeInZoom {
+  0% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* About Section */
+.about-section {
+  background-color: var(--bg-color);
+  padding: 4rem 2rem;
+  color: var(--text-color);
+  font-family: "Poppins", sans-serif;
+   animation: fadeIn 1.5s ease-in-out;
+}
+
+.about-section::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 30%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(26, 115, 232, 0.4) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 0;
+  animation: floatGlow 10s ease-in-out infinite alternate;
+}
+
+.about-section::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.02) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  animation: scanlineMove 8s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.container {
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.about-section h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: var(--text-color);
+  position: relative;
+  animation: glitch 2s infinite;
+}
+
+.tagline {
+  font-style: italic;
+  color: #555;
+  margin-bottom: 40px;
+  font-size: 1.2rem;
+  background: linear-gradient(90deg, var(--bg-color), #8ab4f8, var(--second-bg-color));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+.typing-effect {
+  width: fit-content;
+  border-right: 2px solid #1a73e8;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: typing 4s steps(40, end), blink-caret 0.7s step-end infinite;
+}
+
+.about-content,
+.mission-values,
+.vision-values,
+.core-values,
+.what-we-do {
+  margin-bottom: 50px;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+  border: 2px solid rgba(26, 115, 232, 0.4);
+  box-shadow: 0 0 20px rgba(26, 115, 232, 0.4), 0 0 40px rgba(138, 180, 248, 0.3);
+  backdrop-filter: blur(2px);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.about-content:hover,
+.mission-values:hover,
+.vision-values:hover,
+.core-values:hover,
+.what-we-do:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  color: var(--main-color);
+  margin-bottom: 15px;
+  margin-top: 2%;
+}
+
+p {
+  line-height: 1.6;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  margin: 10px 0;
+  font-weight: 500;
+  position: relative;
+  padding-left: 25px;
+  transition: color 0.3s ease;
+}
+
+ul li::before {
+  content: "✔";
+  position: absolute;
+  left: 0;
+  color: var(--main-color);
+  font-weight: bold;
+}
+
+ul li:hover {
+  color: var(--main-color);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 30px rgba(26, 115, 232, 0.2);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  will-change: opacity, transform;
+}
+
+.fade-in-left {
+  transform: translateX(-30px);
+}
+.fade-in-right {
+  transform: translateX(30px);
+}
+
+.fade-in-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* News & Events */
+
+    /*.news-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      padding: 30px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .news-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+      animation: fadeInUp 1s ease;
+    }
+
+    .news-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+    }
+
+    .news-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .news-content {
+      padding: 20px;
+    }
+
+    .news-content h2 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+
+    .news-content p {
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    .news-content a {
+      display: inline-block;
+      margin-top: 10px;
+      color: #00ffff;
+      text-decoration: underline;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }*/
+
+  .form-wrapper {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, var(--bg-color) 0%, var(--second-bg-color) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1%;
+  }
+
+  .container-form {
+    background: var(--bg-color);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    overflow: hidden;
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .form-toggle {
+    display: flex;
+    background: var(--bg-color);
+  }
+
+  .toggle-btn {
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--second-bg-color);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .toggle-btn.active {
+    color: var(--main-color);
+    background: var(--bg-color);
+  }
+
+  .toggle-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--main-color);
+  }
+
+
+  .form {
+    display: none;
+  }
+
+  .form.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+    text-align: start;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 15px;
+  }
+
+  .form-row .form-group {
+    flex: 1;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: white;
+    font-size: 14px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .error {
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--second-bg-color) 0%, var(--bg-color) 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+  }
+
+  .submit-btn:active {
+    transform: translateY(0);
+  }
+
+  .success-message {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: none;
+    border: 1px solid #c3e6cb;
+  }
+
+  .title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--main-color);
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .required {
+    color: #e74c3c;
+  }
+
+  .btn-secondary{
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, white 0%, rgb(235, 126, 126) 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+  }
+
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(99, 7, 7, 0.3);
+  }
+
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .container {
+        margin: 10px;
+    }
+    
+  }
+
+
+    
+/* Contact */
+.contact-section {
+margin: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+background: linear-gradient(135deg, var(--bg-color), var(--second-bg-color));
+overflow: hidden;
+}
+
+.glass-form {
+background: rgba(255, 255, 255, 0.15);
+border-radius: 20px;
+padding: 30px;
+backdrop-filter: blur(10px);
+box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
+max-width: 1200px;
+width: 100%;
+color: white;
+animation: slideUp 1s ease-out;
+}
+
+.glass-form input,
+.glass-form textarea {
+width: 100%;
+padding: 12px;
+margin-bottom: 15px;
+border: none;
+border-radius: 10px;
+background: rgba(255, 255, 255, 0.1);
+color: white;
+font-size: 17px;
+outline: none;
+transition: 0.3s;
+}
+
+.glass-form input::placeholder,
+.glass-form textarea::placeholder {
+color: rgba(255, 255, 255, 0.6);
+}
+
+.glass-form input:focus,
+.glass-form textarea:focus {
+background: rgba(255, 255, 255, 0.2);
+transform: scale(1.02);
+}
+
+.glass-form button {
+width: 100%;
+padding: 12px;
+background: #ffffff33;
+border: none;
+border-radius: 10px;
+color: white;
+font-weight: bold;
+font-size: 19px;
+cursor: pointer;
+transition: 0.4s ease;
+backdrop-filter: blur(5px);
+}
+
+.glass-form button:hover {
+background: #ffffff55;
+transform: scale(1.05);
+}
+
+
+        
+
+
+
+/* Animations */
+@keyframes floatGlow {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(50px, -30px) scale(1.2); }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scanlineMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100%; }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% center;
+  }
+}
+
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glitch {
+  0% { text-shadow: 2px 0 var(--bg-color), -2px 0 var(--main-color); }
+  20% { text-shadow: -2px 0 var(--bg-color), 2px 0 var(--main-color); }
+  40% { text-shadow: 2px 2px var(--bg-color), -2px -2px var(--main-color); }
+  60% { text-shadow: 0 0 var(--bg-color), 0 0 var(--main-color); }
+  80% { text-shadow: -2px 2px var(--bg-color), 2px -2px var(--main-color); }
+  100% { text-shadow: 2px 0 var(--bg-color), -2px 0 var(--main-color); }
+}
+
+@keyframes typing {
+  from { width: 50%; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: var(--text-color); }
+}
+
+@keyframes slideUp {
+  from {
+      opacity: 0;
+      transform: translateY(30px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+
+
+/* Responsiveness */
+@media (max-width: 4000px) and (min-width: 1700px) {
+  html {
+    font-size: 180%;
+  }
+
+  .about-section {
+    padding: 100px 3%;
+    background-color: var(--bg-color);
+    position: relative;
+    overflow: hidden;
+    padding-top: 20%;
+  }
+
+      .container {
+        max-width: 100%;
+        position: relative;
+        z-index: 1;
+    }
+
+    
+  .about-content,
+  .mission-values,
+  .vision-values,
+  .core-values,
+  .what-we-do {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    text-align: left;
+    align-items: center;
+    margin-bottom: 70px;
+  }
+
+   .about-content h2,
+  .mission-values h2,
+  .vision-values h2,
+  .core-values h2,
+  .what-we-do h2 {
+    color: var(--main-color);
+    margin-bottom: 10%;
+  }
+
+  .form-wrapper {
+      padding: 0 20%;
+  }
+
+  .container-form{
+    padding: 0 10%;
+  }
+
+  .title{
+    font-size: 150%;
+  }
+
+  label,
+  .toggle-btn {
+    font-size: .6rem;
+  }
+
+  .glass-form input,
+  .glass-form textarea{
+    font-size: 170%;
+  }
+
+  .glass-form button{
+    font-size: 120%;
+  }
+
+  .ocda-logoIdentity {
+    width: 27%;
+    height: 27%;
+  }
+}
+
+
+@media (min-width: 1200px) and (max-width: 1699px) {
+  .about-section {
+    padding: 100px 40px;
+    background-color: var(--bg-color);
+    position: relative;
+    overflow: hidden;
+    padding-top: 20%;
+  }
+
+  .form-wrapper {
+      padding: 0 15%;
+    }
+
+  .container {
+    max-width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  .about-section h1 {
+    font-size: 3.5rem;
+    letter-spacing: -1px;
+  }
+
+  .about-content,
+  .mission-values,
+  .vision-values,
+  .core-values,
+  .what-we-do {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 50px;
+    text-align: left;
+    align-items: center;
+    margin-bottom: 70px;
+  }
+
+  .about-content h2,
+  .mission-values h2,
+  .vision-values h2,
+  .core-values h2,
+  .what-we-do h2 {
+    font-size: 2rem;
+    color: var(--main-color);
+    margin-bottom: 10px;
+  }
+
+  .about-content p,
+  .mission-values p,
+  .vision-values p,
+  .core-values p,
+  .what-we-do p,
+  .core-values ul,
+  .what-we-do ul {
+    font-size: 1.1rem;
+    color: #000;
+  }
+
+  /* Add glowing hover for list items */
+  ul li:hover {
+    color: var(--main-color);
+    text-shadow: 0 0 8px rgba(26, 115, 232, 0.3);
+  }
+
+  /* Add scroll-based motion effects using translate */
+  .about-content,
+  .mission-values,
+  .vision-values,
+  .core-values,
+  .what-we-do {
+    transform: translateY(40px);
+    opacity: 0;
+    transition: all 0.8s ease-out;
+  }
+
+  .about-content.visible,
+  .mission-values.visible,
+  .vision-values.visible,
+  .core-values.visible,
+  .what-we-do.visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .fade-in-left {
+  transform: translateX(-30px);
+  }
+
+  .fade-in-right {
+    transform: translateX(30px);
+  }
+
+   .container-form{
+    padding: 0 8%;
+  }
+
+  .title{
+    font-size: 170%;
+  }
+
+  label,
+  .toggle-btn {
+    font-size: 1rem;
+  }
+
+     .glass-form input,
+    .glass-form textarea{
+      font-size: 140%;
+    }
+
+    .glass-form button{
+      font-size: 120%;
+    }
+}
+
+@media (min-width: 800px) and (max-width: 1199px){
+  .glass-form input,
+  .glass-form textarea{
+      font-size: 120%;
+  }
+
+  .glass-form button{
+    font-size: 120%;
+  }
+
+  .form-wrapper {
+    padding: 0 10%;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .about-section h1 {
+    font-size: 2rem;
+  }
+
+  .container {
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+      padding: 30px 20px;
+  }
+  
+  .section-title {
+      font-size: 2rem;
+  }
+
+  .ocda-logoIdentity {
+    width: 30%;
+    height: 30%;
+  }
+}

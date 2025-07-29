@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles/index.css">
+  <link rel="icon" type="image/png" href="/photos/favicon.ico" sizes="32x32">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<style>
+  ul li::before {
+    content: "" !important; 
+  }
+
+  .form-wrapper,
+  .container-form{
+    background: none !important;
+  }
+
+  label{
+    color: black !important;
+  }
+
+  @media (max-width: 4000px) and (min-width: 1700px) {
+    html {
+      font-size: 122% !important;
+    } 
+  }
+
+  @media (max-width: 471px) {
+    #receiptTable {
+      font-size: 85% !important;
+    }
+  }
+
+  @media (max-width: 491px) {
+    #receiptTable {
+      font-size: 79% !important;
+    }
+
+    .p-4{
+      padding: 0.1rem !important;
+    }
+
+    .p-5{
+      padding: 0.1rem !important;
+    }
+
+    .p-6{
+      padding: 0.1rem !important;
+    }
+
+    .px-4 {
+      padding-right: 0.2rem !important;
+      padding-left: 0.2rem !important;
+    }
+
+    .pl-4 {
+     padding-left: 0.1rem !important; 
+    }
+  }
+
+  @media (max-width: 375px) {
+    #flex1 {
+      font-size: 50% !important;
+    }
+  }
+</style>
+<body>
+
+  <!-- Dark Mode Toggle -->
+
+<div class="top-bar flex items-center justify-between bg-gray-100 px-4 py-2 fixed top-0 w-full z-50 shadow">
+  <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="h-10">
+  <div class="flex items-center gap-4">
+    <button id="menuToggle" onclick="toggleSidebar()" class="text-xl text-gray-700">
+      <i class="fas fa-bars"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside id="sidebar" 
+    class="fixed top-0 left-0 h-screen bg-gray-900 text-white flex flex-col space-y-4 pt-20 px-2 transition-all duration-300 ease-in-out
+    hidden md:flex
+    w-0 md:w-16 xl:w-60 overflow-hidden z-40">
+
+  <button onclick="handleTabClick('landingSection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-home text-xl"></i>
+    <span class="hidden xl:inline">Dashboard</span>
+  </button>
+
+  <button onclick="handleTabClick('profileSection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-user-circle text-xl"></i>
+    <span class="hidden xl:inline">My Profile</span>
+  </button>
+
+  <button onclick="handleTabClick('receiptSection'); showReceipts()" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-receipt text-xl"></i>
+    <span class="hidden xl:inline">Receipts</span>
+  </button>
+
+  <button onclick="handleTabClick('enquirySection')" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-question-circle text-xl"></i>
+    <span class="hidden xl:inline">Enquiries</span>
+  </button>
+
+  <button onclick="logout()" class="flex items-center gap-3 hover:bg-gray-800 p-2 rounded">
+    <i class="fas fa-sign-out-alt text-xl"></i>
+    <span class="hidden xl:inline">Logout</span>
+  </button>
+</aside>
+
+<!-- Main Content -->
+<div id="mainContent"
+     class="transition-all duration-300 ease-in-out
+            md:pl-16 xl:pl-60 pl-4 pt-20">
+
+
+  <!-- Landing section -->
+  <section id="landingSection" class="px-4 py-6">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+      Welcome, <span id="username" class="text-blue-600 dark:text-blue-400"></span>
+      <img src="/photos/OCDA-Logo3.png" alt="OCDA" class="mx-auto mt-4 max-w-[150px]">
+    </div>
+
+    <!-- Filter Box -->
+    <div class="bg-white shadow-lg rounded-2xl p-5 mb-6 border-l-4 border-blue-500 max-w-xl mx-auto">
+      
+      <div class="flex items-center justify-between mb-4 gap-4">
+        
+        <!-- Month Filter -->
+        <div>
+          <label for="monthFilter" class="font-semibold text-gray-700 block mb-1">Month</label>
+          <select id="monthFilter" class="border rounded px-3 py-2 text-sm w-full">
+            <option value="">-- Select Month --</option>
+            <!-- JS will populate months -->
+          </select>
+        </div>
+
+        <!-- Year Filter -->
+        <div>
+          <label for="yearFilter" class="font-semibold text-gray-700 block mb-1">Year</label>
+          <select id="yearFilter" class="border rounded px-3 py-2 text-sm w-full">
+            <option value="">-- Select Year --</option>
+            <!-- JS will populate years -->
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center" id="flex1">
+        <h2 class="text-lg font-semibold text-gray-800">Total Transactions:</h2>
+        <div class="flex items-center gap-2">
+          <span id="monthlyTotal" class="text-green-700 text-xl font-bold">₦0</span>
+          <button onclick="toggleAmountVisibility()" class="text-gray-500 hover:text-gray-800">
+            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- News & Events -->
+    <div class="bg-white shadow-md rounded-xl p-5 max-w-xl mx-auto border-l-4 border-orange-500" 
+    style="margin-top: 5%;">
+      <h2 class="text-xl font-semibold text-gray-800 mb-3">News & Events</h2>
+      <ul id="newsList" class="list-disc pl-5 space-y-2 text-sm text-gray-600">
+      </ul>
+    </div>
+  </section>
+
+  <!-- profile section -->
+  <section id="profileSection" class="hidden p-6 md:p-10 lg:px-16 xl:px-24 2xl:px-32">
+    <div class="max-w-6xl mx-auto space-y-6 bg-white rounded-lg shadow-md p-6 md:p-10">
+      <div class="text-center space-y-2">
+        </h1>
+        <h2 class="text-lg md:text-xl text-gray-600 font-medium">My Profile</h2>
+      </div>
+
+      <!-- Display Section -->
+      <div id="profileDisplay" class="bg-white dark:bg-gray-900 shadow rounded-lg p-6 md:p-10 space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm md:text-base">
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Phone 1:</p>
+            <p id="phone" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Phone 2:</p>
+            <p id="phoneNo2" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Email:</p>
+            <p id="email" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">State:</p>
+            <p id="state" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Ward:</p>
+            <p id="ward" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Quarters:</p>
+            <p id="quarters" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Town:</p>
+            <p id="town" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Age:</p>
+            <p id="age" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Title:</p>
+            <p id="title" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div>
+            <p class="text-gray-500 dark:text-gray-400">Honorary Title:</p>
+            <p id="honTitle" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+
+          <div class="sm:col-span-2">
+            <p class="text-gray-500 dark:text-gray-400">Qualifications:</p>
+            <p id="qualifications" class="font-semibold text-gray-800 dark:text-white"></p>
+          </div>
+        </div>
+
+        <div class="text-center pt-4">
+          <button 
+            onclick="toggleEdit(true)"
+            class="bg-yellow-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition duration-200"
+          >
+            Edit Profile
+          </button>
+        </div>
+      </div>  
+
+
+      <!-- Edit Section -->
+      <form id="profileEditForm" style="display:none">
+          <!-- Row: Surname + Other Names -->
+          <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label for="surname">Surname </label>
+              <input type="text" id="surname" name="Surname">
+            </div>
+            <div class="form-group">
+              <label for="otherNames">OtherNames</label>
+              <input type="text" id="othernames" name="othernames">
+            </div>
+          </div>
+
+        <!-- Phone Numbers -->
+        <div class="form-row">
+          <div class="form-group">
+              <label for="phoneNumber">Phone Number</label>
+              <input type="tel" id="phone" name="phoneNumber" disabled>
+          </div>
+          <div class="form-group">
+              <label for="phoneNo2">Secondary Phone</label>
+              <input type="tel" id="phoneNo2" name="phoneNo2">
+          </div>
+        </div>
+
+        <!-- Email + sex -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email">
+          </div>
+          <div class="form-group">
+            <label for="sex">Sex</label>
+            <select id="sex" name="sex"> 
+              <option value="">Select Sex</option>
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+            <div class="error" id="sexError"></div>
+          </div>
+        </div>
+      
+          <!--Quaters + State -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="quarters">Quarters</label>
+            <select id="Quarters" name="quarters"> 
+              <option value="">Select Quaters</option>
+            </select>
+            <div class="error" id="quartersError"></div>
+          </div>
+          <!-- State -->
+          <div class="form-group">
+            <label for="state">State</label>
+            <select id="State" name="state"> 
+              <option value="">Select State</option>
+            </select>
+            <div class="error" id="stateError"></div>
+          </div>
+        </div>
+
+        <!-- Row: Ward + Town -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ward">Ward </label>
+            <select id="Ward" name="ward" required> 
+              <option value="">Select Ward</option>
+            </select>
+            <div class="error" id="wardError"></div>
+          </div>
+          <div class="form-group">
+            <label for="town">Town</label>
+            <input type="text" id="town" name="town">
+            <div class="error" id="townError"></div>
+          </div>
+        </div>
+
+        <!-- Row: Title + HonTitle -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <select id="title" name="title"> 
+              <option value="">Select Title</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="honTitle">Honorary Title</label>
+            <select id="honTitle" name="honTitle"> 
+              <option value="">Select Honorary Title</option>
+           </select>
+          </div>
+        </div>
+
+        <!-- Row: Qualifications + Profession -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="qualifications">Qualification</label>
+            <select id="qualifications" name="qualifications"> 
+              <option value="">Select Qualification</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="profession">Profession</label>
+            <input type="text" id="profession" name="profession">
+          </div>
+        </div>
+
+        <!-- Exit Date + age -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="exitDate">Exit Date</label>
+            <input type="date" id="exitDate" name="exitDate">
+          </div>
+
+          <div class="form-group">
+            <label><strong>Age:</strong></label>
+            <input id="age" disabled />
+          </div>
+        </div>
+
+        <button onclick="updateProfile(event)" class="submit-btn">Save Changes</button>
+        <button onclick="toggleEdit(false)" class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition" style="margin-top: 2%;">Cancel</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- receipt section -->
+  <section id="receiptSection" class="hidden">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <h2 class="text-2xl font-semibold mb-6 text-gray-800 dark:text-white">My Receipts</h2>
+
+      <div class="flex flex-wrap items-center gap-4 mb-6">
+        <label class="block text-sm text-black-700 dark:text-gray-700">
+          From:
+          <input type="date" id="fromDate" class="mt-1 border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
+        </label>
+        <label class="block text-sm text-black-700 dark:text-gray-700">
+          To:
+          <input type="date" id="toDate" class="mt-1 border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" />
+        </label>
+
+        <div class="flex flex-wrap gap-2">
+          <button onclick="filterReceipts()" class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded transition">
+            Apply
+          </button>
+          <button onclick="printReceiptsPDF()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded transition">
+            Print / Export
+          </button>
+          <button onclick="exportReceiptsToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded transition">
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div id="receiptTable" class="overflow-x-auto bg-white rounded shadow p-4"></div>
+
+      <div class="mt-6">
+        <button onclick="clearReceipts()"class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- enquiry section -->
+  <section id="enquirySection" class="hidden px-4 py-8 max-w-3xl mx-auto">
+    <h2 class="text-2xl font-bold text-center text-gray-800 dark:text-white mb-6">Enquiries</h2>
+
+      <div class="flex flex-col md:flex-row gap-4 mb-4">
+        <label class="flex flex-col">
+          <span class="text-sm text-black-600">From:</span>
+          <input type="date" id="enquiryFrom" class="border rounded px-3 py-2">
+        </label>
+        <label class="flex flex-col">
+          <span class="text-sm text-black-600">To:</span>
+          <input type="date" id="enquiryTo" class="border rounded px-3 py-2">
+        </label>
+      </div>
+
+    <!-- Radio Tabs -->
+    <div class="flex justify-center gap-6 mb-6">
+      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-700">
+        <input type="radio" name="filterType" value="ward" checked onchange="toggleDropdown()" class="accent-blue-600">
+        <span>Ward</span>
+      </label>
+      <label class="flex items-center gap-2 text-gray-700 dark:text-gray-700">
+        <input type="radio" name="filterType" value="quarters" onchange="toggleDropdown()" class="accent-blue-600">
+        <span>Quarters</span>
+      </label>
+    </div>
+
+    <!-- Dropdowns -->
+    <form class="flex flex-col md:flex-row gap-4 justify-center mb-6" id="selectForm">
+      <select id="wardSelect" class="px-4 py-2 border border-gray-300 rounded dark:bg-gray-800 dark:text-white dark:border-gray-600">
+        <option value="">Select Ward</option>
+      </select>
+      <select id="quartersSelect" class="hidden px-4 py-2 border border-gray-300 rounded dark:bg-gray-800 dark:text-white dark:border-gray-600">
+        <option value="">Select Quater</option>
+      </select>
+    </form>
+
+    <!-- Results -->
+    <div id="enquiryResults" class="text-center text-gray-600 dark:text-gray-300 mb-6">
+      Select a ward or quarters to begin.
+    </div>
+
+    <!-- Close Button -->
+    <div class="text-center">
+      <button onclick="clearReceipts()" class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-5 py-2 rounded transition">
+        Close
+      </button>
+    </div>
+  </section>
+
+  </div>
+
+</body>
+<script src="script/dashboard.js"></script>
+</html>

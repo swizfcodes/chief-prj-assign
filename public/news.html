@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCDA</title>
+</head>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles/index.css">
+<link rel="icon" type="image/png" href="/photos/favicon.ico" sizes="32x32">
+<link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<style>
+  ul li::before {
+    content: "" !important; 
+  }
+</style>
+<body>
+  <!--- header design -->
+  <header class="hicad-header">
+    <a href="index.html" class="hicad-logo">
+      <img src="/photos/OCDA-Logo3.png" alt="ocda-logo" class="ocda-logoIdentity">
+    </a>
+
+    <nav class="hicad-navbar" id="navbar">
+      <a href="aboutus.html">About Us</a>
+      <a href="news.html" class="home-active">News & Events</a>
+      <a href="contact.html">Contact Us</a>
+      <a href="member.html" >Members</a>
+      <a href="adminlog.html">Admin</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+
+    <div class="hamburger" id="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+  <section class="max-w-4xl mx-auto my-8 px-4 fade-in-section"> 
+    <h2 class="text-xl font-bold mb-4">📰 News & Events</h2>
+
+    <div class="flex justify-between items-center mb-4">
+      <select id="newsYearFilter" class="border rounded px-2 py-1 text-sm">
+        <option value="">All Years</option>
+      </select>
+
+      <button id="toggleNewsView" class="text-blue-600 text-sm hover:underline">Show All</button>
+    </div>
+
+    <ul id="newsList" class="space-y-3"></ul>
+
+    <div id="newsPagination" class="mt-4 flex justify-center gap-2 hidden">
+      <button id="prevPage" class="px-3 py-1 border rounded bg-gray-100">Previous</button>
+      <span id="newsPageIndicator" class="text-sm text-gray-600 self-center"></span>
+      <button id="nextPage" class="px-3 py-1 border rounded bg-gray-100">Next</button>
+    </div>
+  </section>
+
+
+  
+</body>
+<script src="script/index.js"></script>
+<script src="script/news.js"></script>
+</html>

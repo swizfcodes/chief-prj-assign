@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact US</title>
+</head>
+<link rel="stylesheet" href="styles/index.css">
+
+ <link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
+</script>
+<script type="text/javascript">
+    (function(){
+        emailjs.init({
+        publicKey: "rWXHUV1zbJ0-6QdKx",
+        });
+    })();
+</script>
+<style>
+:root {
+--bg-color: #081b29;
+--second-bg-color: #112e42;
+--text-color: #ededed;
+--main-color: #94c2d8;
+--accent-color: #00bcd4;
+--hover-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Light mode detection */
+@media (prefers-color-scheme: light) {
+:root {
+--bg-color: #f8fafc;
+--second-bg-color: #ffffff;
+--text-color: #1a202c;
+--main-color: #2563eb;
+--accent-color: #0891b2;
+--hover-bg: rgba(0, 0, 0, 0.05);
+}
+}
+
+.glass-form {
+background: var(--second-bg-color);
+backdrop-filter: blur(10px);
+border: 1px solid var(--hover-bg);
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+transition: all 0.3s ease;
+}
+
+.glass-card {
+background: var(--second-bg-color);
+backdrop-filter: blur(10px);
+border: 1px solid var(--hover-bg);
+box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+background: var(--hover-bg);
+}
+
+.contact-section {
+background: var(--bg-color);
+min-height: 100vh;
+position: relative;
+}
+
+.contact-section::before {
+content: '';
+position: absolute;
+top: 0;
+left: 0;
+right: 0;
+bottom: 0;
+background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(148,194,216,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+opacity: 0.3;
+}
+
+.content-wrapper {
+position: relative;
+z-index: 1;
+}
+
+.input-field {
+background: var(--second-bg-color);
+border: 2px solid var(--hover-bg);
+color: var(--text-color);
+transition: all 0.3s ease;
+}
+
+.input-field:focus {
+outline: none;
+border-color: var(--main-color);
+box-shadow: 0 0 0 3px rgba(148, 194, 216, 0.2);
+background: var(--second-bg-color);
+}
+
+.input-field::placeholder {
+color: var(--text-color);
+opacity: 0.6;
+}
+
+.send-button {
+background: var(--main-color);
+color: var(--second-bg-color);
+transition: all 0.3s ease;
+position: relative;
+overflow: hidden;
+}
+
+.send-button::before {
+content: '';
+position: absolute;
+top: 0;
+left: -100%;
+width: 100%;
+height: 100%;
+background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+transition: left 0.5s ease;
+}
+
+.send-button:hover::before {
+left: 100%;
+}
+
+.send-button:hover {
+transform: translateY(-2px);
+box-shadow: 0 10px 25px rgba(148, 194, 216, 0.3);
+background: var(--accent-color);
+}
+
+.section-title {
+color: var(--text-color);
+position: relative;
+}
+
+.section-title::after {
+content: '';
+position: absolute;
+bottom: -8px;
+left: 0;
+width: 50px;
+height: 3px;
+background: var(--main-color);
+border-radius: 2px;
+}
+
+.contact-info-item {
+transition: all 0.3s ease;
+color: var(--text-color);
+}
+
+.contact-info-item:hover {
+color: var(--main-color);
+}
+
+.card-title {
+color: var(--text-color);
+}
+
+.phone-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+gap: 0.5rem;
+}
+
+.fade-in {
+animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+from {
+opacity: 0;
+transform: translateY(20px);
+}
+to {
+opacity: 1;
+transform: translateY(0);
+}
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+@media (max-width: 768px) {
+.phone-grid {
+grid-template-columns: 1fr;
+}
+}
+</style>
+</head>
+<body>
+ <!--- header design -->
+  <header class="hicad-header">
+    <a href="index.html" class="hicad-logo">
+      <img src="/photos/OCDA-Logo3.png" alt="ocda-logo" class="ocda-logoIdentity">
+    </a>
+
+    <nav class="hicad-navbar" id="navbar">
+      <a href="aboutus.html">About Us</a>
+      <a href="#" >News & Events</a>
+      <a href="contact.html"  class="home-active">Contact Us</a>
+      <a href="member.html">Members</a>
+       <a href="adminlog.html" >Admin</a>
+    </nav>
+
+     <div class="hamburger" id="hamburger">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</header>
+<section class="contact-section py-16 px-6 md:px-16">
+<div class="content-wrapper max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+<!-- Contact Form -->
+<div class="glass-form rounded-xl p-8 space-y-6 fade-in">
+<h2 class="section-title text-3xl font-bold pb-4 mb-6">Send Us a Message</h2>
+<div class="space-y-4">
+<input 
+type="text" 
+id="fullname" 
+placeholder="Full Name" 
+required 
+class="input-field w-full p-4 rounded-lg text-gray-700 placeholder-gray-500"
+/>
+<input 
+type="email" 
+id="email_id" 
+placeholder="Email Address" 
+required 
+class="input-field w-full p-4 rounded-lg text-gray-700 placeholder-gray-500"
+/>
+<textarea 
+id="message" 
+placeholder="Your Message" 
+rows="5" 
+required 
+class="input-field w-full p-4 rounded-lg text-gray-700 placeholder-gray-500 resize-none"
+></textarea>
+<button 
+onclick="sendMail()" 
+class="send-button w-full text-white py-4 px-6 rounded-lg font-semibold text-lg"
+>
+Send Message
+</button>
+</div>
+</div>
+
+<!-- Contact Info -->
+<div class="space-y-8">
+<h2 class="section-title text-3xl font-bold pb-4 mb-6">Contact Information</h2>
+
+<!-- Telephone Contacts -->
+<div class="glass-card p-6 rounded-xl fade-in stagger-1">
+<h3 class="text-xl font-semibold card-title mb-4 flex items-center">
+<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+<path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+</svg>
+Telephone
+</h3>
+<ul class="space-y-3">
+<li class="contact-info-item flex justify-between">
+<strong>President:</strong> 
+<span>+2348023083977</span>
+</li>
+<li class="contact-info-item flex justify-between">
+<strong>Secretary:</strong> 
+<span>+2347059949294</span>
+</li>
+<li class="contact-info-item flex justify-between">
+<strong>Treasurer:</strong> 
+<span>+2348033426653</span>
+</li>
+</ul>
+</div>
+
+<!-- Trustees -->
+<div class="glass-card p-6 rounded-xl fade-in stagger-2">
+<h3 class="text-xl font-semibold card-title mb-4 flex items-center">
+<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+</svg>
+Trustees
+</h3>
+<ul class="phone-grid">
+<li class="contact-info-item">+2348023527881</li>
+<li class="contact-info-item">+2348064374116</li>
+<li class="contact-info-item">+2347039655265</li>
+<li class="contact-info-item">+2348035868181</li>
+<li class="contact-info-item">+2348033318967</li>
+</ul>
+</div>
+
+<!-- Secretariat -->
+<div class="glass-card p-6 rounded-xl fade-in stagger-3">
+<h3 class="text-xl font-semibold card-title mb-3 flex items-center">
+<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+<path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+</svg>
+Secretariat
+</h3>
+<p class="contact-info-item text-lg">Oloyin Palace, Oyin Akoko</p>
+</div>
+
+<!-- Bank Details -->
+<div class="glass-card p-6 rounded-xl fade-in stagger-4">
+<h3 class="text-xl font-semibold card-title mb-4 flex items-center">
+<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+<path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/>
+</svg>
+Bank Details
+</h3>
+<ul class="space-y-2">
+<li class="contact-info-item flex justify-between">
+<strong>Bank Name:</strong> 
+<span>Wema Bank</span>
+</li>
+<li class="contact-info-item">
+<strong>Account Name:</strong><br>
+<span class="text-sm">Oyin Akoko Community Development Association</span>
+</li>
+<li class="contact-info-item flex justify-between">
+<strong>Account Number:</strong> 
+<span class="font-mono">012628202</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<script>
+  function sendMail() {
+    var fullname = document.getElementById("fullname").value;
+    var email_id = document.getElementById("email_id").value;
+    var message = document.getElementById("message").value;
+
+    if (fullname && email_id && message) {
+      emailjs.send("service_wungssd", "template_aa1tb3e", {
+        from_name: fullname,
+        from_email: email_id,
+        message: message
+      })
+      .then(function(response) {
+        console.log('SUCCESS!', response.status, response.text);
+        alert('Email sent successfully!');
+
+        document.getElementById("fullname").value = "";
+        document.getElementById("email_id").value = "";
+        document.getElementById("message").value = "";
+      }, function(error) {
+        console.log('FAILED...', error);
+        alert('Failed to send email. Please try again later.');
+      });
+    } else {
+      alert('Please fill in all fields.');
+    }
+    const button = event.target;
+    button.innerHTML = 'Sending...';
+    button.disabled = true;
+
+    reset();
+  }
+  
+// Add smooth scrolling and intersection observer for animations
+document.addEventListener('DOMContentLoaded', function() {
+const observerOptions = {
+threshold: 0.1,
+rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+entries.forEach(entry => {
+if (entry.isIntersecting) {
+entry.target.style.opacity = '1';
+entry.target.style.transform = 'translateY(0)';
+}
+});
+}, observerOptions);
+
+document.querySelectorAll('.fade-in').forEach(el => {
+el.style.opacity = '0';
+el.style.transform = 'translateY(20px)';
+observer.observe(el);
+});
+});
+</script>
+</body>
+<script src="script/index.js"></script>
+</html>
