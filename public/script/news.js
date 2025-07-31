@@ -1,117 +1,46 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const newsList = document.getElementById('newsList');
-  const toggleBtn = document.getElementById('toggleNewsView');
-  const pagination = document.getElementById('newsPagination');
-  const prevBtn = document.getElementById('prevPage');
-  const nextBtn = document.getElementById('nextPage');
-  const pageIndicator = document.getElementById('newsPageIndicator');
-  const yearFilter = document.getElementById('newsYearFilter');
-
-  let showAll = false;
-  let currentPage = 1;
-  const perPage = 5;
-  let totalPages = 1;
-  let currentYear = "";
-
-  // Fetch and render years in dropdown
-  async function loadYears() {
-    try {
-      const res = await fetch('/admin/notices?limit=all');
-      const data = await res.json();
-      const years = [...new Set(data.map(item => new Date(item.created_at).getFullYear()))];
-      years.sort((a, b) => b - a);
-      years.forEach(y => {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        yearFilter.appendChild(opt);
-      });
-    } catch (err) {
-      console.error("Failed to load year options:", err);
-    }
-  }
-
-  async function fetchNews() {
-    const url = new URL('/admin/notices', window.location.origin);
-    if (currentYear) url.searchParams.set('year', currentYear);
-
-    if (!showAll) {
-      url.searchParams.set('page', currentPage);
-      url.searchParams.set('perPage', perPage);
-    } else {
-      url.searchParams.set('limit', 100); // prevent overload
-    }
-
-    const res = await fetch(url);
-    return res.json();
-  }
-
-  async function renderNews() {
-    const data = await fetchNews();
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/admin/notices');
+    const newsItems = await res.json();
+    const newsList = document.getElementById('newsList');
+    
     newsList.innerHTML = '';
 
-    if (!data.length) {
-      newsList.innerHTML = '<li>No news or events found.</li>';
-      pagination.classList.add('hidden');
+    if (!Array.isArray(newsItems) || newsItems.length === 0) {
+      newsList.innerHTML = `<li class="text-gray-500">No news or events available at this time.</li>`;
       return;
     }
 
-    data.forEach(item => {
+    newsItems.forEach((item, index) => {
       const li = document.createElement('li');
-      const date = new Date(item.created_at).toLocaleDateString();
-      li.classList.add('border', 'rounded', 'p-3', 'bg-white', 'shadow');
+      const date = new Date(item.created_at).toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric'
+      });
 
       li.innerHTML = `
-        <div class="flex justify-between items-center cursor-pointer news-header">
-          <span class="font-semibold">${item.title}</span>
-          <span class="text-xs text-gray-400">${date}</span>
+        <div class="border rounded shadow">
+          <button class="w-full text-left px-4 py-2 bg-gray-100 font-medium hover:bg-gray-200 transition" data-toggle="news-${index}">
+            ${item.title}
+            <span class="text-xs text-gray-400 float-right">(${date})</span>
+          </button>
+          <div id="news-${index}" class="px-4 py-3 hidden bg-white text-sm text-gray-700 border-t">
+            ${item.content || '<i>No content provided</i>'}
+          </div>
         </div>
-        <div class="news-content mt-2 text-sm text-gray-700 hidden">${item.content}</div>
       `;
-      li.querySelector('.news-header').addEventListener('click', () => {
-        li.querySelector('.news-content').classList.toggle('hidden');
-      });
       newsList.appendChild(li);
     });
 
-    // Handle pagination UI
-    if (showAll || data.length <= perPage) {
-      pagination.classList.add('hidden');
-    } else {
-      pagination.classList.remove('hidden');
-      pageIndicator.textContent = `Page ${currentPage}`;
-      prevBtn.disabled = currentPage === 1;
-      nextBtn.disabled = data.length < perPage;
-    }
+    // Attach event listeners to toggle buttons
+    document.querySelectorAll('[data-toggle]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-toggle');
+        const contentDiv = document.getElementById(targetId);
+        contentDiv.classList.toggle('hidden');
+      });
+    });
+  } catch (err) {
+    console.error('Failed to load news:', err);
+    document.getElementById('newsList').innerHTML = '<li class="text-red-500">Error loading news.</li>';
   }
-
-  // Event Listeners
-  toggleBtn.addEventListener('click', () => {
-    showAll = !showAll;
-    currentPage = 1;
-    toggleBtn.textContent = showAll ? 'Show Latest 5' : 'Show All';
-    renderNews();
-  });
-
-  prevBtn.addEventListener('click', () => {
-    if (currentPage > 1) {
-      currentPage--;
-      renderNews();
-    }
-  });
-
-  nextBtn.addEventListener('click', () => {
-    currentPage++;
-    renderNews();
-  });
-
-  yearFilter.addEventListener('change', () => {
-    currentYear = yearFilter.value;
-    currentPage = 1;
-    renderNews();
-  });
-
-  // Init
-  loadYears();
-  renderNews();
 });

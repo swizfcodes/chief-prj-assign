@@ -513,10 +513,10 @@ document.querySelectorAll('.tab-button').forEach(btn => {
 const formatAmount = amount => `₦${parseFloat(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
 
 // Format date to DD/MM/YYYY
-const formatDate = dateStr => {
-  const date = new Date(dateStr);
-  if (isNaN(date)) return dateStr;
-  return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('T')[0].split('-');
+  return `${day}/${month}/${year}`; // DD/MM/YYYY
 };
 
 // Tab navigation
@@ -538,7 +538,7 @@ document.querySelectorAll('.tab-button').forEach(btn => {
   });
 });
 
-    // Fetch Data Sections
+// Fetch Data Sections
 function fetchTable(endpoint, targetId, renderFn) {
 fetch(endpoint, {
   headers: {
@@ -952,18 +952,43 @@ document.getElementById('memberSearch').addEventListener('input', (e) => {
 
 async function loadMembers() {
   try {
-    const token =  `Bearer ${localStorage.getItem('adminToken')}`
+    const token = `Bearer ${localStorage.getItem('adminToken')}`
     const res = await fetch('/admin/members', {
       headers: { 'Authorization': token }
     });
 
     allMembers = await res.json();
     displayMembers(allMembers);
+
+    // Add null check
+    const exportTableBody = document.getElementById('membersTableExport');
+    if (exportTableBody) {
+      const members = allMembers || [];
+      exportTableBody.innerHTML = members.map(member => `
+        <tr>
+          <td>${member.Surname || ''}</td>
+          <td>${member.othernames || ''}</td>
+          <td>${member.Email || ''}</td>
+          <td>${member.Sex || ''}</td>
+          <td>${member.DOB ? new Date(member.DOB).toLocaleDateString() : ''}</td>
+          <td>${member.Quarters || ''}</td>
+          <td>${member.Ward || ''}</td>
+          <td>${member.Town || ''}</td>
+          <td>${member.State || ''}</td>
+        </tr>
+      `).join('');
+    } else {
+      console.warn('Export table not found in DOM');
+    }
+
   } catch (err) {
     console.error('Member Load Error:', err);
-    document.getElementById('membersTable').innerHTML = `<tr><td colspan="9">Failed to load members</td></tr>`;
+    const mainTable = document.getElementById('membersTable');
+    if (mainTable) {
+      mainTable.innerHTML = `<tr><td colspan="9">Failed to load members</td></tr>`;
+    }
   }
-} 
+}
 
 window.addEventListener('DOMContentLoaded', () => {
   //loadEnquiryDropdowns?.();
@@ -1071,13 +1096,68 @@ window.addEventListener('DOMContentLoaded', function () {
 // Export to Excel or PDF
 function exportMembers(type) {
   const table = document.getElementById('memberTableExport');
+
   if (type === 'excel') {
     const wb = XLSX.utils.table_to_book(table, { sheet: "Members" });
     XLSX.writeFile(wb, "members.xlsx");
+
   } else if (type === 'pdf') {
-    const doc = new jspdf.jsPDF();
-    doc.autoTable({ html: '#memberTableExport' });
+    const doc = new jspdf.jsPDF('landscape', 'pt', 'a4');
+
+    doc.autoTable({
+      html: '#memberTableExport',
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 5,
+        halign: 'center',
+        valign: 'middle',
+        lineColor: [220, 220, 220],
+        lineWidth: 0.2,
+      },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: 33,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      margin: { top: 40 },
+      didDrawPage: function (data) {
+        doc.setFontSize(14);
+        doc.text("OCDA Member List", data.settings.margin.left, 30);
+      }
+    });
+
     doc.save("members.pdf");
+
+  } else if (type === 'print') {
+    const printContent = table.outerHTML;
+    const win = window.open('', '', 'width=1000,height=800');
+    win.document.write(`
+      <html>
+        <head>
+          <title>Print Members</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td {
+              border: 1px solid #ccc;
+              padding: 8px;
+              text-align: center;
+            }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <h2>OCDA Member List</h2>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    win.print();
   }
 }
 
@@ -1439,6 +1519,7 @@ document.getElementById('ledgerForm')?.addEventListener('submit', async (e) => {
     transdate: form.transdate.value,
     amount: parseFloat(form.amount.value),
     remark: form.remark.value,
+    comment: form.comment.value || ''
   };
 
   console.log('Submitting ledger entry for:', data);
@@ -1502,10 +1583,13 @@ async function loadMemberLedger() {
   try {
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+    const month = String(now.getMonth() + 1).padStart(2, '0');
 
     const firstDay = `${year}-${month}-01`;
-    const lastDay = new Date(year, now.getMonth() + 1, 0).toISOString().split('T')[0]; // last day of month
+    
+    // Get last day without timezone conversion
+    const lastDayOfMonth = new Date(year, now.getMonth() + 1, 0).getDate();
+    const lastDay = `${year}-${month}-${String(lastDayOfMonth).padStart(2, '0')}`;
 
     const res = await fetch(`/admin/member-recordledger?from=${firstDay}&to=${lastDay}`, {
       headers: {
@@ -1516,7 +1600,7 @@ async function loadMemberLedger() {
     const data = await res.json();
     const body = document.getElementById('ledgerData');
 
-    body.innerHTML = data.map(row => `
+    body.innerHTML = data.map(row => `  
       <tr class="border-t">
         <td class="p-2">${row.phoneno}</td>
         <td class="p-2">${formatDate(row.transdate)}</td>
@@ -1532,7 +1616,22 @@ async function loadMemberLedger() {
 
 async function loadAllMemberLedger() {
   try {
-    const res = await fetch('/admin/memberledger', {
+    // Get date filter values
+    const startDate = document.getElementById('startDate')?.value || '';
+    const endDate = document.getElementById('endDate')?.value || '';
+    
+    // Build query parameters
+    let url = '/admin/memberledger';
+    const params = new URLSearchParams();
+    
+    if (startDate) params.append('from', startDate);
+    if (endDate) params.append('to', endDate);
+    
+    if (params.toString()) {
+      url += '?' + params.toString();
+    }
+
+    const res = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
       }
@@ -1540,6 +1639,16 @@ async function loadAllMemberLedger() {
 
     const data = await res.json();
     const body = document.getElementById('ledgerDataTable');
+    
+    if (!body) {
+      console.error('ledgerDataTable element not found');
+      return;
+    }
+
+    if (data.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" class="p-2 text-center text-gray-500">No records found for the selected date range</td></tr>';
+      return;
+    }
 
     body.innerHTML = data.map(row => `
       <tr class="border-t">
@@ -1550,11 +1659,50 @@ async function loadAllMemberLedger() {
         <td class="p-2">${row.paydate ? formatDate(row.paydate) : '—'}</td>
       </tr>
     `).join('');
+
+    // Update record count if you have a counter element
+    const recordCount = document.getElementById('recordCount');
+    if (recordCount) {
+      recordCount.textContent = `${data.length} records found`;
+    }
+
   } catch (err) {
     console.error('Load memberLedger Error:', err);
+    const body = document.getElementById('ledgerDataTable');
+    if (body) {
+      body.innerHTML = '<tr><td colspan="5" class="p-2 text-center text-red-500">Failed to load ledger data</td></tr>';
+    }
   }
 }
 
+// Function to clear date filters
+function clearDateFilters() {
+  const startDate = document.getElementById('startDate');
+  const endDate = document.getElementById('endDate');
+  
+  if (startDate) startDate.value = '';
+  if (endDate) endDate.value = '';
+  
+  loadAllMemberLedger(); // Reload without filters
+}
+
+// Function to apply current month filter
+function loadCurrentMonth() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  
+  const startDate = document.getElementById('startDate');
+  const endDate = document.getElementById('endDate');
+  
+  if (startDate) startDate.value = `${year}-${month}-01`;
+  if (endDate) {
+    const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+    endDate.value = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+  }
+  
+  loadAllMemberLedger();
+}
 
 // Add OCDA Expense (Screen E)
 document.getElementById('ocdaForm')?.addEventListener('submit', async (e) => {
@@ -2093,12 +2241,37 @@ document.addEventListener('click', function (e) {
 // Export
 function exportEnquiry(type) {
   const table = document.getElementById('enquiryTableExport');
+
   if (type === 'excel') {
     const wb = XLSX.utils.table_to_book(table, { sheet: "Enquiry" });
     XLSX.writeFile(wb, "enquiry.xlsx");
+
   } else if (type === 'pdf') {
-    const doc = new jspdf.jsPDF();
-    doc.autoTable({ html: '#enquiryTableExport' });
+    const doc = new jspdf.jsPDF('landscape', 'pt', 'a4');
+    doc.autoTable({
+      html: '#enquiryTableExport',
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 5,
+        valign: 'middle',
+        halign: 'center',
+        lineColor: [200, 200, 200],
+        lineWidth: 0.2
+      },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: 20,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { top: 40 },
+      didDrawPage: function (data) {
+        doc.setFontSize(14);
+        doc.text("OCDA Enquiry Report", data.settings.margin.left, 30);
+      }
+    });
+
     doc.save("enquiry.pdf");
   }
 }
@@ -2106,14 +2279,46 @@ function exportEnquiry(type) {
 //  Print
 function printEnquiry() {
   const content = document.getElementById('enquiryTableWrapper').innerHTML;
-  const win = window.open('', '', 'width=900,height=700');
-  win.document.write('<html><head><title>Print Enquiry</title></head><body>');
-  win.document.write(content);
-  win.document.write('</body></html>');
+  const win = window.open('', '', 'width=1000,height=800');
+
+  win.document.write(`
+    <html>
+      <head>
+        <title>Print Enquiry</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            padding: 20px;
+          }
+          table {
+            border-collapse: collapse;
+            width: 100%;
+          }
+          th, td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: center;
+          }
+          th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>OCDA Enquiry Report</h2>
+        ${content}
+      </body>
+    </html>
+  `);
   win.document.close();
+  win.focus();
   win.print();
 }
-
 
 async function loadOCDAExpensesAnalysis({ start = '', end = '', code = 'ALL', mode = 'summary' } = {}) {
   try {
@@ -2177,6 +2382,7 @@ function renderOCDAExpensesAnalysis(data, mode) {
             <thead>
               <tr>
                 <th class="border px-2 py-1 text-center bg-gray-200">Date</th>
+                <th class="border px-2 py-1 text-center bg-gray-200">Voucher No</th>
                 <th class="border px-2 py-1 text-center bg-gray-200">Remark</th>
                 <th class="border px-2 py-1 text-center bg-gray-200">Amount</th>
               </tr>
@@ -2185,6 +2391,7 @@ function renderOCDAExpensesAnalysis(data, mode) {
               ${rows.map(row => `
                 <tr>
                   <td class="border px-2 py-1 text-center">${formatDate(row.date)}</td>
+                  <td class="border px-2 py-1 text-center">${row.voucher || ''}</td>
                   <td class="border px-2 py-1 text-center">${row.remark || ''}</td>
                   <td class="border px-2 py-1 text-center">${formatAmount(row.amount)}</td>
                 </tr>
@@ -2207,12 +2414,15 @@ function toggleGroup(index) {
 function exportOCDAReportToPDF() {
   const element = document.getElementById('ocdaExpensesAnalysisTable');
   html2pdf().set({
-    margin: 0.5,
+    margin: 0.3,
     filename: 'OCDA_Expenses_Analysis.pdf',
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
-    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-  }).from(element).save();
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: { scale: 4, useCORS: true }, // higher scale = sharper
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }).from(element).save()
+    .then(() => {
+      element.classList.remove('pdf-export-enhanced');
+  });
 }
 
 document.getElementById('ocdaExpensesAnalysisForm')?.addEventListener('submit', function(e) {
@@ -2304,6 +2514,7 @@ function renderOCDAIncomeAnalysis(data, mode) {
                 <th class="border px-2 py-1 text-center bg-gray-200 whitespace-nowrap">Date</th>
                 <th class="border px-2 py-1 text-center bg-gray-200">Phone(Name)</th>
                 <th class="border px-2 py-1 text-center bg-gray-200 whitespace-nowrap">Amount</th>
+                <th class="border px-2 py-1 text-center bg-gray-200">Comment</th>
               </tr>
             </thead>
             <tbody>
@@ -2311,6 +2522,7 @@ function renderOCDAIncomeAnalysis(data, mode) {
                 <tr>
                   <td class="border px-2 py-1 text-center whitespace-nowrap">${formatDate(transaction.date)}</td>
                   <td class="border px-2 py-1 text-center overflow-hidden" style="word-break: break-all;">${transaction.phoneno_name}</td> <td class="border px-2 py-1 text-center whitespace-nowrap">${formatAmount(transaction.amount)}</td>
+                  <td class="border px-2 py-1 text-center">${transaction.comment}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -2332,24 +2544,23 @@ document.getElementById('ocdaIncomeAnalysisForm')?.addEventListener('submit', fu
   loadOCDAIncomeAnalysis({ start, end, code, mode });
 });
 
+//export to pdf
+function exportOCDAReportToPDF() {
+  const element = document.getElementById('ocdaIncomeAnalysisTable');
 
-// Account Summary (View Member Ledger)
+  // Apply print-friendly styles temporarily
+  element.classList.add('pdf-export-enhanced');
 
-function showAccountSummary() {
-  // Hide all tab content and show this one
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-  document.getElementById('account-summary').classList.remove('hidden');
-
-  // Fetch and render account summary data
-  fetchTable('/admin/memberledger', 'accountSummaryData', row => `
-    <tr class="border-t">
-      <td class="p-2">${row.phoneno}</td>
-      <td class="p-2">${formatDate(row.transdate)}</td>
-      <td class="p-2">${formatAmount(row.amount)}</td>
-      <td class="p-2">${row.remark}</td>
-      <td class="p-2">${formatDate(row.paydate)}</td>     
-    </tr>
-  `);
+  html2pdf().set({
+    margin: 0.3,
+    filename: 'OCDA_Income_Analysis.pdf',
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: { scale: 4, useCORS: true }, // higher scale = sharper
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }).from(element).save()
+    .then(() => {
+      element.classList.remove('pdf-export-enhanced');
+    });
 }
 
 // admin-static tables

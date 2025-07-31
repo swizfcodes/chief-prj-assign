@@ -233,18 +233,45 @@ router.get('/dashboard', verifyToken, async (req, res) => {
   // GET /admin/memberledgerfor reports
 router.get('/memberledger', verifyToken, async (req, res) => {
   try {
-    const result = await request(`
+    const { from, to } = req.query;
+    
+    let query = `
       SELECT 
         phoneno, 
         DATE_FORMAT(transdate, '%Y-%m-%d') AS transdate,
         amount, 
         remark, 
-        DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate
-      FROM memberledger
-      ORDER BY transdate DESC
-    `).run();
+        DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate,
+        comment
+      FROM memberledger`;
     
+    const conditions = [];
+    const params = {};
+
+    // Add date filtering if parameters are provided
+    if (from) {
+      conditions.push('transdate >= @from');
+      params.from = from;
+    }
+    
+    if (to) {
+      conditions.push('transdate <= @to');
+      params.to = to;
+    }
+
+    // Add WHERE clause if we have conditions
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY transdate DESC';
+
+    console.log('Query:', query);
+    console.log('Params:', params);
+
+    const result = await request(query).inputs(params).run();
     res.json(result.recordset);
+
   } catch (err) {
     console.error('Error fetching member ledger:', err);
     res.status(500).json({ error: 'Failed to fetch member ledger' });
@@ -259,8 +286,6 @@ router.get('/member-recordledger', verifyToken, async (req, res) => {
         return res.status(400).json({ message: 'Both "from" and "to" dates are required.' });
     }
 
-    // Optional: Basic date validation
-    // Date.parse handles various valid date string formats (e.g., YYYY-MM-DD, ISO 8601)
     if (isNaN(Date.parse(from)) || isNaN(Date.parse(to))) {
         return res.status(400).json({ message: 'Invalid date format. Please use YYYY-MM-DD.' });
     }
@@ -269,10 +294,11 @@ router.get('/member-recordledger', verifyToken, async (req, res) => {
         const result = await request(`
             SELECT 
                 phoneno, 
-                transdate, 
+                DATE_FORMAT(transdate, '%Y-%m-%d') AS transdate, 
                 amount, 
                 remark, 
-                paydate 
+                DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate,
+                comment 
             FROM memberledger
             WHERE 
                 paydate >= @from 
@@ -619,7 +645,7 @@ router.put('/member/:phone', verifyToken, async (req, res) => {
 // POST: Add Ledger Entry
 router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   const { phoneno } = req.params;
-  const { transdate, amount, remark } = req.body;
+  const { transdate, amount, remark, comment } = req.body;
   
   try {
     // First, check if the phone number exists in the members table
@@ -636,10 +662,12 @@ router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
     }
     
     // If member exists, proceed with ledger entry
-    await request(`INSERT INTO memberledger(phoneno, transdate, amount, remark, paydate, created_by)
-      VALUES (@phoneno, @transdate, @amount, @remark, CURRENT_DATE, @created_by)`)
-      .inputs({phoneno, transdate, amount, remark, created_by: req.adminId})
+    await request(`INSERT INTO memberledger(phoneno, transdate, amount, remark, paydate, created_by, comment)
+      VALUES (@phoneno, @transdate, @amount, @remark, CURRENT_DATE, @created_by, @comment)`)
+      .inputs({phoneno, transdate, amount, remark, created_by: req.adminId, comment})
       .run();
+
+      console.log(`Ledger entry added for ${phoneno}:`, { transdate, amount, remark, comment });
       
     res.status(200).json({ message: 'Ledger entry recorded successfully' });
     
@@ -877,7 +905,8 @@ router.get('/enquiry', verifyToken, async (req, res) => {
                                 CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
                                 DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
                                 l.amount, 
-                                l.remark
+                                l.remark,
+                                l.comment
                             FROM memberledger l
                             LEFT JOIN members m ON l.phoneno = m.PhoneNumber
                             WHERE m.Ward = @ward ${dateFilter}
@@ -1120,7 +1149,7 @@ const tableMap = {
     columns: ['title']
   },
   qualifications: {
-    table: 'Qualfication',
+    table: 'qualfication',
     columns: ['qualification']
   },
   wards: {
@@ -1128,7 +1157,7 @@ const tableMap = {
     columns: ['ward', 'Quarter']
   },
   hontitles: {
-    table: 'HonTitle',
+    table: 'honTitle',
     columns: ['Htitle', 'titlerank']
   }
 };
@@ -1471,7 +1500,8 @@ router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
           e.project AS code,
           s.expsdesc AS description,
           DATE_FORMAT(e.docdate, '%Y-%m-%d') AS date, 
-          e.remarks AS remark, 
+          e.remarks AS remark,
+          e.voucher AS voucher, 
           e.amount
         FROM ocdaexpenses e
         LEFT JOIN stdxpenses s ON e.project = s.expscode
@@ -1557,7 +1587,8 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
           DATE_FORMAT(ml.transdate, '%Y-%m-%d') AS date,
           ml.amount,
           CONCAT(IFNULL(ml.phoneno, ''), '(', IFNULL(m.Surname, ''), ' ', IFNULL(m.othernames, ''), ')') AS phoneno_name,
-          ml.remark AS transaction_description
+          ml.remark AS transaction_description,
+          ml.comment AS comment
         FROM memberledger ml
         LEFT JOIN members m ON ml.phoneno = m.PhoneNumber
         ${whereClause}
@@ -1581,7 +1612,8 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
           date: row.date,
           phoneno_name: row.phoneno_name,
           amount: row.amount,
-          transaction_description: row.transaction_description || ''
+          transaction_description: row.transaction_description || '',
+          comment: row.comment || '' // Add this line
         });
         return acc;
       }, {});

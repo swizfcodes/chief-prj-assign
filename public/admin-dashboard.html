@@ -12,6 +12,29 @@
     body { font-family: 'Inter', sans-serif; }
     .active-tab { background-color: #1f2937; color: white; }
 
+    .pdf-export-enhanced {
+      background-color: white;
+      color: #000;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+    }
+
+    .pdf-export-enhanced table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .pdf-export-enhanced th,
+    .pdf-export-enhanced td {
+      border: 1px solid #333;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .pdf-export-enhanced th {
+      background-color: #f0f0f0;
+    }
+
     .collapsible-content {
       display: none;
     }
@@ -78,11 +101,25 @@
       word-break: break-word;
       max-width: 70px;
     }
+
+    .p-6 {
+      padding: 0.5rem !important;
+      padding-top: 15% !important;
+    }
+
+    .p-4 {
+       padding: 0.4rem !important;
+    }
+
+    .px-4 {
+     padding-left: 0.1rem !important;
+     padding-right: 0.1rem !important;
+    }
   }
 
   .p-6 {
     padding: 0.5rem !important;
-    padding-top: 10% !important;
+    padding-top: 12% !important;
   }
 }
   </style>
@@ -366,6 +403,7 @@
             <input type="text" name="code" class="p-2 border rounded" placeholder="e.g. ANNUAL DUES or ALL" />
           </div>
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Report</button>
+           <button onclick="exportOCDAReportToPDF()" class="bg-green-600 text-white px-4 py-2 rounded">Export PDF</button>
         </form>
         <div class="overflow-auto rounded shadow bg-white">
             <div id="ocdaIncomeAnalysisTable">
@@ -594,6 +632,11 @@
             <option value="">-- Select Income Classification --</option>
             <!-- Options will be populated by JS -->
           </select>
+
+          <label class="block text-black">
+            Comment
+            <input name="comment" placeholder="ignore if none.." type="text" class="w-full p-2 border rounded" />
+          </label>
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
         </form>
 
@@ -617,7 +660,31 @@
       </section>
 
       <section id="memberledger" class="tab-content hidden">
-          <h2 class="text-2xl font-semibold mb-4">All Member Ledger</h2>
+        <div class="mb-4 flex gap-4 items-center">
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Start Date:</label>
+            <input type="date" id="startDate" class="border rounded px-3 py-2">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">End Date:</label>
+            <input type="date" id="endDate" class="border rounded px-3 py-2">
+          </div>
+
+          <div class="flex gap-2 mt-6">
+            <button onclick="loadAllMemberLedger()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+              Filter
+            </button>
+            <button onclick="clearDateFilters()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+              Clear
+            </button>
+            <button onclick="loadCurrentMonth()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+              Current Month
+            </button>
+          </div>
+        </div>
+          <h2 class="text-2xl font-semibold mb-4" id="recordCount">All Member Ledger</h2>
           <div class="overflow-auto rounded shadow bg-white">
             <table class="min-w-full text-sm text-left">
               <thead class="bg-gray-200 text-gray-700">
@@ -789,20 +856,20 @@
       <section id="member-list" class="tab-content hidden">
         <h2 class="text-2xl font-semibold mb-4">Registered Members</h2>
 
-        <!-- 🔍 Search & Export -->
+        <!--  Search & Export -->
         <div class="flex justify-between mb-4">
           <input id="memberSearch" type="text" placeholder="Search..." class="p-2 border rounded w-full max-w-xs" />
           
           <div class="space-x-2">
             <button class="bg-blue-600 text-white px-3 py-2 rounded tab-button" data-tab="create-member">Add New Member</button>
-            <button onclick="exportMembers('excel')" class="bg-green-600 text-white px-3 py-2 rounded">Export Excel</button>
+            <button onclick="exportMembers('print')" class="bg-green-600 text-white px-3 py-2 rounded">Print</button>
             <button onclick="exportMembers('pdf')" class="bg-red-600 text-white px-3 py-2 rounded">Export PDF</button>
           </div>
         </div>
 
         <!--  Members Table -->
         <div class="overflow-auto rounded shadow bg-white">
-          <table class="min-w-full text-sm text-left" id="memberTableExport">
+          <table class="min-w-full text-sm text-left">
             <thead class="bg-gray-200 text-gray-700">
               <tr>
                 <th class="p-3">Phone No</th>
@@ -822,7 +889,6 @@
         <!--  Pagination -->
         <div id="pagination" class="flex justify-center mt-4 space-x-2"></div>
       </section>
-
 
       <!-- Full Member View/Edit Section -->
       <section id="memberDetails" class="hidden bg-white p-6 rounded shadow-md">
@@ -1127,7 +1193,7 @@
           <div class="text-right">
             <button id="updatePhoneNumberBtn" onclick="savePhoneNumber(event)"
               class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded transition duration-300">
-              Save
+              Change
             </button>
           </div>
         </form>
@@ -1156,7 +1222,7 @@
           <div class="text-right">
             <button id="mergePhoneNumberBtn" onclick="mergePhoneNumber(event)"
               class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded transition duration-300">
-              Save
+              Merge
             </button>
           </div>
         </form>
@@ -1177,19 +1243,9 @@
       <th>Ward</th>
       <th>Town</th>
       <th>State</th>
-      <th>Phone Number</th>
-      <th>Phone Number 2</th>
-      <th>Title</th>
-      <th>Hon Title</th>
-      <th>Qualifications</th>
-      <th>Profession</th>
-      <th>Exit Date</th>
-      <th>Created At</th>
     </tr>
   </thead>
-  <tbody>
-    <!-- JS injects rows here -->
-  </tbody>
+  <tbody id="membersTableExport"></tbody> <!-- This is what the code is looking for -->
 </table>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

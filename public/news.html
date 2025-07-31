@@ -38,25 +38,15 @@
     </div>
   </header>
 
-  <section class="max-w-4xl mx-auto my-8 px-4 fade-in-section"> 
-    <h2 class="text-xl font-bold mb-4">📰 News & Events</h2>
+<section class="bg-white py-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-6">News & Events</h2>
+    <ul id="newsList" class="space-y-2">
+      <!-- Items will be injected here -->
+    </ul>
+  </div>
+</section>
 
-    <div class="flex justify-between items-center mb-4">
-      <select id="newsYearFilter" class="border rounded px-2 py-1 text-sm">
-        <option value="">All Years</option>
-      </select>
-
-      <button id="toggleNewsView" class="text-blue-600 text-sm hover:underline">Show All</button>
-    </div>
-
-    <ul id="newsList" class="space-y-3"></ul>
-
-    <div id="newsPagination" class="mt-4 flex justify-center gap-2 hidden">
-      <button id="prevPage" class="px-3 py-1 border rounded bg-gray-100">Previous</button>
-      <span id="newsPageIndicator" class="text-sm text-gray-600 self-center"></span>
-      <button id="nextPage" class="px-3 py-1 border rounded bg-gray-100">Next</button>
-    </div>
-  </section>
 
 
   
