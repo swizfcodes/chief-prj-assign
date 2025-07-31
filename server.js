@@ -400,7 +400,16 @@ app.post('/api/reset-password', async (req, res) => {
 app.get('/api/ledger-entry/:phoneno', async (req, res) => {
   const { phoneno } = req.params;
   try {
-    const result = await request `SELECT * FROM memberledger WHERE phoneno = ${phoneno}`.run();
+const result = await request`
+        SELECT 
+          phoneno, 
+          amount, 
+          remark, 
+          DATE_FORMAT(transdate, '%Y-%m-%d') AS transdate, 
+          paydate 
+        FROM memberledger 
+        WHERE phoneno = ${phoneno}
+      `.run();
       
     res.json(result.recordset);
   } catch (err) {

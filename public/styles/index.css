@@ -871,7 +871,7 @@ transform: scale(1.05);
   .core-values ul,
   .what-we-do ul {
     font-size: 1.1rem;
-    color: var(--text-color);
+    color: #000;
   }
 
   /* Add glowing hover for list items */

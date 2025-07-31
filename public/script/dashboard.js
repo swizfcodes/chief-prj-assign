@@ -1,8 +1,9 @@
 const isLocal = window.location.hostname === 'localhost';
 const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://oyinakokocda.org';
 
-function formatDate(date) {
-  return date.split('T')[0];
+function formatDate(dateString) {
+  if (!dateString) return '';
+  return dateString.split('T')[0];
 }
 
 async function fetchAPI(endpoint, method = 'GET', data = null) {

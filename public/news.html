@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCDA</title>
+</head>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles/index.css">
+<link rel="icon" type="image/png" href="/photos/favicon.ico" sizes="32x32">
+<link  href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<style>
+  ul li::before {
+    content: "" !important; 
+  }
+</style>
+<body>
+  <!--- header design -->
+  <header class="hicad-header">
+    <a href="index.html" class="hicad-logo">
+      <img src="/photos/OCDA-Logo3.png" alt="ocda-logo" class="ocda-logoIdentity">
+    </a>
+
+    <nav class="hicad-navbar" id="navbar">
+      <a href="aboutus.html">About Us</a>
+      <a href="news.html" class="home-active">News & Events</a>
+      <a href="contact.html">Contact Us</a>
+      <a href="member.html" >Members</a>
+      <a href="adminlog.html">Admin</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+
+    <div class="hamburger" id="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </header>
+
+<section class="bg-white py-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-6">News & Events</h2>
+    <ul id="newsList" class="space-y-2">
+      <!-- Items will be injected here -->
+    </ul>
+  </div>
+</section>
+
+
+
+  
+</body>
+<script src="script/index.js"></script>
+<script src="script/news.js"></script>
+</html>

@@ -233,18 +233,45 @@ router.get('/dashboard', verifyToken, async (req, res) => {
   // GET /admin/memberledgerfor reports
 router.get('/memberledger', verifyToken, async (req, res) => {
   try {
-    const result = await request(`
+    const { from, to } = req.query;
+    
+    let query = `
       SELECT 
         phoneno, 
         DATE_FORMAT(transdate, '%Y-%m-%d') AS transdate,
         amount, 
         remark, 
-        DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate
-      FROM memberledger
-      ORDER BY transdate DESC
-    `).run();
+        DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate,
+        comment
+      FROM memberledger`;
     
+    const conditions = [];
+    const params = {};
+
+    // Add date filtering if parameters are provided
+    if (from) {
+      conditions.push('transdate >= @from');
+      params.from = from;
+    }
+    
+    if (to) {
+      conditions.push('transdate <= @to');
+      params.to = to;
+    }
+
+    // Add WHERE clause if we have conditions
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY transdate DESC';
+
+    console.log('Query:', query);
+    console.log('Params:', params);
+
+    const result = await request(query).inputs(params).run();
     res.json(result.recordset);
+
   } catch (err) {
     console.error('Error fetching member ledger:', err);
     res.status(500).json({ error: 'Failed to fetch member ledger' });
@@ -259,8 +286,6 @@ router.get('/member-recordledger', verifyToken, async (req, res) => {
         return res.status(400).json({ message: 'Both "from" and "to" dates are required.' });
     }
 
-    // Optional: Basic date validation
-    // Date.parse handles various valid date string formats (e.g., YYYY-MM-DD, ISO 8601)
     if (isNaN(Date.parse(from)) || isNaN(Date.parse(to))) {
         return res.status(400).json({ message: 'Invalid date format. Please use YYYY-MM-DD.' });
     }
@@ -269,10 +294,11 @@ router.get('/member-recordledger', verifyToken, async (req, res) => {
         const result = await request(`
             SELECT 
                 phoneno, 
-                transdate, 
+                DATE_FORMAT(transdate, '%Y-%m-%d') AS transdate, 
                 amount, 
                 remark, 
-                paydate 
+                DATE_FORMAT(paydate, '%Y-%m-%d') AS paydate,
+                comment 
             FROM memberledger
             WHERE 
                 paydate >= @from 
@@ -303,7 +329,7 @@ router.get('/monthlysummary', verifyToken, async (req, res) => {
   // GET /admin/ocdaexpenses
 router.get('/ocdaexpenses', verifyToken, async (req, res) => {
   try {
-    const result = await request('SELECT docdate, project, remarks, amount FROM ocdaexpenses').run();
+    const result = await request('SELECT docdate, project, remarks, voucher, amount FROM ocdaexpenses').run();
     res.json(result.recordset);
   } catch (err) {
     console.error('Error fetching OCDA expenses:', err);
@@ -421,7 +447,7 @@ router.post('/generate-summary', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'You can only generate summary for the previous or earlier months.' });
     }
 
-    // 🔍 Check if summary already exists
+    // Check if summary already exists
     const exists = await request('SELECT 1 FROM monthlysummary WHERE period = @period')
       .inputs({ period })
       .run();
@@ -619,17 +645,34 @@ router.put('/member/:phone', verifyToken, async (req, res) => {
 // POST: Add Ledger Entry
 router.post('/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   const { phoneno } = req.params;
-  const { transdate, amount, remark } = req.body;
-
+  const { transdate, amount, remark, comment } = req.body;
+  
   try {
-    await request(`INSERT INTO memberledger(phoneno, transdate, amount, remark, paydate)
-      VALUES (@phoneno, @transdate, @amount, @remark, CURRENT_DATE)`)
-      .inputs({phoneno, transdate, amount, remark})
+    // First, check if the phone number exists in the members table
+    const memberCheck = await request(`SELECT PhoneNumber FROM members WHERE PhoneNumber = @phoneno`)
+      .inputs({phoneno})
+      .run();
+    
+    // If no member found with this phone number
+    if (memberCheck.recordset.length === 0) {
+      return res.status(400).json({ 
+        field: 'phoneno',
+        message: 'Member does not exist'
+      });
+    }
+    
+    // If member exists, proceed with ledger entry
+    await request(`INSERT INTO memberledger(phoneno, transdate, amount, remark, paydate, created_by, comment)
+      VALUES (@phoneno, @transdate, @amount, @remark, CURRENT_DATE, @created_by, @comment)`)
+      .inputs({phoneno, transdate, amount, remark, created_by: req.adminId, comment})
       .run();
 
+      console.log(`Ledger entry added for ${phoneno}:`, { transdate, amount, remark, comment });
+      
     res.status(200).json({ message: 'Ledger entry recorded successfully' });
+    
   } catch (err) {
-    console.error('Ledger insert error:', err);
+    console.error('Ledger operation error:', err);
     res.status(500).json({ message: 'Failed to record ledger entry' });
   }
 });
@@ -656,25 +699,25 @@ router.get('/api/ledger-entry/:phoneno', verifyToken, async (req, res) => {
   }
 });
 
-// Add Expense with user-supplied date and project
+// Add Expense 
 router.post('/ocdaexpenses', verifyToken, async (req, res) => {
   try {
-    const { docdate, project, amount, remarks } = req.body;
+    const { docdate, project, amount, remarks, voucher } = req.body;
 
     if (!docdate || !project || amount == null || !remarks) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
     const result = await request(`
-      INSERT INTO ocdaexpenses (docdate, project, remarks, amount)
-      VALUES (@docdate, @project, @remarks, @amount)
+      INSERT INTO ocdaexpenses (docdate, project, remarks, amount, voucher, created_by)
+      VALUES (@docdate, @project, @remarks, @amount, @voucher, @created_by)
     `)
-    .inputs({ docdate, project, remarks, amount })
+    .inputs({ docdate, project, remarks, amount, voucher, created_by: req.adminId })
     .run();
 
     res.status(201).json({
       success: true,
-      message: 'OCDA expense saved successfully',
+      message: 'OCDA expense recorded successfully',
       rowsAffected: result.rowsAffected[0]
     });
   } catch (err) {
@@ -862,7 +905,8 @@ router.get('/enquiry', verifyToken, async (req, res) => {
                                 CONCAT(m.Surname, ' ', m.othernames) AS fullname, 
                                 DATE_FORMAT(l.transdate, '%Y-%m-%d') AS transdate, 
                                 l.amount, 
-                                l.remark
+                                l.remark,
+                                l.comment
                             FROM memberledger l
                             LEFT JOIN members m ON l.phoneno = m.PhoneNumber
                             WHERE m.Ward = @ward ${dateFilter}
@@ -1105,7 +1149,7 @@ const tableMap = {
     columns: ['title']
   },
   qualifications: {
-    table: 'Qualfication',
+    table: 'qualfication',
     columns: ['qualification']
   },
   wards: {
@@ -1113,7 +1157,7 @@ const tableMap = {
     columns: ['ward', 'Quarter']
   },
   hontitles: {
-    table: 'HonTitle',
+    table: 'honTitle',
     columns: ['Htitle', 'titlerank']
   }
 };
@@ -1456,7 +1500,8 @@ router.get('/ocda-expenses-analysis', verifyToken, async (req, res) => {
           e.project AS code,
           s.expsdesc AS description,
           DATE_FORMAT(e.docdate, '%Y-%m-%d') AS date, 
-          e.remarks AS remark, 
+          e.remarks AS remark,
+          e.voucher AS voucher, 
           e.amount
         FROM ocdaexpenses e
         LEFT JOIN stdxpenses s ON e.project = s.expscode
@@ -1517,15 +1562,16 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
     if (mode === 'summary') {
       const query = `
         SELECT
-          ml.remark AS code,
-          IFNULL(ic.incomedesc, 'No Description') AS description,
+          IFNULL(ic.incomecode, 'No Code') AS code,
+          ml.remark AS description,
           SUM(ml.amount) AS amount,
           COUNT(*) AS transaction_count
         FROM memberledger ml
-        LEFT JOIN incomeclassification ic ON ml.remark = ic.incomecode
+        LEFT JOIN incomeclassification ic ON ml.remark = ic.incomedesc
         ${whereClause}
-        GROUP BY ml.remark, ic.incomedesc
-        ORDER BY ml.remark`;
+        GROUP BY ml.remark, ic.incomecode
+        ORDER BY ic.incomecode
+      `;
 
       console.log('Summary Query being sent:', query); 
       console.log('Summary Params object being sent:', params);
@@ -1541,7 +1587,8 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
           DATE_FORMAT(ml.transdate, '%Y-%m-%d') AS date,
           ml.amount,
           CONCAT(IFNULL(ml.phoneno, ''), '(', IFNULL(m.Surname, ''), ' ', IFNULL(m.othernames, ''), ')') AS phoneno_name,
-          ml.remark AS transaction_description
+          ml.remark AS transaction_description,
+          ml.comment AS comment
         FROM memberledger ml
         LEFT JOIN members m ON ml.phoneno = m.PhoneNumber
         ${whereClause}
@@ -1565,7 +1612,8 @@ router.get('/ocda-income-analysis', verifyToken, async (req, res) => {
           date: row.date,
           phoneno_name: row.phoneno_name,
           amount: row.amount,
-          transaction_description: row.transaction_description || ''
+          transaction_description: row.transaction_description || '',
+          comment: row.comment || '' // Add this line
         });
         return acc;
       }, {});
