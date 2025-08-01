@@ -661,6 +661,107 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadUserProfile();
   }
 
+  async function populateEditForm() {
+    const loggedInPhone = localStorage.getItem('loggedInPhone');
+    console.log('Populating form for phone:', loggedInPhone);
+    
+    if (!loggedInPhone) {
+      alert("You're not logged in.");
+      return false;
+    }
+
+    try {
+      console.log('Fetching profile data...');
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: loggedInPhone })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const profileData = await res.json();
+      console.log('Profile data received:', profileData);
+      
+      const form = document.getElementById('profileEditForm');
+      
+      if (!form) {
+        console.error('Profile edit form not found');
+        return false;
+      }
+
+      // Map of form field IDs to profile data keys
+      const fieldMapping = {
+        'phone': 'phone',
+        'phoneNo2': 'phoneNo2', 
+        'othernames': 'othernames',
+        'surname': 'surname',
+        'email': 'email',
+        'State': 'State',
+        'sex': 'sex',
+        'title': 'title',
+        'honTitle': 'honTitle',
+        'Quarters': 'Quarters',
+        'Ward': 'Ward',
+        'town': 'town',
+        'qualifications': 'qualifications',
+        'profession': 'profession',
+        'exitDate': 'exitDate'
+      };
+
+      // Populate each field
+      Object.entries(fieldMapping).forEach(([fieldId, dataKey]) => {
+        // Try different case variations to find the input
+        let input = form.querySelector(`#${fieldId}`) || 
+                    form.querySelector(`#${fieldId.toLowerCase()}`) || 
+                    form.querySelector(`#${fieldId.toUpperCase()}`);
+        
+        if (input && profileData[dataKey] !== undefined) {
+          // Handle different input types
+          if (input.type === 'checkbox') {
+            input.checked = Boolean(profileData[dataKey]);
+          } else if (input.tagName === 'SELECT') {
+            input.value = profileData[dataKey] || '';
+          } else {
+            input.value = profileData[dataKey] || '';
+          }
+          console.log(`Populated ${fieldId} with:`, profileData[dataKey]);
+        } else if (input) {
+          console.log(`No data found for field: ${fieldId}`);
+        } else {
+          console.log(`Input not found for field: ${fieldId}`);
+        }
+      });
+
+      console.log('Form population completed successfully');
+      return true;
+    } catch (err) {
+      console.error('Error populating edit form:', err);
+      alert("Failed to load current profile data: " + err.message);
+      return false;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add CSS styles to handle button visibility
+    const style = document.createElement('style');
+    style.textContent = `
+      .profile-button-hidden {
+        display: none !important;
+      }
+      .profile-button-visible {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    // Load and populate form with current data
+    populateEditForm();
+  });
+
   console.log("UpdateProfile triggered");
   async function updateProfile(event) {
     event.preventDefault();
@@ -730,8 +831,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       alert("Something went wrong updating profile.");
     }
   }
-
-
 
   // Store all fetched receipts for advanced filtering and exporting
   let allReceipts = [];
@@ -1081,20 +1180,21 @@ async function fetchEnquiry(type, value) {
 }
 
   //  Bind event listeners AFTER fetchEnquiry is defined
-  document.getElementById('wardSelect').addEventListener('change', function () {
-    const value = this.value;
-    if (value && value !== 'Select Ward') {
-      fetchEnquiry('ward', value);
-    }
-  });
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('applyEnquiryBtn').addEventListener('click', () => {
+      const type = document.querySelector('input[name="filterType"]:checked')?.value;
+      const value = type === 'ward'
+        ? document.getElementById('wardSelect').value
+        : document.getElementById('quartersSelect').value;
 
-  document.getElementById('quartersSelect').addEventListener('change', function () {
-    const value = this.value;
-    if (value && value !== 'Select Quaters') {
-      fetchEnquiry('quarters', value);
-    }
-  });
+      if (!value) {
+        alert(`Please select a ${type}.`);
+        return;
+      }
 
+      fetchEnquiry(type, value);
+    });
+  });
 
   async function logout() {
     await fetch('/logout', { method: 'POST', credentials: 'include' });

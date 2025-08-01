@@ -68,13 +68,14 @@ app.post('/signup', async (req, res) => {
       Profession: userData.profession,
       exitdate: userData.exitDate || null,
       CreatedAt: new Date(),
+      createdby: userData.surname,
     };
 
     const insertQuery = `
       INSERT INTO members 
-      (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate)
+      (othernames, Surname, email, Sex, DOB, Quarters, Ward, Town, State, PhoneNumber, Password, CreatedAt, phoneno2, Title, HonTitle, Qualifications, Profession, exitdate, createdby)
       VALUES 
-      (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate)
+      (@othernames, @Surname, @email, @Sex, @DOB, @Quarters, @Ward, @Town, @State, @PhoneNumber, @Password, @CreatedAt, @phoneno2, @Title, @HonTitle, @Qualifications, @Profession, @exitdate, @createdby)
     `;
 
     await request(insertQuery).inputs(insertInputs).run();

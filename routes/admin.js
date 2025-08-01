@@ -266,9 +266,6 @@ router.get('/memberledger', verifyToken, async (req, res) => {
 
     query += ' ORDER BY transdate DESC';
 
-    console.log('Query:', query);
-    console.log('Params:', params);
-
     const result = await request(query).inputs(params).run();
     res.json(result.recordset);
 
@@ -426,81 +423,94 @@ router.post('/generate-summary', verifyToken, async (req, res) => {
   try {
     const { year, month } = req.body;
     const paddedMonth = month.padStart(2, '0');
-    const period = `${year}${paddedMonth}`; // e.g., 202406
+    const period = `${year}${paddedMonth}`; // e.g., 202407
 
-    // Get today's date
+    // Prevent summaries for current or future months
     const now = new Date();
-    const thisMonth = now.getMonth() + 1;
-    const thisYear = now.getFullYear();
-    let lastMonth = thisMonth - 1;
-    let lastMonthYear = thisYear;
+    const currentPeriod = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    if (lastMonth === 0) {
-      lastMonth = 12;
-      lastMonthYear--;
+    if (parseInt(period) >= parseInt(currentPeriod)) {
+      return res.status(400).json({ message: 'You can only generate summaries for completed months.' });
     }
 
-    const lastPeriod = `${lastMonthYear}${String(lastMonth).padStart(2, '0')}`;
+    // Fetch the earliest recorded period
+    const firstEntry = await request(`
+      SELECT MIN(DATE_FORMAT(transdate, '%Y%m')) AS firstPeriod
+      FROM memberledger
+    `).run();
+    const startPeriod = firstEntry.recordset[0].firstPeriod;
 
-    // Only allow summaries for past months
-    if (parseInt(period) > parseInt(lastPeriod)) {
-      return res.status(400).json({ message: 'You can only generate summary for the previous or earlier months.' });
+    // Fetch all existing summary periods
+    const existing = await request(`
+      SELECT period FROM monthlysummary
+    `).run();
+    const existingPeriods = new Set(existing.recordset.map(r => r.period));
+
+    // Generate all expected periods from startPeriod to the target period (exclusive)
+    const missing = [];
+    let cursor = startPeriod;
+    while (cursor < period) {
+      if (!existingPeriods.has(cursor)) {
+        missing.push(cursor);
+      }
+      // Advance cursor to next month
+      let y = parseInt(cursor.substring(0, 4));
+      let m = parseInt(cursor.substring(4, 6));
+      m++;
+      if (m === 13) { m = 1; y++; }
+      cursor = `${y}${String(m).padStart(2, '0')}`;
     }
 
-    // Check if summary already exists
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: `You must first generate summary for previous period(s): ${missing.join(', ')}`
+      });
+    }
+
+    // Check if summary for this period already exists
     const exists = await request('SELECT 1 FROM monthlysummary WHERE period = @period')
-      .inputs({ period })
-      .run();
-
+      .inputs({ period }).run();
     if (exists.recordset.length > 0) {
       return res.status(409).json({ message: `Summary for ${period} already exists.` });
     }
 
-    // 💳 Total Credit (inflows)
-    const creditResult = await request(`
-      SELECT IFNULL(SUM(amount), 0) AS totalCredit
+    // Debit from memberledger (inflow)
+    const debitResult = await request(`
+      SELECT IFNULL(SUM(amount), 0) AS totalDebit
       FROM memberledger
       WHERE DATE_FORMAT(transdate, '%Y%m') = @period
     `).inputs({ period }).run();
+    const Debitbalance = parseFloat(debitResult.recordset[0].totalDebit || 0);
 
-    const totalCredit = creditResult.recordset[0].totalCredit;
-
-    // 💸 Total Debit (expenses)
-    const debitResult = await request(`
-      SELECT IFNULL(SUM(amount), 0) AS totalDebit
+    // Credit from ocdaexpenses (outflow)
+    const creditResult = await request(`
+      SELECT IFNULL(SUM(amount), 0) AS totalCredit
       FROM ocdaexpenses
       WHERE DATE_FORMAT(docdate, '%Y%m') = @period
     `).inputs({ period }).run();
+    const Creditbalance = parseFloat(creditResult.recordset[0].totalCredit || 0);
 
-    const totalDebit = debitResult.recordset[0].totalDebit;
-
-    // 🧾 Get previous balance
-    const prev = await request(`
-      SELECT Netbalance AS prevNet
+    // Previous balance
+    const previousBalance = await request(`
+      SELECT Netbalance
       FROM monthlysummary
       WHERE period < @period
       ORDER BY period DESC
       LIMIT 1
     `).inputs({ period }).run();
+    const openbalance = previousBalance.recordset.length > 0
+      ? parseFloat(previousBalance.recordset[0].Netbalance)
+      : 0;
 
-    const prevNet = prev.recordset.length > 0 ? prev.recordset[0].prevNet : 0;
+    const Netbalance = openbalance + Debitbalance - Creditbalance;
 
-    const Netbalance = prevNet + totalCredit - totalDebit;
-
-    // 💾 Save new summary
+    // Insert new summary
     await request(`
       INSERT INTO monthlysummary (period, openbalance, Debitbalance, Creditbalance, Netbalance)
       VALUES (@period, @openbalance, @Debitbalance, @Creditbalance, @Netbalance)
-    `).inputs({
-      period,
-      openbalance: prevNet,
-      Debitbalance: totalCredit, // Your original code swapped these
-      Creditbalance: totalDebit,
-      Netbalance
-    }).run();
+    `).inputs({ period, openbalance, Debitbalance, Creditbalance, Netbalance }).run();
 
-    // ✅ Fetch & return inserted summary
-    const summaryResult = await request(`
+    const summary = await request(`
       SELECT period, openbalance, Debitbalance, Creditbalance, Netbalance
       FROM monthlysummary
       WHERE period = @period
@@ -508,7 +518,7 @@ router.post('/generate-summary', verifyToken, async (req, res) => {
 
     res.status(201).json({
       message: 'Monthly summary saved',
-      summary: summaryResult.recordset[0]
+      summary: summary.recordset[0]
     });
 
   } catch (err) {

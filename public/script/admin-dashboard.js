@@ -613,16 +613,16 @@ fetchTable('/admin/ocdaexpenses', 'expensesData', row => `
 `);
 
 // Fetch and render Standard Expenses
-  fetchTable('/admin/stdxpenses', 'stdData', row => `
-    <tr class="border-t">
-      <td data-field="expscode" contenteditable="false" class="p-2">${row.expscode}</td>
-      <td data-field="expsdesc" contenteditable="false" class="p-2">${row.expsdesc}</td>
-      <td class="p-2">
-        <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editStdExpense('${row.expscode}', this)">Edit</button>
-        <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteStdExpense('${row.expscode}')">Delete</button>
-      </td>
-    </tr>
-  `);
+fetchTable('/admin/stdxpenses', 'stdData', row => `
+  <tr class="border-t">
+    <td data-field="expscode" contenteditable="false" class="p-2">${row.expscode}</td>
+    <td data-field="expsdesc" contenteditable="false" class="p-2">${row.expsdesc}</td>
+    <td class="p-2">
+      <button class="px-2 py-1 bg-yellow-500 text-white rounded text-xs" onclick="editStdExpense('${row.expscode}', this)">Edit</button>
+      <button class="px-2 py-1 bg-red-600 text-white rounded text-xs" onclick="deleteStdExpense('${row.expscode}')">Delete</button>
+    </td>
+  </tr>
+`);
 
 document.getElementById('addStdExpenseForm')?.addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -891,10 +891,6 @@ document.getElementById('retypePassword').addEventListener('input', function() {
 });
 
 //show the member list
-/*let allMembers = [];
-let currentPage = 1;
-const rowsPerPage = 10;*/
-
 function displayMembers(data) {
   const table = document.getElementById('membersTable');
   const start = (currentPage - 1) * rowsPerPage;
@@ -966,9 +962,10 @@ async function loadMembers() {
       const members = allMembers || [];
       exportTableBody.innerHTML = members.map(member => `
         <tr>
+
+          <td>${member.PhoneNumber || ''}</td>
           <td>${member.Surname || ''}</td>
           <td>${member.othernames || ''}</td>
-          <td>${member.Email || ''}</td>
           <td>${member.Sex || ''}</td>
           <td>${member.DOB ? new Date(member.DOB).toLocaleDateString() : ''}</td>
           <td>${member.Quarters || ''}</td>
@@ -2404,25 +2401,33 @@ function renderOCDAExpensesAnalysis(data, mode) {
   }
 }
 
-// Add this outside the render function
-function toggleGroup(index) {
-  const section = document.getElementById(`group-${index}`);
-  if (section) section.classList.toggle('hidden');
-}
-
 //export to pdf
-function exportOCDAReportToPDF() {
+function exportOCDAExpReportToPDF() {
   const element = document.getElementById('ocdaExpensesAnalysisTable');
+
+  // DEBUG
+  if (!element) {
+    console.error('🚨 ocdaExpensesAnalysisTable not found in DOM!');
+    return;
+  }
+
+  element.classList.add('pdf-export-enhanced');
+
   html2pdf().set({
     margin: 0.3,
     filename: 'OCDA_Expenses_Analysis.pdf',
     image: { type: 'jpeg', quality: 1 },
-    html2canvas: { scale: 4, useCORS: true }, // higher scale = sharper
+    html2canvas: { scale: 4, useCORS: true },
     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-  }).from(element).save()
-    .then(() => {
-      element.classList.remove('pdf-export-enhanced');
+  }).from(element).save().then(() => {
+    element.classList.remove('pdf-export-enhanced');
   });
+}
+
+// Add this outside the render function
+function toggleGroup(index) {
+  const section = document.getElementById(`group-${index}`);
+  if (section) section.classList.toggle('hidden');
 }
 
 document.getElementById('ocdaExpensesAnalysisForm')?.addEventListener('submit', function(e) {

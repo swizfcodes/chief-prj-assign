@@ -79,9 +79,13 @@
     }
   }
 
-  @media (max-width: 1023px) and (min-width: 600px) {
+  @media (max-width: 1045px) and (min-width: 600px) {
     .p-6 {
         padding-top: 7% !important;
+    }
+
+    html {
+      font-size: 80% !important;
     }
   }
 
@@ -100,6 +104,15 @@
     .email-wrap {
       word-break: break-word;
       max-width: 70px;
+    }
+
+    .gap-2 {
+        gap: 0.15rem !important;
+    }
+
+    .px-3 {
+      padding-left: 0.15rem !important; 
+      padding-right: 0.15rem !important; 
     }
 
     .p-6 {
@@ -194,13 +207,12 @@
 
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 lg:hidden"></div>
 
-
-
     <!-- Main Content -->
     <main class="flex-1 p-6 space-y-10">
       
         <!-- Card + Table Container -->
       <section id="landingSections" class="landings-section tab-content">
+        <h1 class="text-2xl font-semibold mb-4" style="margin-top: 3%;">CURRENT PARTICIPATING MEMBERS</h1>
         <div class="overflow-x-auto rounded shadow bg-white p-4 space-y-6">
           <div id="membersSummaryTableBox">
             <!-- JS will inject summary cards and table here -->
@@ -369,7 +381,7 @@
             <input type="text" name="code" class="p-2 border rounded" placeholder="e.g. 1010 or ALL" />
           </div>
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Generate Report</button>
-          <button onclick="exportOCDAReportToPDF()" class="bg-green-600 text-white px-4 py-2 rounded">Export PDF</button>
+          <button onclick="exportOCDAExpReportToPDF()" class="bg-green-600 text-white px-4 py-2 rounded" id="exportExpensesBtn">Export PDF</button>
         </form>
 
         <!-- Results Container -->
@@ -548,7 +560,7 @@
               <div class="form-row">
                 <!-- State -->
                 <div class="form-group">
-                  <label for="state">State <span class="required">*</span></label>
+                  <label for="state">Resident State <span class="required">*</span></label>
                   <select id="state" name="State" required> 
                     <option value="">Select State</option>
                   </select>
@@ -556,7 +568,7 @@
                 </div>
 
                 <div class="form-group">
-                  <label for="town">Town <span class="required">*</span></label>
+                  <label for="town">Resident Town <span class="required">*</span></label>
                   <input type="text" id="town" name="Town" required>
                   <div class="error" id="townError"></div>
                 </div>
@@ -659,6 +671,7 @@
         </div>
       </section>
 
+      <!-- Member Ledger -->
       <section id="memberledger" class="tab-content hidden">
         <div class="mb-4 flex gap-4 items-center">
 
@@ -672,15 +685,26 @@
             <input type="date" id="endDate" class="border rounded px-3 py-2">
           </div>
 
-          <div class="flex gap-2 mt-6">
-            <button onclick="loadAllMemberLedger()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-              Filter
+          <div class="flex flex-wrap gap-2 mt-6">
+            <button onclick="loadAllMemberLedger()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7sm:mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m0-18h7.5a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0119.5 21H12m0-18H4.5A2.25 2.25 0 002.25 5.25v13.5A2.25 2.25 0 004.5 21H12" />
+              </svg>
+              <span class="hidden sm:inline">Filter</span>
             </button>
-            <button onclick="clearDateFilters()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-              Clear
+            
+            <button onclick="clearDateFilters()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7sm:mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span class="hidden sm:inline">Clear</span>
             </button>
-            <button onclick="loadCurrentMonth()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-              Current Month
+            
+            <button onclick="loadCurrentMonth()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7sm:mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="hidden sm:inline">Current Month</span>
             </button>
           </div>
         </div>
@@ -857,13 +881,33 @@
         <h2 class="text-2xl font-semibold mb-4">Registered Members</h2>
 
         <!--  Search & Export -->
-        <div class="flex justify-between mb-4">
+        <div class="flex justify-around mb-4">
           <input id="memberSearch" type="text" placeholder="Search..." class="p-2 border rounded w-full max-w-xs" />
           
-          <div class="space-x-2">
-            <button class="bg-blue-600 text-white px-3 py-2 rounded tab-button" data-tab="create-member">Add New Member</button>
-            <button onclick="exportMembers('print')" class="bg-green-600 text-white px-3 py-2 rounded">Print</button>
-            <button onclick="exportMembers('pdf')" class="bg-red-600 text-white px-3 py-2 rounded">Export PDF</button>
+          <div class="flex flex-wrap gap-2">
+            <!-- Add New Member -->
+<button class="bg-blue-600 text-white px-4 py-2 rounded tab-button flex items-center justify-center gap-2 transition-all duration-300" data-tab="create-member">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6 transform transition-transform duration-300 group-hover:rotate-90">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+  </svg>
+  <span class="hidden sm:inline">Add New Member</span>
+</button>
+
+            <!-- Print -->
+            <button onclick="exportMembers('print')" class="bg-green-600 text-white px-3 py-2 rounded flex items-center gap-x-2 hover:bg-green-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18H4.5A2.25 2.25 0 012.25 15.75V9A2.25 2.25 0 014.5 6.75h15A2.25 2.25 0 0121.75 9v6.75A2.25 2.25 0 0119.5 18H18v-5.25A2.25 2.25 0 0015.75 10.5h-7.5a2.25 2.25 0 00-2.25 2.25V18zM18 12v3.75h3.75" />
+              </svg>
+              <span class="hidden sm:inline">Print</span>
+            </button>
+
+            <!-- Export PDF -->
+            <button onclick="exportMembers('pdf')" class="bg-red-600 text-white px-3 py-2 rounded flex items-center gap-x-2 hover:bg-red-700 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5l-7.5 7.5-7.5-7.5M21 15v4.5a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 19.5V15" />
+              </svg>
+              <span class="hidden sm:inline">Export PDF</span>
+            </button>
           </div>
         </div>
 
@@ -945,7 +989,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="State">State</label>
+              <label for="State">Resident State</label>
               <select name="State" id="State" class="p-3 border rounded w-full">
                 <option value="">Select State</option>
               </select>
@@ -961,7 +1005,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="Town">Town</label>
+              <label for="Town">Resident Town</label>
               <input name="Town" id="Town" type="text" class="p-3 border rounded w-full" />
             </div>
           </div>
@@ -1028,8 +1072,8 @@
             <div><strong>Sex:</strong> <span id="viewSex"></span></div>
             <div><strong>Quarter:</strong> <span id="viewQuarters"></span></div>
             <div><strong>Ward:</strong> <span id="viewWard"></span></div>
-            <div><strong>State:</strong> <span id="viewState"></span></div>
-            <div><strong>Town:</strong> <span id="viewTown"></span></div>
+            <div><strong>Resident State:</strong> <span id="viewState"></span></div>
+            <div><strong>Resident Town:</strong> <span id="viewTown"></span></div>
             <div><strong>DOB:</strong> <span id="viewDOB"></span></div>
             <div><strong>Exit:</strong> <span id="viewExit"></span></div>
             <div><strong>Qualification:</strong> <span id="viewQualifications"></span></div>
@@ -1037,8 +1081,6 @@
             <div><strong>Email:</strong> <span id="viewEmail"></span></div>
           </div>
         </div>
-
-
 
         <div class="mt-4 space-x-2">
           <button id="updateMemberBtn" onclick="saveMemberChanges()" class="bg-green-600 text-white px-4 py-2 rounded hidden">
@@ -1234,9 +1276,9 @@
 <table id="memberTableExport" class="hidden">
   <thead>
     <tr>
+      <th>PhoneNumber</th>
       <th>Surname</th>
       <th>Other Names</th>
-      <th>Email</th>
       <th>Sex</th>
       <th>Date of Birth</th>
       <th>Quarters</th>
@@ -1247,6 +1289,7 @@
   </thead>
   <tbody id="membersTableExport"></tbody> <!-- This is what the code is looking for -->
 </table>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
