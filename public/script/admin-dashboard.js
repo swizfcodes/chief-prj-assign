@@ -221,7 +221,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Manual dropdown toggle for receipt tab
   if (receiptTabBtn && receiptDropdown) {
-    // Force initialize dropdown as hidden using inline style
     receiptDropdown.style.display = 'none';
     console.log('Dropdown initialized as hidden');
     
@@ -247,7 +246,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const menuWrapper = document.querySelector('.menu-wrapper, #menuWrapper, [data-menu-wrapper]'); // Try multiple selectors
   if (menuWrapper && receiptDropdown) {
     menuWrapper.addEventListener('click', (e) => {
-      // Only hide if the click is directly on the menu wrapper, not on its children
       if (e.target === menuWrapper) {
         receiptDropdown.classList.add('hidden');
       }
@@ -260,7 +258,6 @@ function verifyToken(req, res, next) {
   if (!token) return res.status(401).json({ message: 'Missing token' });
 
   try {
-    // For example with JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.admin = decoded;
     next();
@@ -780,13 +777,6 @@ function incomeClassRowRender(row) {
       </td>
     </tr>
   `;
-}
-
-
-// Logout
-function adminLogout() {
-  localStorage.removeItem('adminToken');
-  window.location.href = '/adminlog.html';
 }
 
 // Init
@@ -1869,8 +1859,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 
-
-
 // Enquiry System (Screen H)
 // Toggle dropdowns based on radio selection
 document.querySelectorAll('input[name="enquiryType"]').forEach(radio => {
@@ -2404,10 +2392,8 @@ function renderOCDAExpensesAnalysis(data, mode) {
 //export to pdf
 function exportOCDAExpReportToPDF() {
   const element = document.getElementById('ocdaExpensesAnalysisTable');
-
-  // DEBUG
   if (!element) {
-    console.error('🚨 ocdaExpensesAnalysisTable not found in DOM!');
+    console.error('ocdaExpensesAnalysisTable not found in DOM!');
     return;
   }
 
@@ -2424,7 +2410,6 @@ function exportOCDAExpReportToPDF() {
   });
 }
 
-// Add this outside the render function
 function toggleGroup(index) {
   const section = document.getElementById(`group-${index}`);
   if (section) section.classList.toggle('hidden');
@@ -2468,7 +2453,7 @@ function toggleIncomeGroup(index) {
   }
 }
 
-// Rewritten function for rendering OCDA Income Analysis
+//function for rendering OCDA Income Analysis
 function renderOCDAIncomeAnalysis(data, mode) {
   const tableContainer = document.getElementById('ocdaIncomeAnalysisTable');
   if (!tableContainer) {
@@ -3104,3 +3089,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Error loading states:', err);
   }
 });
+
+// Logout
+function adminLogout() {
+  localStorage.removeItem('adminToken');
+  window.location.href = '/adminlog.html';
+}

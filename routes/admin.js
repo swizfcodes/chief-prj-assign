@@ -151,7 +151,6 @@ router.get('/login', (req, res) => {
   res.status(405).json({ message: 'Use POST to log in.' });
 });
 
-
 // Admin Forgot Password Route
 router.post('/reset-adminpassword', async (req, res) => {
   const { email, newPassword } = req.body;
@@ -163,8 +162,8 @@ router.post('/reset-adminpassword', async (req, res) => {
   try {
     const result = await request`
       UPDATE admins
-      SET [Password] = ${newPassword}
-      WHERE [Email] = ${email}
+      SET password = ${newPassword}
+      WHERE email = ${email}
     `.run();
 
     if (result.rowsAffected[0] === 0) {

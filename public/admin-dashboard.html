@@ -107,7 +107,11 @@
     }
 
     .gap-2 {
-        gap: 0.15rem !important;
+        gap: 0.5rem !important;
+    }
+
+    .gap-4 {
+      gap: 0.4rem !important;
     }
 
     .px-3 {
@@ -886,12 +890,12 @@
           
           <div class="flex flex-wrap gap-2">
             <!-- Add New Member -->
-<button class="bg-blue-600 text-white px-4 py-2 rounded tab-button flex items-center justify-center gap-2 transition-all duration-300" data-tab="create-member">
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6 transform transition-transform duration-300 group-hover:rotate-90">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-  </svg>
-  <span class="hidden sm:inline">Add New Member</span>
-</button>
+            <button class="bg-blue-600 text-white px-4 py-2 rounded tab-button flex items-center justify-center gap-2 transition-all duration-300" data-tab="create-member">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-6 h-6 transform transition-transform duration-300 group-hover:rotate-90">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <span class="hidden sm:inline">Add New Member</span>
+            </button>
 
             <!-- Print -->
             <button onclick="exportMembers('print')" class="bg-green-600 text-white px-3 py-2 rounded flex items-center gap-x-2 hover:bg-green-700 transition">

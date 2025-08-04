@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const serveIndex = require('serve-index');
-const {  request } = require('./db-wrapper');
+const { request } = require('./db-wrapper');
 const pool = require('./db');
 const path = require('path');
 const cors = require('cors');
@@ -12,10 +12,9 @@ const PORT = process.env.PORT || 5500;
 
 app.use(cors({
   origin: [
-    'http://localhost:5500',        // local frontend
-    'http://127.0.0.1:5500',
-    'https://oyinakokocda.org',       
-    // production
+    'http://localhost:5500',// local frontend
+    'http://127.0.0.1:5500',// local frontend
+    'https://oyinakokocda.org',// production
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
@@ -181,7 +180,6 @@ app.post('/api/login', (req, res) => {
 });
 
 // dashboard Endpoint//
-
 app.post('/api/profile', async (req, res) => { 
   try {
     const { phoneNumber } = req.body;
@@ -242,7 +240,6 @@ app.post('/api/profile', async (req, res) => {
 
 
 // Serve the dashboard HTML file
-
 app.get('/dashboard', (req, res) => {
   const filePath = path.join(__dirname, 'public', 'dashboard.html');
   res.sendFile(filePath);
@@ -397,11 +394,10 @@ app.post('/api/reset-password', async (req, res) => {
 
 
 //Fetch Individual Ledger Receipts
-
 app.get('/api/ledger-entry/:phoneno', async (req, res) => {
   const { phoneno } = req.params;
   try {
-const result = await request`
+    const result = await request`
         SELECT 
           phoneno, 
           amount, 

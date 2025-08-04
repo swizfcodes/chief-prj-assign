@@ -31,10 +31,8 @@ async function fetchAPI(endpoint, method = 'GET', data = null) {
   }
 }
 
-  const phone = localStorage.getItem('loggedInPhone');
-  if (!phone) window.location.href = '/';
-
-
+const phone = localStorage.getItem('loggedInPhone');
+if (!phone) window.location.href = '/';
 
   // On page load: collapse if screen is <= 1400px
 const sidebar = document.getElementById('sidebar');

@@ -23,9 +23,9 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://oyinakokocda.org';
   }
 
 
-  // Load and prefill phone number when the page loads
+  // Load and prefill email when the page loads
   document.addEventListener('DOMContentLoaded', function() {
-    // Get the prefilled phone number from sessionStorage
+    // Get the prefilled email from sessionStorage
     const prefillEmail = sessionStorage.getItem('prefillEmail');
     const emailInput = document.getElementById('email');
     
@@ -54,7 +54,7 @@ const BASE_URL = isLocal ? 'http://localhost:5500' : 'https://oyinakokocda.org';
       showError('email', 'Email is required');
       isValid = false;
     } else if (email.length < 10) {
-      showError('email', 'Please enter a valid phone number');
+      showError('email', 'Please enter a valid email address');
       isValid = false;
     }
     
